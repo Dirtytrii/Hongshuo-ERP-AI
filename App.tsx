@@ -1,11 +1,10 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
   LayoutDashboard, Wallet, HardHat, Package, 
   Plus, Clock, TrendingUp, AlertTriangle, 
   ChevronRight, ArrowRightLeft, 
   X, Check, Building2, 
-  History, BrainCircuit, Sparkles, Send, Search, Filter, Settings
+  History, BrainCircuit, Sparkles, Send, Search, Filter, Settings, Trash2
 } from 'lucide-react';
 import { analyzeConstructionData } from './services/geminiService';
 import { apiService } from './services/apiService';
@@ -29,56 +28,161 @@ const STATUS_COLORS: Record<string, string> = {
 
 const App = () => {
   const [currentUser, setCurrentUser] = useState<Role>(ROLES.ADMIN);
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTab] = useState('inventory'); // 默认切到仓库方便查看
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   
   // Data States
-  const [projects, setProjects] = useState<Project[]>([
-    { id: 1, name: '宏硕·云端大厦', code: 'HS-2024-001', managerId: 'pm', contractAmount: 5000000, receivedAmount: 2000000, materialCost: 1200000, laborCost: 800000, otherCost: 100000, status: '施工中', progress: 45, startDate: '2024-01-10', endDate: '2024-12-30', milestones: [] }
-  ]);
-  const [inventory, setInventory] = useState<InventoryItem[]>([
-    { id: 1, name: '42.5级硅酸盐水泥', spec: '50kg/袋', unit: '袋', price: 28, quantity: 1500, threshold: 200 },
-    { id: 2, name: '螺纹钢 Φ12', spec: '12m/根', unit: '吨', price: 3850, quantity: 45, threshold: 10 }
-  ]);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [financeRecords, setFinanceRecords] = useState<FinanceRecord[]>([]);
   const [stockLogs, setStockLogs] = useState<StockLog[]>([]);
   
+  // Loading States
+  const [isLoading, setIsLoading] = useState(true);
+  const [isBackendConnected, setIsBackendConnected] = useState(false);
+  
+  // Modal States
+  const [isStockModalOpen, setIsStockModalOpen] = useState(false);
+  const [stockModalType, setStockModalType] = useState<'in' | 'out'>('in');
+  const [selectedItemId, setSelectedItemId] = useState<number>(0);
+  const [stockAmount, setStockAmount] = useState<number>(0);
+  const [targetProjectId, setTargetProjectId] = useState<number>(0);
+
   // AI States
   const [aiPrompt, setAiPrompt] = useState('');
   const [aiResponse, setAiResponse] = useState<string | null>(null);
   const [isAiThinking, setIsAiThinking] = useState(false);
 
-  // Implement handleAiAnalysis to process AI queries with construction data
+  // Load data from backend
+  useEffect(() => {
+    const loadData = async () => {
+      setIsLoading(true);
+      try {
+        const [projectsData, inventoryData, financeData, stockData] = await Promise.all([
+          apiService.getProjects().catch(() => []) as Promise<Project[]>,
+          apiService.getInventory().catch(() => []) as Promise<InventoryItem[]>,
+          apiService.getFinanceRecords().catch(() => []) as Promise<FinanceRecord[]>,
+          apiService.getStockLogs().catch(() => []) as Promise<StockLog[]>
+        ]);
+        
+        const projects = Array.isArray(projectsData) ? projectsData : [];
+        const inventory = Array.isArray(inventoryData) ? inventoryData : [];
+        const finance = Array.isArray(financeData) ? financeData : [];
+        const stock = Array.isArray(stockData) ? stockData : [];
+        
+        setProjects(projects);
+        setInventory(inventory);
+        setFinanceRecords(finance);
+        setStockLogs(stock);
+        
+        // Set default selected values
+        if (inventory.length > 0) {
+          setSelectedItemId(inventory[0].id);
+        }
+        if (projects.length > 0) {
+          setTargetProjectId(projects[0].id);
+        }
+        
+        setIsBackendConnected(true);
+      } catch (error) {
+        console.error('Failed to load data:', error);
+        setIsBackendConnected(false);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    loadData();
+    
+    // Refresh data every 30 seconds
+    const interval = setInterval(loadData, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Stock Action Handler
+  const handleStockSubmit = async () => {
+    if (stockAmount <= 0) {
+      alert("请输入有效的数量！");
+      return;
+    }
+
+    if (!selectedItemId) {
+      alert("请选择物料！");
+      return;
+    }
+
+    const selectedItem = inventory.find(i => i.id === selectedItemId);
+    if (!selectedItem) {
+      alert("物料不存在！");
+      return;
+    }
+
+    try {
+      const stockLogData = {
+        type: stockModalType,
+        itemId: selectedItemId,
+        qty: stockAmount,
+        price: selectedItem.price,
+        projectId: stockModalType === 'out' ? targetProjectId : null,
+        creator: currentUser.name,
+        note: ''
+      };
+
+      const newLog = await apiService.createStockLog(stockLogData);
+      
+      // 如果是入库，立即更新库存显示
+      if (stockModalType === 'in') {
+        setInventory(prev => prev.map(item => 
+          item.id === selectedItemId 
+            ? { ...item, quantity: item.quantity + stockAmount }
+            : item
+        ));
+      }
+      
+      // 更新日志列表
+      setStockLogs(prev => [newLog, ...prev]);
+      
+      // 如果是出库，显示提示信息
+      if (stockModalType === 'out') {
+        alert("出库申请已提交，等待项目经理审核。");
+      }
+      
+      // Close & Reset
+      setIsStockModalOpen(false);
+      setStockAmount(0);
+    } catch (error: any) {
+      alert(error.message || "操作失败，请稍后重试。");
+    }
+  };
+
   const handleAiAnalysis = async () => {
     if (!aiPrompt.trim() || isAiThinking) return;
-    
     setIsAiThinking(true);
     setAiResponse(null);
-    
     try {
+      // 从后端获取完整的数据快照
+      const appState = await apiService.getAppState() as any;
       const data: AppState = {
-        projects,
-        inventory,
-        financeRecords,
-        stockLogs
+        projects: (appState.projects || []) as Project[],
+        inventory: (appState.inventory || []) as InventoryItem[],
+        financeRecords: (appState.financeRecords || []) as FinanceRecord[],
+        stockLogs: (appState.stockLogs || []) as StockLog[]
       };
-      
       const result = await analyzeConstructionData(aiPrompt, data);
       setAiResponse(result);
     } catch (error) {
-      console.error("AI Analysis Error:", error);
-      setAiResponse("抱歉，分析过程中出现了问题。请确认网络连接与 API 密钥。");
+      console.error('AI Analysis error:', error);
+      setAiResponse("分析失败，请稍后重试。");
     } finally {
       setIsAiThinking(false);
     }
   };
 
-  // 渲染统计卡片
   const StatsCards = () => (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
       {[
         { title: '在建项目', value: projects.length, icon: Building2, color: 'blue' },
-        { title: '本月支出', value: '￥24.5万', icon: Wallet, color: 'orange' },
+        { title: '累计出库量', value: stockLogs.filter(l => l.type === 'out').reduce((acc, curr) => acc + curr.qty, 0), icon: ArrowRightLeft, color: 'orange' },
         { title: '库存预警', value: inventory.filter(i => i.quantity < i.threshold).length, icon: AlertTriangle, color: 'red' },
         { title: 'AI 建议', value: '3条', icon: Sparkles, color: 'purple' },
       ].map((s, i) => (
@@ -97,6 +201,72 @@ const App = () => {
 
   return (
     <div className="flex h-screen bg-slate-50 text-slate-900 overflow-hidden font-sans">
+      {/* Stock Modal */}
+      {isStockModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className={`p-6 flex items-center justify-between text-white ${stockModalType === 'in' ? 'bg-green-600' : 'bg-blue-600'}`}>
+              <h3 className="text-lg font-bold flex items-center gap-2">
+                {stockModalType === 'in' ? <Plus size={20}/> : <ArrowRightLeft size={20}/>}
+                物料{stockModalType === 'in' ? '入库登记' : '出库申请'}
+              </h3>
+              <button onClick={() => setIsStockModalOpen(false)} className="hover:rotate-90 transition-transform"><X size={20}/></button>
+            </div>
+            <div className="p-8 space-y-5">
+              <div>
+                <label className="block text-xs font-bold text-slate-400 uppercase mb-2">选择物料</label>
+                <select 
+                  className="w-full bg-slate-50 border rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
+                  value={selectedItemId}
+                  onChange={(e) => setSelectedItemId(Number(e.target.value))}
+                >
+                  {inventory.map(i => <option key={i.id} value={i.id}>{i.name} ({i.spec})</option>)}
+                </select>
+              </div>
+              
+              {stockModalType === 'out' && (
+                <div>
+                  <label className="block text-xs font-bold text-slate-400 uppercase mb-2">关联项目</label>
+                  <select 
+                    className="w-full bg-slate-50 border rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
+                    value={targetProjectId}
+                    onChange={(e) => setTargetProjectId(Number(e.target.value))}
+                  >
+                    {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                  </select>
+                </div>
+              )}
+
+              <div>
+                <label className="block text-xs font-bold text-slate-400 uppercase mb-2">操作数量 ({inventory.find(i => i.id === selectedItemId)?.unit})</label>
+                <input 
+                  type="number"
+                  className="w-full bg-slate-50 border rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="请输入数量..."
+                  value={stockAmount || ''}
+                  onChange={(e) => setStockAmount(Number(e.target.value))}
+                />
+              </div>
+
+              <div className="pt-4 flex gap-3">
+                <button 
+                  onClick={() => setIsStockModalOpen(false)}
+                  className="flex-1 px-4 py-3 rounded-xl border font-bold hover:bg-slate-50 transition-colors"
+                >
+                  取消
+                </button>
+                <button 
+                  onClick={handleStockSubmit}
+                  className={`flex-1 px-4 py-3 rounded-xl text-white font-bold shadow-lg transition-transform active:scale-95 ${stockModalType === 'in' ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-700'}`}
+                >
+                  确认{stockModalType === 'in' ? '入库' : '出库'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 侧边栏 */}
       <aside className={`${isSidebarOpen ? 'w-64' : 'w-20'} bg-white border-r transition-all duration-300 flex flex-col`}>
         <div className="p-6 flex items-center gap-3">
@@ -105,7 +275,6 @@ const App = () => {
           </div>
           {isSidebarOpen && <span className="font-bold text-lg tracking-tight">宏硕建设 ERP</span>}
         </div>
-        
         <nav className="flex-1 px-4 py-4 space-y-1">
           {[
             { id: 'dashboard', label: '仪表盘', icon: LayoutDashboard },
@@ -129,201 +298,172 @@ const App = () => {
             </button>
           ))}
         </nav>
-
-        <div className="p-4 border-t">
-          <button 
-            onClick={() => setActiveTab('settings')}
-            className="w-full flex items-center gap-3 px-3 py-2 text-slate-600 hover:bg-slate-100 rounded-xl"
-          >
-            <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-xs font-bold">
-              {currentUser.name.slice(0, 1)}
-            </div>
-            {isSidebarOpen && (
-              <div className="text-left overflow-hidden">
-                <p className="text-sm font-bold truncate">{currentUser.name}</p>
-                <p className="text-xs text-slate-500">{currentUser.label}</p>
-              </div>
-            )}
-          </button>
-        </div>
       </aside>
 
       {/* 主内容 */}
       <main className="flex-1 flex flex-col overflow-hidden">
         <header className="h-16 bg-white border-b px-8 flex items-center justify-between shadow-sm z-10">
+          <h2 className="text-lg font-bold capitalize">{activeTab}</h2>
           <div className="flex items-center gap-4">
-            <h2 className="text-lg font-bold">
-              {activeTab === 'dashboard' && '运行看板'}
-              {activeTab === 'projects' && '项目实时监控'}
-              {activeTab === 'inventory' && '仓库物料清单'}
-              {activeTab === 'finance' && '财务收支审计'}
-              {activeTab === 'ai' && 'AI 智能战略分析'}
-            </h2>
-          </div>
-          <div className="flex items-center gap-4">
-             <div className="bg-slate-100 px-3 py-1.5 rounded-full flex items-center gap-2 border">
-                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-                <span className="text-xs font-medium text-slate-600">后端连接正常</span>
+             <div className={`px-3 py-1.5 rounded-full flex items-center gap-2 border ${
+               isBackendConnected ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'
+             }`}>
+                <div className={`w-2 h-2 rounded-full ${
+                  isBackendConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'
+                }`}></div>
+                <span className={`text-xs font-medium ${
+                  isBackendConnected ? 'text-green-700' : 'text-red-700'
+                }`}>
+                  {isBackendConnected ? '后端连接正常' : '后端连接失败'}
+                </span>
              </div>
           </div>
         </header>
 
         <div className="flex-1 overflow-y-auto p-8">
-          {activeTab === 'dashboard' && (
-            <>
-              <StatsCards />
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-                  <h3 className="font-bold mb-4 flex items-center gap-2"><TrendingUp size={18} /> 最近财务动态</h3>
-                  <div className="space-y-4">
-                    {financeRecords.length === 0 ? <p className="text-slate-400 text-sm py-10 text-center italic">暂无收支记录</p> : null}
-                  </div>
-                </div>
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-                  <h3 className="font-bold mb-4 flex items-center gap-2"><History size={18} /> 系统操作日志</h3>
-                  <div className="space-y-4">
-                    {/* Log items placeholder */}
-                  </div>
-                </div>
-              </div>
-            </>
-          )}
-
-          {activeTab === 'projects' && (
-            <div className="space-y-6">
-              <div className="flex justify-between items-center">
-                <div className="flex gap-2">
-                   <div className="relative">
-                      <Search className="absolute left-3 top-2.5 text-slate-400" size={16} />
-                      <input className="pl-10 pr-4 py-2 bg-white border rounded-xl text-sm w-64 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="搜索项目名称或编号..." />
-                   </div>
-                </div>
-                <button className="bg-blue-600 text-white px-4 py-2 rounded-xl flex items-center gap-2 hover:bg-blue-700 shadow-md">
-                   <Plus size={18} /> 立项登记
-                </button>
-              </div>
-              <div className="bg-white rounded-2xl border overflow-hidden">
-                <table className="w-full text-left">
-                  <thead className="bg-slate-50 border-b text-slate-500 text-sm">
-                    <tr>
-                      <th className="px-6 py-4 font-semibold">项目名称/编号</th>
-                      <th className="px-6 py-4 font-semibold">状态</th>
-                      <th className="px-6 py-4 font-semibold">成本消耗</th>
-                      <th className="px-6 py-4 font-semibold">当前进度</th>
-                      <th className="px-6 py-4 font-semibold">操作</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y text-sm">
-                    {projects.map(p => (
-                      <tr key={p.id} className="hover:bg-slate-50 transition-colors">
-                        <td className="px-6 py-4">
-                          <p className="font-bold">{p.name}</p>
-                          <p className="text-xs text-slate-400">{p.code}</p>
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className={`px-2 py-1 rounded-full text-xs font-bold ${STATUS_COLORS[p.status] || 'bg-slate-100 text-slate-600'}`}>{p.status}</span>
-                        </td>
-                        <td className="px-6 py-4">
-                          <p className="font-medium text-slate-700">￥{((p.materialCost + p.laborCost) / 10000).toFixed(1)}万</p>
-                          <p className="text-xs text-slate-400">总包: {p.contractAmount / 10000}万</p>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="w-32 h-2 bg-slate-100 rounded-full overflow-hidden">
-                             <div className="h-full bg-blue-500" style={{width: `${p.progress}%`}}></div>
-                          </div>
-                          <p className="text-xs mt-1 text-slate-400">{p.progress}%</p>
-                        </td>
-                        <td className="px-6 py-4">
-                          <button className="text-blue-600 hover:underline">详情</button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+          {isLoading && (
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                <p className="text-slate-500">加载数据中...</p>
               </div>
             </div>
           )}
-
-          {activeTab === 'inventory' && (
+          {!isLoading && activeTab === 'dashboard' && <><StatsCards /> <div className="p-20 text-center text-slate-400">仪表盘概览模块</div></>}
+          
+          {!isLoading && activeTab === 'inventory' && (
             <div className="space-y-6">
                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-                  <div className="bg-blue-600 text-white p-6 rounded-2xl shadow-lg relative overflow-hidden">
-                      <Package className="absolute right-[-10px] top-[-10px] opacity-10" size={120} />
-                      <p className="text-blue-100 text-sm">总物料种类</p>
-                      <p className="text-3xl font-bold">{inventory.length} 种</p>
+                  <div className="bg-blue-600 text-white p-6 rounded-2xl shadow-lg relative overflow-hidden group">
+                      <div className="absolute right-[-20px] top-[-20px] opacity-10 group-hover:scale-110 transition-transform">
+                        <Package size={140} />
+                      </div>
+                      <p className="text-blue-100 text-sm">仓库物料总值</p>
+                      <p className="text-3xl font-bold">￥{(inventory.reduce((a, b) => a + b.price * b.quantity, 0) / 10000).toFixed(1)}万</p>
                   </div>
-                  <div className="bg-white border p-6 rounded-2xl flex justify-between items-center">
+                  <div className="bg-white border p-6 rounded-2xl flex justify-between items-center hover:border-red-200 transition-colors">
                      <div>
                         <p className="text-slate-500 text-sm">低库存预警</p>
                         <p className="text-3xl font-bold text-red-500">{inventory.filter(i => i.quantity < i.threshold).length}</p>
                      </div>
                      <div className="p-3 bg-red-50 text-red-500 rounded-xl"><AlertTriangle size={24}/></div>
                   </div>
-                  <div className="bg-white border p-6 rounded-2xl flex justify-between items-center">
+                  <div className="bg-white border p-6 rounded-2xl flex justify-between items-center hover:border-blue-200 transition-colors">
                      <div>
-                        <p className="text-slate-500 text-sm">本月入库量</p>
-                        <p className="text-3xl font-bold text-green-500">1,240</p>
+                        <p className="text-slate-500 text-sm">今日操作记录</p>
+                        <p className="text-3xl font-bold text-blue-600">{stockLogs.length}</p>
                      </div>
-                     <div className="p-3 bg-green-50 text-green-500 rounded-xl"><ArrowRightLeft size={24}/></div>
+                     <div className="p-3 bg-blue-50 text-blue-600 rounded-xl"><ArrowRightLeft size={24}/></div>
                   </div>
                </div>
                
-               <div className="bg-white rounded-2xl border overflow-hidden">
-                  <div className="p-6 border-b flex justify-between items-center">
-                    <h3 className="font-bold">物料清单</h3>
-                    <div className="flex gap-2">
-                      <button className="px-4 py-2 border rounded-xl text-sm flex items-center gap-2 hover:bg-slate-50"><Plus size={16}/> 入库</button>
-                      <button className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm flex items-center gap-2 hover:bg-blue-700 shadow-md"><ArrowRightLeft size={16}/> 出库申请</button>
+               <div className="bg-white rounded-2xl border shadow-sm overflow-hidden">
+                  <div className="p-6 border-b flex flex-wrap justify-between items-center gap-4">
+                    <h3 className="font-bold flex items-center gap-2 text-slate-700"><Package size={18}/> 实时库存明细</h3>
+                    <div className="flex gap-3">
+                      <button 
+                        onClick={() => { setStockModalType('in'); setIsStockModalOpen(true); }}
+                        className="px-4 py-2 border border-green-200 bg-green-50 text-green-700 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-green-100 transition-colors shadow-sm"
+                      >
+                        <Plus size={16}/> 入库登记
+                      </button>
+                      <button 
+                        onClick={() => { setStockModalType('out'); setIsStockModalOpen(true); }}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-blue-700 transition-all shadow-lg active:scale-95"
+                      >
+                        <ArrowRightLeft size={16}/> 出库申请
+                      </button>
                     </div>
                   </div>
-                  <table className="w-full text-left">
-                    <thead className="bg-slate-50 border-b text-slate-500 text-sm">
-                      <tr>
-                        <th className="px-6 py-4 font-semibold">物料名</th>
-                        <th className="px-6 py-4 font-semibold">规格/单位</th>
-                        <th className="px-6 py-4 font-semibold">单价</th>
-                        <th className="px-6 py-4 font-semibold">库存余量</th>
-                        <th className="px-6 py-4 font-semibold">状态</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y text-sm">
-                      {inventory.map(item => (
-                        <tr key={item.id} className="hover:bg-slate-50">
-                          <td className="px-6 py-4 font-bold">{item.name}</td>
-                          <td className="px-6 py-4 text-slate-500">{item.spec} / {item.unit}</td>
-                          <td className="px-6 py-4">￥{item.price}</td>
-                          <td className="px-6 py-4 font-medium">{item.quantity}</td>
-                          <td className="px-6 py-4">
-                            {item.quantity < item.threshold ? (
-                              <span className="flex items-center gap-1 text-red-600 font-bold"><AlertTriangle size={14}/> 补货预警</span>
-                            ) : (
-                              <span className="text-green-600 font-medium font-bold">充足</span>
-                            )}
-                          </td>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left">
+                      <thead className="bg-slate-50 border-b text-slate-400 text-xs uppercase tracking-wider">
+                        <tr>
+                          <th className="px-6 py-4 font-bold">物料名称</th>
+                          <th className="px-6 py-4 font-bold">规格参数</th>
+                          <th className="px-6 py-4 font-bold">参考单价</th>
+                          <th className="px-6 py-4 font-bold">库存余额</th>
+                          <th className="px-6 py-4 font-bold">当前状态</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody className="divide-y text-sm">
+                        {inventory.map(item => (
+                          <tr key={item.id} className="hover:bg-slate-50/80 transition-colors group">
+                            <td className="px-6 py-4">
+                              <span className="font-bold text-slate-700">{item.name}</span>
+                            </td>
+                            <td className="px-6 py-4 text-slate-500">{item.spec}</td>
+                            <td className="px-6 py-4 text-slate-600 font-mono">￥{item.price.toLocaleString()}</td>
+                            <td className="px-6 py-4">
+                              <span className={`font-bold ${item.quantity < item.threshold ? 'text-red-500' : 'text-slate-800'}`}>
+                                {item.quantity.toLocaleString()} {item.unit}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4">
+                              {item.quantity < item.threshold ? (
+                                <span className="inline-flex items-center gap-1 text-red-600 bg-red-50 px-2.5 py-1 rounded-full text-xs font-bold ring-1 ring-red-100">
+                                  <AlertTriangle size={12}/> 低于安全位
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 text-green-600 bg-green-50 px-2.5 py-1 rounded-full text-xs font-bold ring-1 ring-green-100">
+                                  <Check size={12}/> 供应充足
+                                </span>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                </div>
+               
+               {/* 简易操作日志 */}
+               {stockLogs.length > 0 && (
+                 <div className="bg-white rounded-2xl border p-6 shadow-sm">
+                   <h3 className="font-bold text-slate-700 mb-4 flex items-center gap-2"><History size={18}/> 最近出入库流水</h3>
+                   <div className="space-y-3">
+                     {stockLogs.map(log => (
+                       <div key={log.id} className="flex items-center justify-between py-3 border-b border-dashed last:border-0">
+                         <div className="flex items-center gap-3">
+                            <div className={`p-2 rounded-lg ${log.type === 'in' ? 'bg-green-50 text-green-600' : 'bg-blue-50 text-blue-600'}`}>
+                              {log.type === 'in' ? <Plus size={14}/> : <ArrowRightLeft size={14}/>}
+                            </div>
+                            <div>
+                              <p className="text-sm font-bold">
+                                {log.type === 'in' ? '物料入库' : '物料出库'} - {inventory.find(i => i.id === log.itemId)?.name}
+                              </p>
+                              <p className="text-xs text-slate-400">{log.date} · 操作员: {log.creator}</p>
+                            </div>
+                         </div>
+                         <div className="text-right">
+                           <p className={`font-bold ${log.type === 'in' ? 'text-green-600' : 'text-blue-600'}`}>
+                             {log.type === 'in' ? '+' : '-'}{log.qty} {inventory.find(i => i.id === log.itemId)?.unit}
+                           </p>
+                         </div>
+                       </div>
+                     ))}
+                   </div>
+                 </div>
+               )}
             </div>
           )}
 
-          {activeTab === 'ai' && (
+          {!isLoading && activeTab === 'ai' && (
             <div className="h-full flex flex-col max-w-4xl mx-auto space-y-6">
                <div className="bg-gradient-to-br from-indigo-700 to-blue-900 p-8 rounded-3xl text-white shadow-2xl relative overflow-hidden">
                   <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-5 rounded-full -mr-32 -mt-32"></div>
-                  <div className="relative z-10">
-                    <div className="flex items-center gap-3 mb-4">
+                  <div className="relative z-10 text-center md:text-left">
+                    <div className="flex flex-col md:flex-row items-center gap-3 mb-4">
                        <div className="bg-white/20 p-2 rounded-lg backdrop-blur-md">
                           <BrainCircuit size={28} />
                        </div>
                        <h2 className="text-2xl font-bold">宏硕 AI 决策官</h2>
                     </div>
                     <p className="text-indigo-100 max-w-lg mb-6">
-                      接入最新的 Gemini 3 Pro 深度思考模型，我可以为您分析项目成本异常、库存供应风险以及预测现金流走势。
+                      已同步仓库实时数据。您可以询问：“目前哪些物料需要立刻补货？”或“分析上月的物料损耗情况”。
                     </p>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                       {['分析项目成本', '库存预警分析', '战略优化建议', '合同风险检查'].map(s => (
+                       {['库存预警分析', '成本异常检测', '补货策略建议', '出库频率分析'].map(s => (
                          <button 
                            key={s} 
                            onClick={() => setAiPrompt(s)}
@@ -335,7 +475,7 @@ const App = () => {
                     </div>
                   </div>
                </div>
-
+               
                <div className="flex-1 bg-white rounded-3xl border shadow-sm flex flex-col overflow-hidden min-h-[400px]">
                   <div className="flex-1 p-6 overflow-y-auto space-y-4">
                     {!aiResponse && !isAiThinking && (
@@ -344,51 +484,40 @@ const App = () => {
                         <p>在下方输入您的问题，让 AI 深度分析数据库...</p>
                       </div>
                     )}
-                    
                     {isAiThinking && (
-                      <div className="space-y-4">
-                        <div className="flex items-start gap-3">
-                          <div className="bg-indigo-100 p-2 rounded-lg text-indigo-600 animate-pulse">
-                            <BrainCircuit size={20} />
-                          </div>
-                          <div className="bg-slate-50 p-4 rounded-2xl rounded-tl-none text-slate-600 text-sm border">
-                            <p className="flex items-center gap-2">
-                              <span className="flex gap-1">
-                                <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce"></span>
-                                <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce [animation-delay:0.2s]"></span>
-                                <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce [animation-delay:0.4s]"></span>
-                              </span>
-                              正在进行深度推理与多维数据对齐 (Thinking Mode)...
-                            </p>
-                          </div>
+                      <div className="flex items-start gap-3">
+                        <div className="bg-indigo-100 p-2 rounded-lg text-indigo-600 animate-pulse"><BrainCircuit size={20} /></div>
+                        <div className="bg-slate-50 p-4 rounded-2xl rounded-tl-none text-slate-600 text-sm border flex items-center gap-2">
+                           <span className="flex gap-1">
+                              <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce"></span>
+                              <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce [animation-delay:0.2s]"></span>
+                              <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce [animation-delay:0.4s]"></span>
+                           </span>
+                           深度数据对齐中...
                         </div>
                       </div>
                     )}
-
                     {aiResponse && (
                       <div className="flex items-start gap-3">
-                        <div className="bg-indigo-600 p-2 rounded-lg text-white">
-                          <BrainCircuit size={20} />
-                        </div>
-                        <div className="bg-indigo-50 p-5 rounded-3xl rounded-tl-none text-slate-800 text-sm border border-indigo-100 leading-relaxed prose prose-indigo max-w-none shadow-sm">
+                        <div className="bg-indigo-600 p-2 rounded-lg text-white"><BrainCircuit size={20} /></div>
+                        <div className="bg-indigo-50 p-5 rounded-3xl rounded-tl-none text-slate-800 text-sm border border-indigo-100 leading-relaxed shadow-sm w-full">
                            <div dangerouslySetInnerHTML={{ __html: aiResponse.replace(/\n/g, '<br/>') }} />
                         </div>
                       </div>
                     )}
                   </div>
-
                   <div className="p-4 bg-slate-50 border-t flex gap-3">
                     <input 
                       value={aiPrompt}
                       onChange={(e) => setAiPrompt(e.target.value)}
                       onKeyDown={(e) => e.key === 'Enter' && handleAiAnalysis()}
-                      className="flex-1 bg-white border rounded-2xl px-6 py-3 outline-none focus:ring-2 focus:ring-indigo-500 shadow-inner"
-                      placeholder="例如：帮我分析一下云端大厦项目的成本占比是否合理？"
+                      className="flex-1 bg-white border rounded-2xl px-6 py-3 outline-none focus:ring-2 focus:ring-indigo-500"
+                      placeholder="咨询 AI 决策建议..."
                     />
                     <button 
                       onClick={handleAiAnalysis}
                       disabled={isAiThinking || !aiPrompt.trim()}
-                      className="bg-indigo-600 text-white p-4 rounded-2xl hover:bg-indigo-700 transition-all disabled:opacity-50 shadow-lg"
+                      className="bg-indigo-600 text-white p-4 rounded-2xl hover:bg-indigo-700 transition-all disabled:opacity-50"
                     >
                       <Send size={20} />
                     </button>
