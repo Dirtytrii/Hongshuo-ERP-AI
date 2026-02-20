@@ -29,28 +29,49 @@ public class StockService {
     
     /**
      * 创建库存操作记录（入库或出库申请）
-     * 出库需要项目经理审核，入库直接生效
+     * 出库需要项目经理审核，但Admin可以直接出库
+     * 入库直接生效
      */
     @Transactional
     public StockLog createStockLog(StockLog stockLog, String creatorRole) {
         InventoryItem item = inventoryItemRepository.findById(stockLog.getItemId())
             .orElseThrow(() -> new RuntimeException("物料不存在: " + stockLog.getItemId()));
         
-        // 出库操作需要审核
+        // 出库操作
         if (stockLog.getType() == StockLog.StockType.out) {
             // 检查库存是否充足
             if (item.getQuantity() < stockLog.getQty()) {
                 throw new RuntimeException("库存不足，当前库存: " + item.getQuantity() + ", 申请出库: " + stockLog.getQty());
             }
             
-            // 出库需要项目经理审核（pm 角色）
-            stockLog.setStatus("pending");
-            stockLog.setCreator(creatorRole);
-            stockLog.setDate(LocalDate.now());
+            // 检查是否为Admin：Admin可以直接出库，不需要审批
+            boolean isAdmin = creatorRole != null && (
+                creatorRole.toLowerCase().contains("admin") || 
+                creatorRole.contains("管理员") || 
+                creatorRole.contains("王总")
+            );
             
-            // 记录系统日志
-            logSystemAction(creatorRole, "申请出库", 
-                String.format("物料: %s, 数量: %d, 项目ID: %s", item.getName(), stockLog.getQty(), stockLog.getProjectId()));
+            if (isAdmin) {
+                // Admin直接出库，立即生效
+                item.setQuantity(item.getQuantity() - stockLog.getQty());
+                inventoryItemRepository.save(item);
+                stockLog.setStatus("active");
+                stockLog.setCreator(creatorRole);
+                stockLog.setDate(LocalDate.now());
+                
+                // 记录系统日志
+                logSystemAction(creatorRole, "物料出库", 
+                    String.format("物料: %s, 数量: %d, 项目ID: %s", item.getName(), stockLog.getQty(), stockLog.getProjectId()));
+            } else {
+                // 普通用户出库需要项目经理审核
+                stockLog.setStatus("pending");
+                stockLog.setCreator(creatorRole);
+                stockLog.setDate(LocalDate.now());
+                
+                // 记录系统日志
+                logSystemAction(creatorRole, "申请出库", 
+                    String.format("物料: %s, 数量: %d, 项目ID: %s", item.getName(), stockLog.getQty(), stockLog.getProjectId()));
+            }
         } else {
             // 入库直接生效
             item.setQuantity(item.getQuantity() + stockLog.getQty());
@@ -84,9 +105,20 @@ public class StockService {
             throw new RuntimeException("该记录已处理，无法再次审核");
         }
         
-        // 检查权限：只有项目经理可以审核
-        if (!approverRole.contains("pm") && !approverRole.contains("PM")) {
-            throw new RuntimeException("只有项目经理可以审核出库申请");
+        // 检查权限：项目经理和管理员可以审核
+        boolean isAdmin = approverRole != null && (
+            approverRole.toLowerCase().contains("admin") || 
+            approverRole.contains("管理员") || 
+            approverRole.contains("王总")
+        );
+        boolean isPM = approverRole != null && (
+            approverRole.toLowerCase().contains("pm") || 
+            approverRole.contains("项目经理") || 
+            approverRole.contains("李工")
+        );
+        
+        if (!isAdmin && !isPM) {
+            throw new RuntimeException("只有项目经理或管理员可以审核出库申请");
         }
         
         InventoryItem item = inventoryItemRepository.findById(stockLog.getItemId())
@@ -133,10 +165,10 @@ public class StockService {
         return stockLogRepository.findById(id);
     }
     
-    private void logSystemAction(String user, String action, String detail) {
+    private void logSystemAction(String operator, String action, String detail) {
         SystemLog log = new SystemLog();
         log.setTime(LocalDateTime.now());
-        log.setUser(user);
+        log.setUser(operator);  // 字段名是user，但数据库列名是operator
         log.setAction(action);
         log.setDetail(detail);
         systemLogRepository.save(log);

@@ -16,10 +16,13 @@ export interface Project {
 }
 
 export interface Milestone {
+  id: number;
   name: string;
   planDate: string;
   actualDate: string | null;
   status: 'completed' | 'in_progress' | 'pending';
+  description?: string;
+  dueDate?: string;
 }
 
 export interface InventoryItem {

@@ -1,5 +1,6 @@
 package com.hongshuo.erp.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
 import java.math.BigDecimal;
@@ -51,5 +52,6 @@ public class Project {
     private LocalDate endDate;
     
     @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
     private List<Milestone> milestones = new ArrayList<>();
 }

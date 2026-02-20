@@ -62,6 +62,22 @@ export const apiService = {
     });
     return handleResponse(res);
   },
+
+  async updateMilestone(projectId: number, milestoneId: number, milestone: any) {
+    const res = await fetch(`${BASE_URL}/projects/${projectId}/milestones/${milestoneId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(milestone)
+    });
+    return handleResponse(res);
+  },
+
+  async deleteMilestone(projectId: number, milestoneId: number) {
+    const res = await fetch(`${BASE_URL}/projects/${projectId}/milestones/${milestoneId}`, {
+      method: 'DELETE'
+    });
+    return res.ok;
+  },
   
   // ========== Inventory ==========
   async getInventory() {
@@ -196,6 +212,45 @@ export const apiService = {
   // ========== App State (for AI Analysis) ==========
   async getAppState() {
     const res = await fetch(`${BASE_URL}/app-state`);
+    return handleResponse(res);
+  },
+
+  // ========== Permissions ==========
+  async getPermissions() {
+    const res = await fetch(`${BASE_URL}/permissions`);
+    return handleResponse(res);
+  },
+
+  async savePermissions(permissions: Record<string, string[]>) {
+    const res = await fetch(`${BASE_URL}/permissions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(permissions)
+    });
+    return handleResponse(res);
+  },
+
+  // ========== Data Reset ==========
+  async resetData() {
+    const res = await fetch(`${BASE_URL}/data/reset`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    return handleResponse(res);
+  },
+
+  // ========== Config ==========
+  async getConfig() {
+    const res = await fetch(`${BASE_URL}/config`);
+    return handleResponse(res);
+  },
+
+  async saveConfig(config: { lowStockThreshold?: string; largeExpenseThreshold?: string }) {
+    const res = await fetch(`${BASE_URL}/config`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(config)
+    });
     return handleResponse(res);
   }
 };
