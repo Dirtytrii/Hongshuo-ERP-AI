@@ -14,12 +14,16 @@ class WorkflowNotifyServiceTest {
 
     @Mock
     private DingTalkIntegrationService dingTalkIntegrationService;
+    @Mock
+    private ConfigFileService configFileService;
 
     @InjectMocks
     private WorkflowNotifyService workflowNotifyService;
 
     @Test
     void notifySubmitted_shouldDelegateToDingTalkService() {
+        when(configFileService.get(org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.anyString()))
+            .thenAnswer(invocation -> invocation.getArgument(1));
         when(dingTalkIntegrationService.sendText(org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.anyString()))
             .thenReturn(true);
 
@@ -33,6 +37,8 @@ class WorkflowNotifyServiceTest {
 
     @Test
     void notifyApprovalResult_shouldDelegateToDingTalkService() {
+        when(configFileService.get(org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.anyString()))
+            .thenAnswer(invocation -> invocation.getArgument(1));
         when(dingTalkIntegrationService.sendText(org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.anyString()))
             .thenReturn(true);
 

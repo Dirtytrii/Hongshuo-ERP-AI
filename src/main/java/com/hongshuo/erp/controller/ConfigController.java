@@ -30,6 +30,15 @@ public class ConfigController {
         config.put("dingTalkEnabled", configFileService.get("integration.dingtalk.enabled", "false"));
         config.put("dingTalkWebhookUrl", configFileService.get("integration.dingtalk.webhook", ""));
         config.put("mobileApiEnabled", configFileService.get("integration.mobile.enabled", "true"));
+        config.put("webBaseUrl", configFileService.get("integration.web.base-url", "http://localhost:3000"));
+        config.put("notifySubmittedTemplate", configFileService.get(
+            "integration.notify.template.submitted",
+            "%s #%s 已提交审批\n发起人：%s\n摘要：%s\n办理入口：%s"
+        ));
+        config.put("notifyResultTemplate", configFileService.get(
+            "integration.notify.template.result",
+            "%s #%s 审批%s\n审批人：%s\n查看详情：%s"
+        ));
         return ResponseEntity.ok(config);
     }
 
@@ -50,6 +59,21 @@ public class ConfigController {
             }
             if (config.containsKey("mobileApiEnabled")) {
                 configFileService.set("integration.mobile.enabled", String.valueOf(config.get("mobileApiEnabled")));
+            }
+            if (config.containsKey("webBaseUrl")) {
+                configFileService.set("integration.web.base-url", String.valueOf(config.get("webBaseUrl")));
+            }
+            if (config.containsKey("notifySubmittedTemplate")) {
+                configFileService.set(
+                    "integration.notify.template.submitted",
+                    String.valueOf(config.get("notifySubmittedTemplate"))
+                );
+            }
+            if (config.containsKey("notifyResultTemplate")) {
+                configFileService.set(
+                    "integration.notify.template.result",
+                    String.valueOf(config.get("notifyResultTemplate"))
+                );
             }
             return ResponseEntity.ok(Map.of("success", true, "message", "配置已保存"));
         } catch (Exception e) {

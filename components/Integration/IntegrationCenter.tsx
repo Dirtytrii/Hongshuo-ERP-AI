@@ -7,6 +7,9 @@ interface ConfigPayload {
   dingTalkEnabled?: string | boolean;
   dingTalkWebhookUrl?: string;
   mobileApiEnabled?: string | boolean;
+  webBaseUrl?: string;
+  notifySubmittedTemplate?: string;
+  notifyResultTemplate?: string;
 }
 
 interface DingTalkStatusPayload {
@@ -26,6 +29,9 @@ const IntegrationCenter: React.FC = () => {
     dingTalkEnabled: false,
     dingTalkWebhookUrl: '',
     mobileApiEnabled: true,
+    webBaseUrl: 'http://localhost:3000',
+    notifySubmittedTemplate: '%s #%s 已提交审批\n发起人：%s\n摘要：%s\n办理入口：%s',
+    notifyResultTemplate: '%s #%s 审批%s\n审批人：%s\n查看详情：%s',
   });
   const [status, setStatus] = useState({
     webhookConfigured: false,
@@ -52,6 +58,11 @@ const IntegrationCenter: React.FC = () => {
         dingTalkEnabled: String(cfgPayload.dingTalkEnabled) === 'true',
         dingTalkWebhookUrl: String(cfgPayload.dingTalkWebhookUrl || ''),
         mobileApiEnabled: String(cfgPayload.mobileApiEnabled) !== 'false',
+        webBaseUrl: String(cfgPayload.webBaseUrl || 'http://localhost:3000'),
+        notifySubmittedTemplate: String(
+          cfgPayload.notifySubmittedTemplate || '%s #%s 已提交审批\n发起人：%s\n摘要：%s\n办理入口：%s'
+        ),
+        notifyResultTemplate: String(cfgPayload.notifyResultTemplate || '%s #%s 审批%s\n审批人：%s\n查看详情：%s'),
       });
       setStatus({
         webhookConfigured: Boolean(dingPayload.webhookConfigured),
@@ -79,6 +90,9 @@ const IntegrationCenter: React.FC = () => {
         dingTalkEnabled: config.dingTalkEnabled,
         dingTalkWebhookUrl: config.dingTalkWebhookUrl.trim(),
         mobileApiEnabled: config.mobileApiEnabled,
+        webBaseUrl: config.webBaseUrl.trim(),
+        notifySubmittedTemplate: config.notifySubmittedTemplate,
+        notifyResultTemplate: config.notifyResultTemplate,
       });
       await load();
     } catch (e: unknown) {
@@ -133,6 +147,38 @@ const IntegrationCenter: React.FC = () => {
               onChange={(e) => setConfig((c) => ({ ...c, dingTalkWebhookUrl: e.target.value }))}
               className="w-full border border-slate-200 rounded-xl px-4 py-2"
               placeholder="https://oapi.dingtalk.com/robot/send?access_token=..."
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Web 回跳地址</label>
+            <input
+              value={config.webBaseUrl}
+              onChange={(e) => setConfig((c) => ({ ...c, webBaseUrl: e.target.value }))}
+              className="w-full border border-slate-200 rounded-xl px-4 py-2"
+              placeholder="http://localhost:3000"
+            />
+            <p className="text-xs text-slate-400 mt-1">用于钉钉消息中的“办理入口”链接（会自动拼接 tab 参数）。</p>
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
+              提交通知模板（占位符：%s, %s, %s, %s, %s）
+            </label>
+            <textarea
+              rows={3}
+              value={config.notifySubmittedTemplate}
+              onChange={(e) => setConfig((c) => ({ ...c, notifySubmittedTemplate: e.target.value }))}
+              className="w-full border border-slate-200 rounded-xl px-4 py-2"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">
+              结果通知模板（占位符：%s, %s, %s, %s, %s）
+            </label>
+            <textarea
+              rows={3}
+              value={config.notifyResultTemplate}
+              onChange={(e) => setConfig((c) => ({ ...c, notifyResultTemplate: e.target.value }))}
+              className="w-full border border-slate-200 rounded-xl px-4 py-2"
             />
           </div>
           <div className="text-xs text-slate-500">

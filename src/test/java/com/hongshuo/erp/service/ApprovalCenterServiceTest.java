@@ -94,5 +94,7 @@ class ApprovalCenterServiceTest {
         assertThat(todos.stream().map(ApprovalTodoItemDto::bizType)).contains(
             "finance", "change_order", "reimbursement", "loan", "loan_repayment"
         );
+        assertThat(approvalCenterService.listTodos("loan", null)).hasSize(1);
+        assertThat(approvalCenterService.listTodos(null, "alice")).hasSize(1);
     }
 }

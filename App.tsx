@@ -12,6 +12,7 @@ import {
   ArrowRightLeft,
   X,
   Check,
+  CheckSquare,
   Building2,
   History,
   BrainCircuit,
@@ -75,6 +76,7 @@ import ReimbursementManagement from './components/Reimbursements/ReimbursementMa
 import LoanManagement from './components/Loans/LoanManagement';
 import DepartmentManagement from './components/Departments/DepartmentManagement';
 import IntegrationCenter from './components/Integration/IntegrationCenter';
+import ApprovalCenter from './components/ApprovalCenter/ApprovalCenter';
 
 function formatSessionTime(ts: number): string {
   const d = new Date(ts);
@@ -124,6 +126,7 @@ const permissionsConfig: Record<string, string[]> = {
   'reimbursements.view': ['admin', 'pm', 'finance', 'clerk'],
   'loans.view': ['admin', 'pm', 'finance', 'clerk'],
   'departments.view': ['admin', 'finance'],
+  'approval-center.view': ['admin', 'pm', 'finance'],
   'integration.view': ['admin', 'pm', 'finance'],
   'finance.view': ['admin', 'pm', 'finance'],
   'reports.view': ['admin', 'pm', 'finance'],
@@ -169,6 +172,7 @@ const App = () => {
   }, [authUser, roleLabelMap]);
 
   const [activeTab, setActiveTab] = useState('inventory');
+  const [tabInitializedFromUrl, setTabInitializedFromUrl] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   // Data States
@@ -422,6 +426,41 @@ const App = () => {
       </div>
     );
   };
+
+  // Load data from backend（仅登录后加载）
+  useEffect(() => {
+    if (tabInitializedFromUrl) return;
+    const params = new URLSearchParams(window.location.search);
+    const tab = params.get('tab');
+    const id = params.get('id');
+    const allowedTabs = new Set([
+      'dashboard',
+      'projects',
+      'inventory',
+      'inventory-management',
+      'finance',
+      'suppliers',
+      'contracts',
+      'change-orders',
+      'reimbursements',
+      'loans',
+      'departments',
+      'approval-center',
+      'integration',
+      'reports',
+      'history',
+      'ai',
+      'users',
+      'roles',
+    ]);
+    if (tab && allowedTabs.has(tab)) {
+      setActiveTab(tab);
+      if (tab === 'projects' && id && !Number.isNaN(Number(id))) {
+        setSelectedProjectId(Number(id));
+      }
+    }
+    setTabInitializedFromUrl(true);
+  }, [tabInitializedFromUrl]);
 
   // Load data from backend（仅登录后加载）
   useEffect(() => {
@@ -1702,6 +1741,7 @@ const App = () => {
             { id: 'reimbursements', label: '报销管理', icon: Receipt, permission: 'reimbursements.view' },
             { id: 'loans', label: '借还款管理', icon: HandCoins, permission: 'loans.view' },
             { id: 'departments', label: '部门管理', icon: Building2, permission: 'departments.view' },
+            { id: 'approval-center', label: '审批中心', icon: CheckSquare, permission: 'approval-center.view' },
             { id: 'integration', label: '集成中心', icon: Smartphone, permission: 'integration.view' },
             { id: 'finance', label: '财务收支', icon: Wallet, permission: 'finance.view' },
             { id: 'suppliers', label: '供应商管理', icon: Truck, permission: 'finance.view' },
@@ -2709,6 +2749,12 @@ const App = () => {
             </div>
           )}
 
+          {!isLoading && activeTab === 'approval-center' && hasPermission(currentUser, 'approval-center.view') && (
+            <div className="p-6 overflow-auto">
+              <ApprovalCenter onNavigateTab={(tab) => setActiveTab(tab)} />
+            </div>
+          )}
+
           {!isLoading && activeTab === 'integration' && hasPermission(currentUser, 'integration.view') && (
             <div className="p-6 overflow-auto">
               <IntegrationCenter />
@@ -3253,6 +3299,7 @@ const App = () => {
                         'reimbursements.view': '报销管理页面',
                         'loans.view': '借还款管理页面',
                         'departments.view': '部门管理页面',
+                        'approval-center.view': '审批中心页面',
                         'integration.view': '集成中心页面',
                         'finance.view': '财务收支页面',
                         'history.view': '操作日志页面',

@@ -121,6 +121,7 @@ public class PermissionController {
         props.setProperty("reimbursements.view", "admin,pm,finance,clerk");
         props.setProperty("loans.view", "admin,pm,finance,clerk");
         props.setProperty("departments.view", "admin,finance");
+        props.setProperty("approval-center.view", "admin,pm,finance");
         props.setProperty("integration.view", "admin,pm,finance");
         props.setProperty("finance.view", "admin,pm,finance");
         props.setProperty("reports.view", "admin,pm,finance");

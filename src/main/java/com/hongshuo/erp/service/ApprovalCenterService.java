@@ -32,6 +32,17 @@ public class ApprovalCenterService {
      * @return 待办列表（按日期倒序）
      */
     public List<ApprovalTodoItemDto> listTodos() {
+        return listTodos(null, null);
+    }
+
+    /**
+     * 查询审批中心待办（支持筛选）。
+     *
+     * @param bizType 单据类型过滤（可空）
+     * @param keyword 关键字过滤：匹配标题/申请人（可空）
+     * @return 待办列表（按日期倒序）
+     */
+    public List<ApprovalTodoItemDto> listTodos(String bizType, String keyword) {
         List<ApprovalTodoItemDto> list = new ArrayList<>();
 
         financeRecordRepository.findByStatus("pending").forEach(item -> list.add(new ApprovalTodoItemDto(
@@ -90,6 +101,11 @@ public class ApprovalCenterService {
         )));
 
         return list.stream()
+            .filter(item -> bizType == null || bizType.isBlank() || bizType.equalsIgnoreCase(item.bizType()))
+            .filter(item -> keyword == null
+                || keyword.isBlank()
+                || (item.title() != null && item.title().contains(keyword))
+                || (item.applicant() != null && item.applicant().contains(keyword)))
             .sorted(Comparator.comparing(ApprovalTodoItemDto::date, Comparator.nullsLast(String::compareTo)).reversed())
             .toList();
     }

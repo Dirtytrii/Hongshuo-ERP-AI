@@ -636,6 +636,9 @@ export const apiService = {
     dingTalkEnabled?: boolean | string;
     dingTalkWebhookUrl?: string;
     mobileApiEnabled?: boolean | string;
+    webBaseUrl?: string;
+    notifySubmittedTemplate?: string;
+    notifyResultTemplate?: string;
   }) {
     const res = await apiFetch(`${BASE_URL}/config`, {
       method: 'POST',
@@ -662,8 +665,11 @@ export const apiService = {
     const res = await apiFetch(`${BASE_URL}/integrations/mobile/status`);
     return handleResponse(res);
   },
-  async getApprovalTodos() {
-    const res = await apiFetch(`${BASE_URL}/approval-center/todos`);
+  async getApprovalTodos(params?: { bizType?: string; keyword?: string }) {
+    const q = new URLSearchParams();
+    if (params?.bizType) q.set('bizType', params.bizType);
+    if (params?.keyword) q.set('keyword', params.keyword);
+    const res = await apiFetch(`${BASE_URL}/approval-center/todos${q.toString() ? '?' + q.toString() : ''}`);
     return handleResponse(res);
   },
   async getMobileOverview() {
