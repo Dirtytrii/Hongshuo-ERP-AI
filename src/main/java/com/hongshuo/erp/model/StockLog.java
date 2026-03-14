@@ -52,7 +52,15 @@ public class StockLog {
     private LocalDate approvalDate;
     
     @Column(name = "approval_note", columnDefinition = "TEXT")
-    private String approvalNote; // 审核备注
+    private String approvalNote;
+
+    /** 红字冲销：关联的原单ID；本记录为冲销单时非空。 */
+    @Column(name = "reversal_of_id")
+    private Long reversalOfId;
+
+    /** 是否为红字冲销单（冲销单数量为负，用于抵消原单）。 */
+    @Column(name = "is_reversal", nullable = false, columnDefinition = "boolean not null default false")
+    private Boolean isReversal = false;
     
     public enum StockType {
         in, out

@@ -83,5 +83,50 @@ public class StockController {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
+
+    /**
+     * 创建库存冲销单（红字冲销）。
+     *
+     * @param request 包含 originalId（原单ID）、note（冲销说明，可选）、creator（发起人角色）
+     * @return 创建的冲销单
+     */
+    @PostMapping("/reversal")
+    public ResponseEntity<?> createReversal(@RequestBody Map<String, Object> request) {
+        try {
+            Long originalId = Long.valueOf(request.get("originalId").toString());
+            String note = request.get("note") != null ? request.get("note").toString() : null;
+            String creatorRole = request.get("creator") != null
+                ? request.get("creator").toString()
+                : "system";
+            StockLog reversal = stockService.createReversal(originalId, note, creatorRole);
+            return ResponseEntity.status(HttpStatus.CREATED).body(reversal);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * 审批库存冲销单。
+     *
+     * @param id      冲销单 ID
+     * @param request 包含 approver、approved、approvalNote
+     * @return 更新后的冲销单
+     */
+    @PostMapping("/{id}/approve-reversal")
+    public ResponseEntity<?> approveReversal(
+            @PathVariable Long id,
+            @RequestBody Map<String, Object> request) {
+        try {
+            String approverRole = request.get("approver").toString();
+            String approvalNote = request.get("approvalNote") != null
+                ? request.get("approvalNote").toString()
+                : "";
+            boolean approved = Boolean.parseBoolean(request.get("approved").toString());
+            StockLog result = stockService.approveReversal(id, approverRole, approvalNote, approved);
+            return ResponseEntity.ok(result);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
 }
 

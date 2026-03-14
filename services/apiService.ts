@@ -544,6 +544,30 @@ export const apiService = {
     return handleResponse(res);
   },
 
+  /** 红字冲销：对已生效库存记录创建冲销单 */
+  async createStockReversal(originalId: number, note?: string, creator?: string) {
+    const res = await apiFetch(`${BASE_URL}/stock/reversal`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        originalId,
+        note: note || `冲销：原单#${originalId}`,
+        creator: creator || 'system',
+      }),
+    });
+    return handleResponse(res);
+  },
+
+  /** 审批库存冲销单 */
+  async approveStockReversal(id: number, approver: string, approved: boolean, approvalNote?: string) {
+    const res = await apiFetch(`${BASE_URL}/stock/${id}/approve-reversal`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ approver, approved, approvalNote: approvalNote || '' }),
+    });
+    return handleResponse(res);
+  },
+
   // ========== System Logs ==========
   async getSystemLogs() {
     const res = await apiFetch(`${BASE_URL}/logs`);

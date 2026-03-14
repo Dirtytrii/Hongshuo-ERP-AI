@@ -34,6 +34,8 @@ import {
   Receipt,
   HandCoins,
   Smartphone,
+  LayoutGrid,
+  List,
 } from 'lucide-react';
 import {
   exportProjectsToExcel,
@@ -95,6 +97,7 @@ function formatSessionTime(ts: number): string {
 
 const Dashboard = lazy(() => import('./components/Dashboard/Dashboard'));
 import ProjectDetail from './components/ProjectDetail/ProjectDetail';
+import ProjectKanban from './components/Projects/ProjectKanban';
 import FinanceReport from './components/Reports/FinanceReport';
 import InventoryReport from './components/Reports/InventoryReport';
 import ProjectReport from './components/Reports/ProjectReport';
@@ -204,6 +207,7 @@ const App = () => {
   const [userOptions, setUserOptions] = useState<{ id: number; username: string }[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
   const [selectedProjectDetail, setSelectedProjectDetail] = useState<Project | null>(null);
+  const [projectViewMode, setProjectViewMode] = useState<'table' | 'kanban'>('table');
   const [projectForm, setProjectForm] = useState({
     name: '',
     code: '',
@@ -824,6 +828,31 @@ const App = () => {
       await reloadCoreData();
     } catch (error: any) {
       setToast({ message: error.message || '冲销失败，请稍后重试。', type: 'error' });
+    }
+  };
+
+  // 红字冲销库存记录
+  const handleReversalStock = async (originalId: number) => {
+    if (!confirm('确定对该笔已生效库存记录进行红字冲销吗？冲销单审批通过后将回调库存数量。')) return;
+    try {
+      await apiService.createStockReversal(originalId, `冲销：原单#${originalId}`, currentUser.name);
+      setToast({ message: '库存冲销单已创建，待审批通过后生效。', type: 'success' });
+      await reloadCoreData();
+    } catch (error: any) {
+      setToast({ message: error.message || '库存冲销失败，请稍后重试。', type: 'error' });
+    }
+  };
+
+  // 审批库存冲销单
+  const handleApproveStockReversal = async (logId: number, approved: boolean) => {
+    const note = approved ? '' : prompt('请输入拒绝原因：') || '';
+    if (!approved && note === '') return;
+    try {
+      await apiService.approveStockReversal(logId, currentUser.name, approved, note);
+      setToast({ message: approved ? '冲销单已通过，库存已回调。' : '冲销单已拒绝。', type: 'success' });
+      await reloadCoreData();
+    } catch (error: any) {
+      setToast({ message: error.message || '审批失败，请稍后重试。', type: 'error' });
     }
   };
 
@@ -2033,15 +2062,20 @@ const App = () => {
 
               {/* 待审批列表 - 项目经理和管理员可见，放在库存明细之上 */}
               {hasPermission(currentUser, 'inventory.approve') &&
-                stockLogs.filter((log) => log.status === 'pending' && log.type === 'out').length > 0 && (
+                stockLogs.filter((log) => log.status === 'pending' && log.type === 'out' && !log.isReversal).length >
+                  0 && (
                   <div className="bg-orange-50 border-2 border-orange-200 rounded-2xl p-6 shadow-sm">
                     <h3 className="font-bold text-orange-700 mb-4 flex items-center gap-2">
                       <Clock size={18} /> 待审批出库申请 (
-                      {stockLogs.filter((log) => log.status === 'pending' && log.type === 'out').length})
+                      {
+                        stockLogs.filter((log) => log.status === 'pending' && log.type === 'out' && !log.isReversal)
+                          .length
+                      }
+                      )
                     </h3>
                     <div className="space-y-3">
                       {stockLogs
-                        .filter((log) => log.status === 'pending' && log.type === 'out')
+                        .filter((log) => log.status === 'pending' && log.type === 'out' && !log.isReversal)
                         .map((log) => {
                           const item = inventory.find((i) => i.id === log.itemId);
                           const project = projects.find((p) => p.id === log.projectId);
@@ -2072,6 +2106,59 @@ const App = () => {
                                     const note = prompt('请输入拒绝原因（可选）:');
                                     await handleApproveStock(Number(log.id), false, note || '');
                                   }}
+                                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-bold hover:bg-red-700 transition-colors flex items-center justify-center gap-2"
+                                >
+                                  <X size={16} /> 拒绝
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                    </div>
+                  </div>
+                )}
+
+              {/* 待审批冲销单 - 管理员可见 */}
+              {(currentUser.id === 'admin' || authUser?.role === 'admin') &&
+                stockLogs.filter((log) => log.status === 'pending' && log.isReversal).length > 0 && (
+                  <div className="bg-amber-50 border-2 border-amber-200 rounded-2xl p-6 shadow-sm">
+                    <h3 className="font-bold text-amber-700 mb-4 flex items-center gap-2">
+                      <Clock size={18} /> 待审批库存冲销单 (
+                      {stockLogs.filter((log) => log.status === 'pending' && log.isReversal).length})
+                    </h3>
+                    <div className="space-y-3">
+                      {stockLogs
+                        .filter((log) => log.status === 'pending' && log.isReversal)
+                        .map((log) => {
+                          const item = inventory.find((i) => i.id === log.itemId);
+                          const project = projects.find((p) => p.id === log.projectId);
+                          return (
+                            <div key={log.id} className="bg-white rounded-xl border border-amber-200 p-4 shadow-sm">
+                              <div className="flex items-start justify-between mb-3">
+                                <div className="flex-1">
+                                  <p className="text-sm font-bold text-slate-700">
+                                    冲销{log.type === 'in' ? '入库' : '出库'} - {item?.name || '未知物料'}
+                                    <span className="ml-2 text-xs text-amber-600">原单#{log.reversalOfId}</span>
+                                  </p>
+                                  <p className="text-xs text-slate-400 mt-1">
+                                    {log.date} · 申请人: {log.creator} · 关联项目: {project?.name || '未指定'}
+                                  </p>
+                                  <p className="text-sm font-bold text-amber-600 mt-2">
+                                    冲销数量: {Math.abs(log.qty)} {item?.unit || ''}
+                                    {log.type === 'out' ? '（将回增库存）' : '（将回减库存）'}
+                                  </p>
+                                  {log.note && <p className="text-xs text-slate-500 mt-1">说明: {log.note}</p>}
+                                </div>
+                              </div>
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => handleApproveStockReversal(Number(log.id), true)}
+                                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-bold hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
+                                >
+                                  <Check size={16} /> 批准冲销
+                                </button>
+                                <button
+                                  onClick={() => handleApproveStockReversal(Number(log.id), false)}
                                   className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-bold hover:bg-red-700 transition-colors flex items-center justify-center gap-2"
                                 >
                                   <X size={16} /> 拒绝
@@ -2182,31 +2269,60 @@ const App = () => {
                       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
                       .map((log) => {
                         const item = inventory.find((i) => i.id === log.itemId);
+                        const isReversalLog = Boolean(log.isReversal);
                         const statusBadge =
-                          log.status === 'pending' ? (
+                          log.status === 'pending' && isReversalLog ? (
+                            <span className="inline-flex items-center gap-1 text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full text-xs font-bold">
+                              冲销待审批
+                            </span>
+                          ) : log.status === 'pending' ? (
                             <span className="inline-flex items-center gap-1 text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full text-xs font-bold">
                               待审批
+                            </span>
+                          ) : log.status === 'rejected' && isReversalLog ? (
+                            <span className="inline-flex items-center gap-1 text-red-600 bg-red-50 px-2 py-0.5 rounded-full text-xs font-bold">
+                              冲销已拒绝
                             </span>
                           ) : log.status === 'rejected' ? (
                             <span className="inline-flex items-center gap-1 text-red-600 bg-red-50 px-2 py-0.5 rounded-full text-xs font-bold">
                               已拒绝
                             </span>
+                          ) : isReversalLog && log.status === 'active' ? (
+                            <span className="inline-flex items-center gap-1 text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full text-xs font-bold">
+                              已冲销
+                            </span>
                           ) : null;
+
+                        const canReversal =
+                          log.status === 'active' &&
+                          !isReversalLog &&
+                          (currentUser.id === 'admin' ||
+                            authUser?.role === 'admin' ||
+                            authUser?.role === 'clerk' ||
+                            currentUser.name?.includes('管理员') ||
+                            currentUser.name?.includes('库管'));
+                        const canApproveReversal =
+                          isReversalLog &&
+                          log.status === 'pending' &&
+                          (currentUser.id === 'admin' ||
+                            authUser?.role === 'admin' ||
+                            currentUser.name?.includes('管理员'));
 
                         return (
                           <div
                             key={log.id}
-                            className="flex items-center justify-between py-3 border-b border-dashed last:border-0"
+                            className={`flex items-center justify-between py-3 border-b border-dashed last:border-0 ${isReversalLog ? 'bg-amber-50/50' : ''}`}
                           >
                             <div className="flex items-center gap-3">
                               <div
-                                className={`p-2 rounded-lg ${log.type === 'in' ? 'bg-green-50 text-green-600' : 'bg-blue-50 text-blue-600'}`}
+                                className={`p-2 rounded-lg ${isReversalLog ? 'bg-amber-50 text-amber-600' : log.type === 'in' ? 'bg-green-50 text-green-600' : 'bg-blue-50 text-blue-600'}`}
                               >
                                 {log.type === 'in' ? <Plus size={14} /> : <ArrowRightLeft size={14} />}
                               </div>
                               <div>
                                 <div className="flex items-center gap-2">
                                   <p className="text-sm font-bold">
+                                    {isReversalLog ? '冲销' : ''}
                                     {log.type === 'in' ? '物料入库' : '物料出库'} - {item?.name || '未知物料'}
                                   </p>
                                   {statusBadge}
@@ -2214,14 +2330,43 @@ const App = () => {
                                 <p className="text-xs text-slate-400">
                                   {log.date} · 操作员: {log.creator}
                                   {log.approver && ` · 审批人: ${log.approver}`}
+                                  {log.reversalOfId && ` · 原单#${log.reversalOfId}`}
                                 </p>
                               </div>
                             </div>
-                            <div className="text-right">
-                              <p className={`font-bold ${log.type === 'in' ? 'text-green-600' : 'text-blue-600'}`}>
-                                {log.type === 'in' ? '+' : '-'}
-                                {log.qty} {item?.unit || ''}
-                              </p>
+                            <div className="flex items-center gap-3">
+                              <div className="text-right">
+                                <p
+                                  className={`font-bold ${isReversalLog ? 'text-amber-600' : log.type === 'in' ? 'text-green-600' : 'text-blue-600'}`}
+                                >
+                                  {log.qty > 0 ? (log.type === 'in' ? '+' : '-') : ''}
+                                  {log.qty} {item?.unit || ''}
+                                </p>
+                              </div>
+                              {canReversal && (
+                                <button
+                                  onClick={() => handleReversalStock(Number(log.id))}
+                                  className="px-3 py-1 bg-amber-600 text-white rounded-lg text-xs font-bold hover:bg-amber-700 whitespace-nowrap"
+                                >
+                                  冲销
+                                </button>
+                              )}
+                              {canApproveReversal && (
+                                <div className="flex gap-1">
+                                  <button
+                                    onClick={() => handleApproveStockReversal(Number(log.id), true)}
+                                    className="px-2 py-1 bg-green-600 text-white rounded-lg text-xs font-bold hover:bg-green-700"
+                                  >
+                                    通过
+                                  </button>
+                                  <button
+                                    onClick={() => handleApproveStockReversal(Number(log.id), false)}
+                                    className="px-2 py-1 bg-red-600 text-white rounded-lg text-xs font-bold hover:bg-red-700"
+                                  >
+                                    拒绝
+                                  </button>
+                                </div>
+                              )}
                             </div>
                           </div>
                         );
@@ -3143,11 +3288,36 @@ const App = () => {
                   canEditMilestones={hasPermission(currentUser, 'project.edit')}
                 />
               ) : (
-                <div className="bg-white rounded-3xl border border-slate-100/80 shadow-sm overflow-hidden">
-                  <div className="p-6 border-b flex flex-wrap justify-between items-center gap-4">
-                    <h3 className="font-bold flex items-center gap-2 text-slate-700">
-                      <Building2 size={18} /> 项目列表
-                    </h3>
+                <div className="space-y-4">
+                  {/* 工具栏：视图切换 + 操作按钮 */}
+                  <div className="bg-white rounded-3xl border border-slate-100/80 shadow-sm p-4 flex flex-wrap justify-between items-center gap-4">
+                    <div className="flex items-center gap-3">
+                      <h3 className="font-bold flex items-center gap-2 text-slate-700">
+                        <Building2 size={18} /> 项目管理
+                      </h3>
+                      <div className="flex bg-slate-100 rounded-xl p-0.5">
+                        <button
+                          onClick={() => setProjectViewMode('table')}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors ${
+                            projectViewMode === 'table'
+                              ? 'bg-white text-blue-600 shadow-sm'
+                              : 'text-slate-500 hover:text-slate-700'
+                          }`}
+                        >
+                          <List size={14} /> 列表
+                        </button>
+                        <button
+                          onClick={() => setProjectViewMode('kanban')}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors ${
+                            projectViewMode === 'kanban'
+                              ? 'bg-white text-blue-600 shadow-sm'
+                              : 'text-slate-500 hover:text-slate-700'
+                          }`}
+                        >
+                          <LayoutGrid size={14} /> 看板
+                        </button>
+                      </div>
+                    </div>
                     <div className="flex gap-2">
                       <button
                         onClick={() => exportProjectsToExcel(projects)}
@@ -3176,91 +3346,102 @@ const App = () => {
                       )}
                     </div>
                   </div>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left">
-                      <thead className="bg-slate-50 border-b text-slate-400 text-xs uppercase tracking-wider">
-                        <tr>
-                          <th className="px-6 py-4 font-bold">项目名称</th>
-                          <th className="px-6 py-4 font-bold">项目编号</th>
-                          <th className="px-6 py-4 font-bold">合同金额</th>
-                          <th className="px-6 py-4 font-bold">已收款</th>
-                          <th className="px-6 py-4 font-bold">进度</th>
-                          <th className="px-6 py-4 font-bold">状态</th>
-                          <th className="px-6 py-4 font-bold">开始日期</th>
-                          <th className="px-6 py-4 font-bold">操作</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y text-sm">
-                        {projects.length === 0 ? (
-                          <tr>
-                            <td colSpan={8} className="px-6 py-12 text-center text-slate-400">
-                              暂无项目
-                            </td>
-                          </tr>
-                        ) : (
-                          projects.map((project) => (
-                            <tr key={project.id} className="hover:bg-slate-50/80 transition-colors">
-                              <td className="px-6 py-4">
-                                <span className="font-bold text-slate-700">{project.name}</span>
-                              </td>
-                              <td className="px-6 py-4 text-slate-500 font-mono text-xs">{project.code}</td>
-                              <td className="px-6 py-4 text-slate-600 font-mono">
-                                ￥{project.contractAmount.toLocaleString()}
-                              </td>
-                              <td className="px-6 py-4 text-green-600 font-mono">
-                                ￥{project.receivedAmount.toLocaleString()}
-                              </td>
-                              <td className="px-6 py-4">
-                                <div className="flex items-center gap-2">
-                                  <div className="flex-1 bg-slate-200 rounded-full h-2 overflow-hidden">
-                                    <div
-                                      className="bg-blue-600 h-full transition-all"
-                                      style={{ width: `${project.progress}%` }}
-                                    ></div>
-                                  </div>
-                                  <span className="text-xs font-bold text-slate-600 w-12">{project.progress}%</span>
-                                </div>
-                              </td>
-                              <td className="px-6 py-4">
-                                <span
-                                  className={`px-2.5 py-1 rounded-full text-xs font-bold ${STATUS_COLORS[project.status] || 'bg-slate-100 text-slate-700'}`}
-                                >
-                                  {project.status}
-                                </span>
-                              </td>
-                              <td className="px-6 py-4 text-slate-500">{project.startDate}</td>
-                              <td className="px-6 py-4">
-                                <div className="flex gap-2">
-                                  <button
-                                    onClick={() => setSelectedProjectId(project.id)}
-                                    className="px-3 py-1 border border-slate-200 rounded-lg text-xs font-bold hover:bg-slate-50 flex items-center gap-1"
-                                  >
-                                    <Eye size={14} /> 查看
-                                  </button>
-                                  {hasPermission(currentUser, 'project.edit') && (
-                                    <button
-                                      onClick={() => openProjectModal(project)}
-                                      className="px-3 py-1 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700"
-                                    >
-                                      编辑
-                                    </button>
-                                  )}
-                                  {hasPermission(currentUser, 'project.delete') && (
-                                    <button
-                                      onClick={() => handleDeleteProject(project.id)}
-                                      className="px-3 py-1 bg-red-600 text-white rounded-lg text-xs font-bold hover:bg-red-700"
-                                    >
-                                      删除
-                                    </button>
-                                  )}
-                                </div>
-                              </td>
+
+                  {/* 看板视图 */}
+                  {projectViewMode === 'kanban' && (
+                    <ProjectKanban projects={projects} onSelect={(id) => setSelectedProjectId(id)} />
+                  )}
+
+                  {/* 列表视图 */}
+                  {projectViewMode === 'table' && (
+                    <div className="bg-white rounded-3xl border border-slate-100/80 shadow-sm overflow-hidden">
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left">
+                          <thead className="bg-slate-50 border-b text-slate-400 text-xs uppercase tracking-wider">
+                            <tr>
+                              <th className="px-6 py-4 font-bold">项目名称</th>
+                              <th className="px-6 py-4 font-bold">项目编号</th>
+                              <th className="px-6 py-4 font-bold">合同金额</th>
+                              <th className="px-6 py-4 font-bold">已收款</th>
+                              <th className="px-6 py-4 font-bold">进度</th>
+                              <th className="px-6 py-4 font-bold">状态</th>
+                              <th className="px-6 py-4 font-bold">开始日期</th>
+                              <th className="px-6 py-4 font-bold">操作</th>
                             </tr>
-                          ))
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
+                          </thead>
+                          <tbody className="divide-y text-sm">
+                            {projects.length === 0 ? (
+                              <tr>
+                                <td colSpan={8} className="px-6 py-12 text-center text-slate-400">
+                                  暂无项目
+                                </td>
+                              </tr>
+                            ) : (
+                              projects.map((project) => (
+                                <tr key={project.id} className="hover:bg-slate-50/80 transition-colors">
+                                  <td className="px-6 py-4">
+                                    <span className="font-bold text-slate-700">{project.name}</span>
+                                  </td>
+                                  <td className="px-6 py-4 text-slate-500 font-mono text-xs">{project.code}</td>
+                                  <td className="px-6 py-4 text-slate-600 font-mono">
+                                    ￥{project.contractAmount.toLocaleString()}
+                                  </td>
+                                  <td className="px-6 py-4 text-green-600 font-mono">
+                                    ￥{project.receivedAmount.toLocaleString()}
+                                  </td>
+                                  <td className="px-6 py-4">
+                                    <div className="flex items-center gap-2">
+                                      <div className="flex-1 bg-slate-200 rounded-full h-2 overflow-hidden">
+                                        <div
+                                          className="bg-blue-600 h-full transition-all"
+                                          style={{ width: `${project.progress}%` }}
+                                        ></div>
+                                      </div>
+                                      <span className="text-xs font-bold text-slate-600 w-12">{project.progress}%</span>
+                                    </div>
+                                  </td>
+                                  <td className="px-6 py-4">
+                                    <span
+                                      className={`px-2.5 py-1 rounded-full text-xs font-bold ${STATUS_COLORS[project.status] || 'bg-slate-100 text-slate-700'}`}
+                                    >
+                                      {project.status}
+                                    </span>
+                                  </td>
+                                  <td className="px-6 py-4 text-slate-500">{project.startDate}</td>
+                                  <td className="px-6 py-4">
+                                    <div className="flex gap-2">
+                                      <button
+                                        onClick={() => setSelectedProjectId(project.id)}
+                                        className="px-3 py-1 border border-slate-200 rounded-lg text-xs font-bold hover:bg-slate-50 flex items-center gap-1"
+                                      >
+                                        <Eye size={14} /> 查看
+                                      </button>
+                                      {hasPermission(currentUser, 'project.edit') && (
+                                        <button
+                                          onClick={() => openProjectModal(project)}
+                                          className="px-3 py-1 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700"
+                                        >
+                                          编辑
+                                        </button>
+                                      )}
+                                      {hasPermission(currentUser, 'project.delete') && (
+                                        <button
+                                          onClick={() => handleDeleteProject(project.id)}
+                                          className="px-3 py-1 bg-red-600 text-white rounded-lg text-xs font-bold hover:bg-red-700"
+                                        >
+                                          删除
+                                        </button>
+                                      )}
+                                    </div>
+                                  </td>
+                                </tr>
+                              ))
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
