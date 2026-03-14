@@ -24,6 +24,7 @@ public class ReimbursementService {
     private final DepartmentRepository departmentRepository;
     private final FinanceRecordRepository financeRecordRepository;
     private final ProjectDocumentAutoCollectService projectDocumentAutoCollectService;
+    private final WorkflowNotifyService workflowNotifyService;
 
     /**
      * 查询报销单列表。
@@ -118,7 +119,14 @@ public class ReimbursementService {
             throw new RuntimeException("仅草稿状态可提交");
         }
         existing.setStatus("submitted");
-        return reimbursementRepository.save(existing);
+        Reimbursement saved = reimbursementRepository.save(existing);
+        workflowNotifyService.notifySubmitted(
+            "报销单",
+            saved.getId(),
+            saved.getApplicant(),
+            "金额: " + saved.getAmount()
+        );
+        return saved;
     }
 
     /**
@@ -147,6 +155,7 @@ public class ReimbursementService {
             writeBackCost(saved);
             autoCollectDocument(saved);
         }
+        workflowNotifyService.notifyApprovalResult("报销单", saved.getId(), approved, approver);
         return saved;
     }
 

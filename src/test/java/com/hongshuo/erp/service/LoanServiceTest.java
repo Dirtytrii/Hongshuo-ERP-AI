@@ -29,6 +29,8 @@ class LoanServiceTest {
     private LoanRepaymentService loanRepaymentService;
     @Mock
     private ProjectDocumentAutoCollectService projectDocumentAutoCollectService;
+    @Mock
+    private WorkflowNotifyService workflowNotifyService;
 
     @InjectMocks
     private LoanService loanService;

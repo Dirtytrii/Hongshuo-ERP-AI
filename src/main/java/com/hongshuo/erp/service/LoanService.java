@@ -22,6 +22,7 @@ public class LoanService {
     private final DepartmentRepository departmentRepository;
     private final LoanRepaymentService loanRepaymentService;
     private final ProjectDocumentAutoCollectService projectDocumentAutoCollectService;
+    private final WorkflowNotifyService workflowNotifyService;
 
     /**
      * 查询借款单列表。
@@ -115,7 +116,14 @@ public class LoanService {
             throw new RuntimeException("仅草稿状态可提交");
         }
         existing.setStatus("submitted");
-        return loanRepository.save(existing);
+        Loan saved = loanRepository.save(existing);
+        workflowNotifyService.notifySubmitted(
+            "借款单",
+            saved.getId(),
+            saved.getBorrower(),
+            "金额: " + saved.getAmount()
+        );
+        return saved;
     }
 
     /**
@@ -142,6 +150,7 @@ public class LoanService {
         if (approved) {
             autoCollectDocument(saved);
         }
+        workflowNotifyService.notifyApprovalResult("借款单", saved.getId(), approved, approver);
         return saved;
     }
 

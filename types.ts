@@ -123,6 +123,37 @@ export interface LoanRepayment {
   note?: string;
 }
 
+export interface ProjectDocumentRecord {
+  id: number;
+  projectId: number;
+  name: string;
+  link?: string;
+  remark?: string;
+  source?: string;
+  createdAt?: string;
+}
+
+export interface ApprovalTodoItem {
+  bizType: string;
+  bizId: number;
+  title: string;
+  applicant: string;
+  amount: number;
+  status: string;
+  date: string;
+  projectId?: number | null;
+}
+
+export interface MobileOverview {
+  contractSignedAmount: number;
+  approvedIncomeAmount: number;
+  approvedExpenseAmount: number;
+  overdueReceivableAmount: number;
+  overBudgetProjectCount: number;
+  pendingApprovalCount: number;
+  generatedAt: string;
+}
+
 export interface Milestone {
   id: number;
   name: string;
@@ -201,4 +232,5 @@ export interface AppState {
   inventory: InventoryItem[];
   financeRecords: FinanceRecord[];
   stockLogs: StockLog[];
+  projectDocuments?: ProjectDocumentRecord[];
 }

@@ -50,6 +50,9 @@ public class FinanceService {
 
     @Autowired
     private ProjectDocumentAutoCollectService projectDocumentAutoCollectService;
+
+    @Autowired
+    private WorkflowNotifyService workflowNotifyService;
     
     /** 支出类别 -> 项目成本类型（仅允许的枚举类别） */
     private static String categoryToCostType(String category) {
@@ -108,6 +111,14 @@ public class FinanceService {
             }
         }
         FinanceRecord saved = financeRecordRepository.save(record);
+        if ("pending".equals(saved.getStatus())) {
+            workflowNotifyService.notifySubmitted(
+                "财务单",
+                saved.getId(),
+                saved.getCreator(),
+                "类型: " + saved.getCategory() + "，金额: " + saved.getAmount()
+            );
+        }
         
         if ("approved".equals(saved.getStatus()) && saved.getProjectId() != null && saved.getAmount() != null) {
             if (saved.getType() == FinanceRecord.FinanceType.expense) {
@@ -187,6 +198,7 @@ public class FinanceService {
                 });
             }
             autoCollectFinanceDocument(record);
+            workflowNotifyService.notifyApprovalResult("财务单", record.getId(), true, approverRole);
         } else {
             record.setStatus("rejected");
             record.setApprover(approverRole);
@@ -195,6 +207,7 @@ public class FinanceService {
             
             logSystemAction(approverRole, "拒绝财务支出", 
                 String.format("类型: %s, 金额: %s, 原因: %s", record.getCategory(), record.getAmount(), approvalNote));
+            workflowNotifyService.notifyApprovalResult("财务单", record.getId(), false, approverRole);
         }
         
         return financeRecordRepository.save(record);

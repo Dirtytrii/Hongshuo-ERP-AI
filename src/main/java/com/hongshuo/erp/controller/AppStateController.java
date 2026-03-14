@@ -1,16 +1,16 @@
 package com.hongshuo.erp.controller;
 
-import com.hongshuo.erp.model.Project;
-import com.hongshuo.erp.model.InventoryItem;
-import com.hongshuo.erp.model.FinanceRecord;
-import com.hongshuo.erp.model.StockLog;
+import com.hongshuo.erp.repository.ProjectDocumentRepository;
 import com.hongshuo.erp.service.ProjectService;
 import com.hongshuo.erp.service.InventoryService;
 import com.hongshuo.erp.service.FinanceService;
 import com.hongshuo.erp.service.StockService;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -21,19 +21,14 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/app-state")
 @CrossOrigin(origins = "*")
+@RequiredArgsConstructor
 public class AppStateController {
 
-    @Autowired
-    private ProjectService projectService;
-    
-    @Autowired
-    private InventoryService inventoryService;
-    
-    @Autowired
-    private FinanceService financeService;
-    
-    @Autowired
-    private StockService stockService;
+    private final ProjectService projectService;
+    private final InventoryService inventoryService;
+    private final FinanceService financeService;
+    private final StockService stockService;
+    private final ProjectDocumentRepository projectDocumentRepository;
 
     @GetMapping
     public ResponseEntity<Map<String, Object>> getAppState() {
@@ -42,6 +37,7 @@ public class AppStateController {
         state.put("inventory", inventoryService.getAllInventory());
         state.put("financeRecords", financeService.getAllFinanceRecords());
         state.put("stockLogs", stockService.getAllStockLogs());
+        state.put("projectDocuments", projectDocumentRepository.findAll());
         return ResponseEntity.ok(state);
     }
 }

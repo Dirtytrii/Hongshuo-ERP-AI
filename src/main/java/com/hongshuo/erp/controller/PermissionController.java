@@ -1,8 +1,6 @@
 package com.hongshuo.erp.controller;
 
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.ClassPathResource;
-import org.springframework.core.io.Resource;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -123,6 +121,7 @@ public class PermissionController {
         props.setProperty("reimbursements.view", "admin,pm,finance,clerk");
         props.setProperty("loans.view", "admin,pm,finance,clerk");
         props.setProperty("departments.view", "admin,finance");
+        props.setProperty("integration.view", "admin,pm,finance");
         props.setProperty("finance.view", "admin,pm,finance");
         props.setProperty("reports.view", "admin,pm,finance");
         props.setProperty("history.view", "admin");

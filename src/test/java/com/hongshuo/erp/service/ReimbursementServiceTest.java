@@ -38,6 +38,8 @@ class ReimbursementServiceTest {
     private FinanceRecordRepository financeRecordRepository;
     @Mock
     private ProjectDocumentAutoCollectService projectDocumentAutoCollectService;
+    @Mock
+    private WorkflowNotifyService workflowNotifyService;
 
     @InjectMocks
     private ReimbursementService reimbursementService;

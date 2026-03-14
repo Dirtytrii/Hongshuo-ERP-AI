@@ -32,6 +32,7 @@ import {
   FileText,
   Receipt,
   HandCoins,
+  Smartphone,
 } from 'lucide-react';
 import {
   exportProjectsToExcel,
@@ -62,6 +63,7 @@ import {
   OperationDashboardSummary,
   BudgetExecutionItem,
   Department,
+  ProjectDocumentRecord,
 } from './types';
 import Login from './components/Login/Login';
 import SearchableSelect from './components/ui/SearchableSelect';
@@ -72,6 +74,7 @@ import ContractManagement from './components/Contracts/ContractManagement';
 import ReimbursementManagement from './components/Reimbursements/ReimbursementManagement';
 import LoanManagement from './components/Loans/LoanManagement';
 import DepartmentManagement from './components/Departments/DepartmentManagement';
+import IntegrationCenter from './components/Integration/IntegrationCenter';
 
 function formatSessionTime(ts: number): string {
   const d = new Date(ts);
@@ -121,6 +124,7 @@ const permissionsConfig: Record<string, string[]> = {
   'reimbursements.view': ['admin', 'pm', 'finance', 'clerk'],
   'loans.view': ['admin', 'pm', 'finance', 'clerk'],
   'departments.view': ['admin', 'finance'],
+  'integration.view': ['admin', 'pm', 'finance'],
   'finance.view': ['admin', 'pm', 'finance'],
   'reports.view': ['admin', 'pm', 'finance'],
   'history.view': ['admin'],
@@ -798,6 +802,7 @@ const App = () => {
         inventory: (appState.inventory || []) as InventoryItem[],
         financeRecords: (appState.financeRecords || []) as FinanceRecord[],
         stockLogs: (appState.stockLogs || []) as StockLog[],
+        projectDocuments: (appState.projectDocuments || []) as ProjectDocumentRecord[],
       };
       const fullText = await analyzeConstructionDataStream(userContent, data, (delta) => {
         setAiMessages((prev) => {
@@ -1697,6 +1702,7 @@ const App = () => {
             { id: 'reimbursements', label: '报销管理', icon: Receipt, permission: 'reimbursements.view' },
             { id: 'loans', label: '借还款管理', icon: HandCoins, permission: 'loans.view' },
             { id: 'departments', label: '部门管理', icon: Building2, permission: 'departments.view' },
+            { id: 'integration', label: '集成中心', icon: Smartphone, permission: 'integration.view' },
             { id: 'finance', label: '财务收支', icon: Wallet, permission: 'finance.view' },
             { id: 'suppliers', label: '供应商管理', icon: Truck, permission: 'finance.view' },
             { id: 'change-orders', label: '变更/签证单', icon: FileEdit, permission: 'projects.view' },
@@ -2703,6 +2709,12 @@ const App = () => {
             </div>
           )}
 
+          {!isLoading && activeTab === 'integration' && hasPermission(currentUser, 'integration.view') && (
+            <div className="p-6 overflow-auto">
+              <IntegrationCenter />
+            </div>
+          )}
+
           {!isLoading && activeTab === 'contracts' && hasPermission(currentUser, 'contracts.view') && (
             <div className="p-6 overflow-auto">
               <ContractManagement
@@ -3237,6 +3249,11 @@ const App = () => {
                         'projects.view': '项目管理页面',
                         'inventory.view': '物料仓库页面',
                         'inventory-management.view': '物料管理页面',
+                        'contracts.view': '合同管理页面',
+                        'reimbursements.view': '报销管理页面',
+                        'loans.view': '借还款管理页面',
+                        'departments.view': '部门管理页面',
+                        'integration.view': '集成中心页面',
                         'finance.view': '财务收支页面',
                         'history.view': '操作日志页面',
                         'ai.view': 'AI 决策室页面',

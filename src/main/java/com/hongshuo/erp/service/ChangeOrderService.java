@@ -27,6 +27,9 @@ public class ChangeOrderService {
     @Autowired
     private ProjectDocumentAutoCollectService projectDocumentAutoCollectService;
 
+    @Autowired
+    private WorkflowNotifyService workflowNotifyService;
+
     public List<ChangeOrder> findAll() {
         return changeOrderRepository.findAll();
     }
@@ -50,7 +53,14 @@ public class ChangeOrderService {
         if (order.getStatus() == null || order.getStatus().isBlank()) {
             order.setStatus("pending");
         }
-        return changeOrderRepository.save(order);
+        ChangeOrder saved = changeOrderRepository.save(order);
+        workflowNotifyService.notifySubmitted(
+            "变更单",
+            saved.getId(),
+            "项目#" + saved.getProjectId(),
+            "金额: " + saved.getAmount()
+        );
+        return saved;
     }
 
     @Transactional
@@ -104,6 +114,8 @@ public class ChangeOrderService {
                 remark
             );
         }
-        return changeOrderRepository.save(order);
+        ChangeOrder saved = changeOrderRepository.save(order);
+        workflowNotifyService.notifyApprovalResult("变更单", saved.getId(), approved, approverRole);
+        return saved;
     }
 }

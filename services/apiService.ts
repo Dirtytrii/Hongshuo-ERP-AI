@@ -630,12 +630,48 @@ export const apiService = {
     return handleResponse(res);
   },
 
-  async saveConfig(config: { lowStockThreshold?: string; largeExpenseThreshold?: string }) {
+  async saveConfig(config: {
+    lowStockThreshold?: string;
+    largeExpenseThreshold?: string;
+    dingTalkEnabled?: boolean | string;
+    dingTalkWebhookUrl?: string;
+    mobileApiEnabled?: boolean | string;
+  }) {
     const res = await apiFetch(`${BASE_URL}/config`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(config),
     });
+    return handleResponse(res);
+  },
+
+  // ========== Integrations (Phase 4) ==========
+  async getDingTalkStatus() {
+    const res = await apiFetch(`${BASE_URL}/integrations/dingtalk/status`);
+    return handleResponse(res);
+  },
+  async sendDingTalkTest(message?: string) {
+    const res = await apiFetch(`${BASE_URL}/integrations/dingtalk/test`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: message || '集成测试' }),
+    });
+    return handleResponse(res);
+  },
+  async getMobileIntegrationStatus() {
+    const res = await apiFetch(`${BASE_URL}/integrations/mobile/status`);
+    return handleResponse(res);
+  },
+  async getApprovalTodos() {
+    const res = await apiFetch(`${BASE_URL}/approval-center/todos`);
+    return handleResponse(res);
+  },
+  async getMobileOverview() {
+    const res = await apiFetch(`${BASE_URL}/mobile/overview`);
+    return handleResponse(res);
+  },
+  async getMobileTodos() {
+    const res = await apiFetch(`${BASE_URL}/mobile/todos`);
     return handleResponse(res);
   },
 

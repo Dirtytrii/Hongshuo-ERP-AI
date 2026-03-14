@@ -31,11 +31,14 @@ ${JSON.stringify(data.financeRecords, null, 2)}
 【最近出入库（最多 20 条）】
 ${JSON.stringify(data.stockLogs.slice(0, 20), null, 2)}
 
+【项目资料库（最多 200 条）】
+${JSON.stringify((data.projectDocuments || []).slice(0, 200), null, 2)}
+
 ---
 用户问题：「${query}」
 ---
 
-请基于以上数据做简明分析：涉及财务时计算利润与现金流；涉及库存时结合项目进度看缺料风险；涉及策略时给出可执行建议。回答请条理清晰，用要点或加粗标出关键数字，不要直接贴原始 JSON。
+请基于以上数据做简明分析：涉及财务时计算利润与现金流；涉及库存时结合项目进度看缺料风险；涉及资料库时优先引用相关单据来源（contract/change_order/reimbursement/finance/loan/loan_repayment）；涉及策略时给出可执行建议。回答请条理清晰，用要点或加粗标出关键数字，不要直接贴原始 JSON。
 `.trim();
 }
 

@@ -176,3 +176,31 @@ mvn test
 ```
 
 如果团队层或个人层已在 Cursor 平台配置了环境，会按 Cursor 优先级覆盖仓库内配置；可根据实际情况在平台侧做统一治理。
+
+---
+
+## 七、四阶段集成配置（钉钉 / 轻量移动端）
+
+二期 Phase 4 已新增「集成中心」，对应后端配置项存放于 `data/config.properties`：
+
+- `integration.dingtalk.enabled`：是否启用钉钉机器人通知（`true/false`）
+- `integration.dingtalk.webhook`：钉钉机器人 Webhook 地址
+- `integration.mobile.enabled`：是否启用轻量移动端 API（`true/false`）
+
+可通过以下方式配置：
+
+1. Web 端「集成中心」页面直接保存；
+2. 或调用 `POST /api/config` 保存上述字段。
+
+新增接口（Phase 4）：
+
+- 集成状态与测试：
+  - `GET /api/integrations/dingtalk/status`
+  - `POST /api/integrations/dingtalk/test`
+  - `GET /api/integrations/mobile/status`
+- 审批中心聚合：
+  - `GET /api/approval-center/todos`
+  - `GET /api/approval-center/summary`
+- 轻量移动端：
+  - `GET /api/mobile/overview`
+  - `GET /api/mobile/todos`
