@@ -48,6 +48,9 @@ public class FinanceService {
     
     @Autowired
     private SystemLogRepository systemLogRepository;
+
+    @Autowired
+    private ProjectDocumentAutoCollectService projectDocumentAutoCollectService;
     
     /** 支出类别 -> 项目成本类型（仅允许的枚举类别） */
     private static String categoryToCostType(String category) {
@@ -123,6 +126,7 @@ public class FinanceService {
                     projectRepository.save(project);
                 });
             }
+            autoCollectFinanceDocument(saved);
         }
         return saved;
     }
@@ -183,6 +187,7 @@ public class FinanceService {
                     projectRepository.save(project);
                 });
             }
+            autoCollectFinanceDocument(record);
         } else {
             record.setStatus("rejected");
             record.setApprover(approverRole);
@@ -267,6 +272,22 @@ public class FinanceService {
         log.setAction(action);
         log.setDetail(detail);
         systemLogRepository.save(log);
+    }
+
+    private void autoCollectFinanceDocument(FinanceRecord record) {
+        if (record.getProjectId() == null) {
+            return;
+        }
+        String kind = record.getType() == FinanceRecord.FinanceType.income ? "收入" : "支出";
+        String link = "/finance/" + record.getId();
+        String remark = kind + "审批通过，金额: " + record.getAmount() + "，类别: " + record.getCategory();
+        projectDocumentAutoCollectService.collect(
+            record.getProjectId(),
+            "finance",
+            kind + "单 #" + record.getId(),
+            link,
+            remark
+        );
     }
 }
 

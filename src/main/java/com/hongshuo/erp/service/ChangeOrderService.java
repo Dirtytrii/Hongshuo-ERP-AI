@@ -24,6 +24,9 @@ public class ChangeOrderService {
     @Autowired
     private ContractService contractService;
 
+    @Autowired
+    private ProjectDocumentAutoCollectService projectDocumentAutoCollectService;
+
     public List<ChangeOrder> findAll() {
         return changeOrderRepository.findAll();
     }
@@ -91,6 +94,15 @@ public class ChangeOrderService {
             projectRepository.save(project);
             // 若项目已启用合同主数据，回写规则以「合同汇总 + 已审批变更单」为准，避免口径漂移
             contractService.recalculateProjectContractAmount(order.getProjectId());
+            String link = "/change-orders/" + order.getId();
+            String remark = "变更单审批通过，金额: " + order.getAmount() + "，事由: " + order.getReason();
+            projectDocumentAutoCollectService.collect(
+                order.getProjectId(),
+                "change_order",
+                "变更单 #" + order.getId(),
+                link,
+                remark
+            );
         }
         return changeOrderRepository.save(order);
     }

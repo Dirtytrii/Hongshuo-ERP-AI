@@ -35,9 +35,9 @@ public class ProjectDocumentController {
         ))
     })
     public ResponseEntity<List<ProjectDocument>> getByProjectId(
-            @Parameter(description = "项目ID", required = true)
-            @RequestParam Long projectId) {
-        return ResponseEntity.ok(projectDocumentService.getByProjectId(projectId));
+            @Parameter(description = "项目ID", required = true) @RequestParam Long projectId,
+            @Parameter(description = "来源过滤") @RequestParam(required = false) String source) {
+        return ResponseEntity.ok(projectDocumentService.getByProjectId(projectId, source));
     }
 
     @GetMapping("/{id}")

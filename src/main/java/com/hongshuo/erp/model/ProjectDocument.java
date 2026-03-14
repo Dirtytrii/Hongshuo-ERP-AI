@@ -3,6 +3,8 @@ package com.hongshuo.erp.model;
 import jakarta.persistence.*;
 import lombok.Data;
 
+import java.time.LocalDateTime;
+
 /**
  * 项目文档清单（P2-1 轻量版）：仅名称、链接、备注，不涉及文件上传与存储。
  */
@@ -26,4 +28,18 @@ public class ProjectDocument {
 
     @Column(columnDefinition = "TEXT")
     private String remark;
+
+    /** 来源：manual/contract/change_order/reimbursement/finance/loan/loan_repayment */
+    @Column(length = 32)
+    private String source;
+
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;
+
+    @PrePersist
+    public void prePersist() {
+        if (createdAt == null) {
+            createdAt = LocalDateTime.now();
+        }
+    }
 }

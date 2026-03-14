@@ -30,6 +30,8 @@ import {
   Truck,
   FileEdit,
   FileText,
+  Receipt,
+  HandCoins,
 } from 'lucide-react';
 import {
   exportProjectsToExcel,
@@ -59,6 +61,7 @@ import {
   AppState,
   OperationDashboardSummary,
   BudgetExecutionItem,
+  Department,
 } from './types';
 import Login from './components/Login/Login';
 import SearchableSelect from './components/ui/SearchableSelect';
@@ -66,6 +69,9 @@ import RoleManagement from './components/Users/RoleManagement';
 import SupplierManagement from './components/Suppliers/SupplierManagement';
 import ChangeOrderManagement from './components/ChangeOrders/ChangeOrderManagement';
 import ContractManagement from './components/Contracts/ContractManagement';
+import ReimbursementManagement from './components/Reimbursements/ReimbursementManagement';
+import LoanManagement from './components/Loans/LoanManagement';
+import DepartmentManagement from './components/Departments/DepartmentManagement';
 
 function formatSessionTime(ts: number): string {
   const d = new Date(ts);
@@ -112,6 +118,9 @@ const permissionsConfig: Record<string, string[]> = {
   'inventory.view': ['admin', 'pm', 'finance', 'clerk'],
   'inventory-management.view': ['admin', 'pm'],
   'contracts.view': ['admin', 'pm', 'finance'],
+  'reimbursements.view': ['admin', 'pm', 'finance', 'clerk'],
+  'loans.view': ['admin', 'pm', 'finance', 'clerk'],
+  'departments.view': ['admin', 'finance'],
   'finance.view': ['admin', 'pm', 'finance'],
   'reports.view': ['admin', 'pm', 'finance'],
   'history.view': ['admin'],
@@ -179,6 +188,7 @@ const App = () => {
   const [suppliers, setSuppliers] = useState<
     Array<{ id: number; name: string; contactPerson?: string; contactPhone?: string; bankInfo?: string }>
   >([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
 
   // Project Modal States
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
@@ -209,6 +219,7 @@ const App = () => {
     category: '',
     amount: 0,
     projectId: null as number | null,
+    departmentId: null as number | null,
     paymentPlanItemId: null as number | null,
     supplierId: null as number | null,
     desc: '',
@@ -298,17 +309,27 @@ const App = () => {
     if (!authUser) return;
     setIsLoading(true);
     try {
-      const [projectsData, inventoryData, financeData, stockData, logsData, permissionsData, rolesData, suppliersData] =
-        await Promise.all([
-          apiService.getProjects().catch(() => []) as Promise<Project[]>,
-          apiService.getInventory().catch(() => []) as Promise<InventoryItem[]>,
-          apiService.getFinanceRecords().catch(() => []) as Promise<FinanceRecord[]>,
-          apiService.getStockLogs().catch(() => []) as Promise<StockLog[]>,
-          apiService.getSystemLogs().catch(() => []) as Promise<SystemLog[]>,
-          apiService.getPermissions().catch(() => ({})) as Promise<Record<string, string[]>>,
-          apiService.getRoles().catch(() => []) as Promise<RoleDefinition[]>,
-          apiService.getSuppliers().catch(() => []) as Promise<Array<{ id: number; name: string }>>,
-        ]);
+      const [
+        projectsData,
+        inventoryData,
+        financeData,
+        stockData,
+        logsData,
+        permissionsData,
+        rolesData,
+        suppliersData,
+        departmentsData,
+      ] = await Promise.all([
+        apiService.getProjects().catch(() => []) as Promise<Project[]>,
+        apiService.getInventory().catch(() => []) as Promise<InventoryItem[]>,
+        apiService.getFinanceRecords().catch(() => []) as Promise<FinanceRecord[]>,
+        apiService.getStockLogs().catch(() => []) as Promise<StockLog[]>,
+        apiService.getSystemLogs().catch(() => []) as Promise<SystemLog[]>,
+        apiService.getPermissions().catch(() => ({})) as Promise<Record<string, string[]>>,
+        apiService.getRoles().catch(() => []) as Promise<RoleDefinition[]>,
+        apiService.getSuppliers().catch(() => []) as Promise<Array<{ id: number; name: string }>>,
+        apiService.getDepartments().catch(() => []) as Promise<Department[]>,
+      ]);
 
       const projects = Array.isArray(projectsData) ? projectsData : [];
       const inventory = Array.isArray(inventoryData) ? inventoryData : [];
@@ -316,6 +337,7 @@ const App = () => {
       const stock = Array.isArray(stockData) ? stockData : [];
       const logs = Array.isArray(logsData) ? logsData : [];
       const suppliersList = Array.isArray(suppliersData) ? suppliersData : [];
+      const departmentsList = Array.isArray(departmentsData) ? departmentsData : [];
       const perms = (() => {
         const apiPerms = permissionsData && Object.keys(permissionsData).length > 0 ? permissionsData : {};
         return { ...permissionsConfig, ...apiPerms };
@@ -342,6 +364,7 @@ const App = () => {
       setStockLogs(stock);
       setSystemLogs(logs);
       setSuppliers(suppliersList);
+      setDepartments(departmentsList);
       setPermissions(perms);
       if (Array.isArray(rolesData) && rolesData.length > 0) {
         setRoleDefs(rolesData);
@@ -454,6 +477,14 @@ const App = () => {
       .getSuppliers()
       .then((list) => setSuppliers(Array.isArray(list) ? list : []))
       .catch(() => setSuppliers([]));
+  }, [authUser, activeTab]);
+
+  useEffect(() => {
+    if (!authUser || !['finance', 'reimbursements', 'loans', 'departments'].includes(activeTab)) return;
+    apiService
+      .getDepartments()
+      .then((list) => setDepartments(Array.isArray(list) ? (list as Department[]) : []))
+      .catch(() => setDepartments([]));
   }, [authUser, activeTab]);
 
   // Load users when opening user management (admin only)
@@ -697,6 +728,7 @@ const App = () => {
       category: '',
       amount: 0,
       projectId: null,
+      departmentId: null,
       paymentPlanItemId: null,
       supplierId: null,
       desc: '',
@@ -711,6 +743,7 @@ const App = () => {
       const financeData = {
         ...financeForm,
         supplierId: financeForm.supplierId ?? undefined,
+        departmentId: financeForm.departmentId ?? undefined,
         paymentPlanItemId: financeForm.paymentPlanItemId ?? undefined,
         creator: currentUser.name,
         date: new Date().toISOString().split('T')[0],
@@ -1570,6 +1603,20 @@ const App = () => {
                   maxHeight="240px"
                 />
               </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-400 uppercase mb-2">关联部门（可选）</label>
+                <SearchableSelect
+                  options={[
+                    { value: '', label: '不关联部门' },
+                    ...departments.map((d) => ({ value: d.id, label: `${d.name}(${d.code})` })),
+                  ]}
+                  value={financeForm.departmentId ?? ''}
+                  onChange={(v) => setFinanceForm({ ...financeForm, departmentId: v === '' ? null : Number(v) })}
+                  placeholder="请选择或检索部门..."
+                  inputClassName="focus:ring-green-500 focus:border-green-500"
+                  maxHeight="240px"
+                />
+              </div>
               {financeForm.type === 'income' && financeForm.projectId != null && (
                 <div>
                   <label className="block text-xs font-bold text-slate-400 uppercase mb-2">
@@ -1647,6 +1694,9 @@ const App = () => {
             { id: 'inventory', label: '物料仓库', icon: Package, permission: 'inventory.view' },
             { id: 'inventory-management', label: '物料管理', icon: Settings, permission: 'inventory-management.view' },
             { id: 'contracts', label: '合同管理', icon: FileText, permission: 'contracts.view' },
+            { id: 'reimbursements', label: '报销管理', icon: Receipt, permission: 'reimbursements.view' },
+            { id: 'loans', label: '借还款管理', icon: HandCoins, permission: 'loans.view' },
+            { id: 'departments', label: '部门管理', icon: Building2, permission: 'departments.view' },
             { id: 'finance', label: '财务收支', icon: Wallet, permission: 'finance.view' },
             { id: 'suppliers', label: '供应商管理', icon: Truck, permission: 'finance.view' },
             { id: 'change-orders', label: '变更/签证单', icon: FileEdit, permission: 'projects.view' },
@@ -2622,6 +2672,34 @@ const App = () => {
           {!isLoading && activeTab === 'suppliers' && hasPermission(currentUser, 'finance.view') && (
             <div className="p-6 overflow-auto">
               <SupplierManagement />
+            </div>
+          )}
+
+          {!isLoading && activeTab === 'reimbursements' && hasPermission(currentUser, 'reimbursements.view') && (
+            <div className="p-6 overflow-auto">
+              <ReimbursementManagement
+                projects={projects}
+                departments={departments}
+                approverName={currentUser.name}
+                currentUserName={currentUser.name}
+              />
+            </div>
+          )}
+
+          {!isLoading && activeTab === 'loans' && hasPermission(currentUser, 'loans.view') && (
+            <div className="p-6 overflow-auto">
+              <LoanManagement
+                projects={projects}
+                departments={departments}
+                approverName={currentUser.name}
+                currentUserName={currentUser.name}
+              />
+            </div>
+          )}
+
+          {!isLoading && activeTab === 'departments' && hasPermission(currentUser, 'departments.view') && (
+            <div className="p-6 overflow-auto">
+              <DepartmentManagement />
             </div>
           )}
 

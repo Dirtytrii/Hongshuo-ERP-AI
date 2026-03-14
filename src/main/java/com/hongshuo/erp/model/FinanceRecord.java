@@ -34,6 +34,10 @@ public class FinanceRecord {
     @Column(name = "supplier_id")
     private Long supplierId;
 
+    /** 部门ID，可选；用于部门成本归集。 */
+    @Column(name = "department_id")
+    private Long departmentId;
+
     /** 成本类型：material=材料, labor=人工, other=其他。支出审批通过时按此回写项目成本。 */
     @Column(name = "cost_type", length = 20)
     private String costType;

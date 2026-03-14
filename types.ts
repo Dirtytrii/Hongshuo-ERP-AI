@@ -63,6 +63,66 @@ export interface BudgetExecutionItem {
   budgetAlertStatus: 'green' | 'yellow' | 'red' | null;
 }
 
+export interface Department {
+  id: number;
+  name: string;
+  code: string;
+  parentId?: number | null;
+}
+
+export interface DepartmentCostSummary {
+  departmentId: number;
+  departmentName: string;
+  financeExpenseAmount: number;
+  reimbursementAmount: number;
+  loanAmount: number;
+  totalAmount: number;
+}
+
+export interface Reimbursement {
+  id: number;
+  projectId?: number | null;
+  departmentId?: number | null;
+  applicant: string;
+  amount: number;
+  category: string;
+  status: 'draft' | 'submitted' | 'approved' | 'rejected';
+  date: string;
+  creator: string;
+  approver?: string;
+  approvalDate?: string;
+  approvalNote?: string;
+  description?: string;
+}
+
+export interface Loan {
+  id: number;
+  projectId?: number | null;
+  departmentId?: number | null;
+  borrower: string;
+  amount: number;
+  date: string;
+  status: 'draft' | 'submitted' | 'approved' | 'rejected';
+  creator: string;
+  approver?: string;
+  approvalDate?: string;
+  approvalNote?: string;
+  reason?: string;
+}
+
+export interface LoanRepayment {
+  id: number;
+  loanId: number;
+  amount: number;
+  date: string;
+  status: 'draft' | 'submitted' | 'approved' | 'rejected';
+  creator: string;
+  approver?: string;
+  approvalDate?: string;
+  approvalNote?: string;
+  note?: string;
+}
+
 export interface Milestone {
   id: number;
   name: string;

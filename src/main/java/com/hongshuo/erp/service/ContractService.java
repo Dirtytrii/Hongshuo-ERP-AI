@@ -22,6 +22,8 @@ public class ContractService {
 
     private final ChangeOrderRepository changeOrderRepository;
 
+    private final ProjectDocumentAutoCollectService projectDocumentAutoCollectService;
+
     /**
      * 查询合同列表，支持按项目/结算状态/监控状态筛选。
      *
@@ -61,6 +63,7 @@ public class ContractService {
         validateContract(contract);
         Contract saved = contractRepository.save(contract);
         recalculateProjectContractAmount(saved.getProjectId());
+        autoCollectContractDocument(saved);
         return saved;
     }
 
@@ -166,5 +169,17 @@ public class ContractService {
         }
         project.setContractAmount(contractTotal.add(approvedChangeOrderTotal));
         projectRepository.save(project);
+    }
+
+    private void autoCollectContractDocument(Contract contract) {
+        String link = "/contracts/" + contract.getId();
+        String remark = "合同签订，金额: " + contract.getContractAmount() + "，编号: " + contract.getContractNo();
+        projectDocumentAutoCollectService.collect(
+            contract.getProjectId(),
+            "contract",
+            "合同 " + contract.getName(),
+            link,
+            remark
+        );
     }
 }

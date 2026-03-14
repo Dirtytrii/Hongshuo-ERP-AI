@@ -32,5 +32,8 @@ public interface FinanceRecordRepository extends JpaRepository<FinanceRecord, Lo
     /** 按类型汇总已审批金额（经营看板统计）。 */
     @Query("SELECT COALESCE(SUM(f.amount), 0) FROM FinanceRecord f WHERE f.type = :type AND f.status = 'approved'")
     BigDecimal sumApprovedAmountByType(@Param("type") FinanceRecord.FinanceType type);
+
+    @Query("SELECT COALESCE(SUM(f.amount), 0) FROM FinanceRecord f WHERE f.departmentId = :departmentId AND f.type = com.hongshuo.erp.model.FinanceRecord$FinanceType.expense AND f.status = 'approved'")
+    BigDecimal sumApprovedExpenseByDepartmentId(@Param("departmentId") Long departmentId);
 }
 

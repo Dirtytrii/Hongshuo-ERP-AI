@@ -331,8 +331,10 @@ export const apiService = {
   },
 
   // ========== Project documents (项目文档清单 P2-1) ==========
-  async getProjectDocuments(projectId: number) {
-    const res = await apiFetch(`${BASE_URL}/project-documents?projectId=${projectId}`);
+  async getProjectDocuments(projectId: number, source?: string) {
+    const q = new URLSearchParams({ projectId: String(projectId) });
+    if (source) q.set('source', source);
+    const res = await apiFetch(`${BASE_URL}/project-documents?${q.toString()}`);
     return handleResponse(res);
   },
   async createProjectDocument(projectId: number, doc: { name: string; link?: string; remark?: string }) {
@@ -357,6 +359,155 @@ export const apiService = {
       const err = await res.json().catch(() => ({}));
       throw new Error((err as { error?: string }).error || res.statusText);
     }
+  },
+
+  // ========== Reimbursements (Phase 2) ==========
+  async getReimbursements(params?: { projectId?: number; departmentId?: number; status?: string }) {
+    const q = new URLSearchParams();
+    if (params?.projectId != null) q.set('projectId', String(params.projectId));
+    if (params?.departmentId != null) q.set('departmentId', String(params.departmentId));
+    if (params?.status) q.set('status', params.status);
+    const res = await apiFetch(`${BASE_URL}/reimbursements${q.toString() ? '?' + q.toString() : ''}`);
+    return handleResponse(res);
+  },
+  async createReimbursement(body: any) {
+    const res = await apiFetch(`${BASE_URL}/reimbursements`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    return handleResponse(res);
+  },
+  async updateReimbursement(id: number, body: any) {
+    const res = await apiFetch(`${BASE_URL}/reimbursements/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    return handleResponse(res);
+  },
+  async submitReimbursement(id: number) {
+    const res = await apiFetch(`${BASE_URL}/reimbursements/${id}/submit`, { method: 'POST' });
+    return handleResponse(res);
+  },
+  async approveReimbursement(id: number, approver: string, approved: boolean, approvalNote?: string) {
+    const res = await apiFetch(`${BASE_URL}/reimbursements/${id}/approve`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ approver, approved, approvalNote: approvalNote || '' }),
+    });
+    return handleResponse(res);
+  },
+  async deleteReimbursement(id: number): Promise<void> {
+    const res = await apiFetch(`${BASE_URL}/reimbursements/${id}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error('删除报销单失败');
+  },
+
+  // ========== Loans / Repayments (Phase 2) ==========
+  async getLoans(params?: { projectId?: number; departmentId?: number; status?: string }) {
+    const q = new URLSearchParams();
+    if (params?.projectId != null) q.set('projectId', String(params.projectId));
+    if (params?.departmentId != null) q.set('departmentId', String(params.departmentId));
+    if (params?.status) q.set('status', params.status);
+    const res = await apiFetch(`${BASE_URL}/loans${q.toString() ? '?' + q.toString() : ''}`);
+    return handleResponse(res);
+  },
+  async createLoan(body: any) {
+    const res = await apiFetch(`${BASE_URL}/loans`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    return handleResponse(res);
+  },
+  async updateLoan(id: number, body: any) {
+    const res = await apiFetch(`${BASE_URL}/loans/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    return handleResponse(res);
+  },
+  async submitLoan(id: number) {
+    const res = await apiFetch(`${BASE_URL}/loans/${id}/submit`, { method: 'POST' });
+    return handleResponse(res);
+  },
+  async approveLoan(id: number, approver: string, approved: boolean, approvalNote?: string) {
+    const res = await apiFetch(`${BASE_URL}/loans/${id}/approve`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ approver, approved, approvalNote: approvalNote || '' }),
+    });
+    return handleResponse(res);
+  },
+  async deleteLoan(id: number): Promise<void> {
+    const res = await apiFetch(`${BASE_URL}/loans/${id}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error('删除借款单失败');
+  },
+  async getLoanOutstanding(id: number) {
+    const res = await apiFetch(`${BASE_URL}/loans/${id}/outstanding`);
+    return handleResponse(res);
+  },
+  async getLoanRepayments(params?: { loanId?: number; status?: string }) {
+    const q = new URLSearchParams();
+    if (params?.loanId != null) q.set('loanId', String(params.loanId));
+    if (params?.status) q.set('status', params.status);
+    const res = await apiFetch(`${BASE_URL}/loan-repayments${q.toString() ? '?' + q.toString() : ''}`);
+    return handleResponse(res);
+  },
+  async createLoanRepayment(body: any) {
+    const res = await apiFetch(`${BASE_URL}/loan-repayments`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    return handleResponse(res);
+  },
+  async submitLoanRepayment(id: number) {
+    const res = await apiFetch(`${BASE_URL}/loan-repayments/${id}/submit`, { method: 'POST' });
+    return handleResponse(res);
+  },
+  async approveLoanRepayment(id: number, approver: string, approved: boolean, approvalNote?: string) {
+    const res = await apiFetch(`${BASE_URL}/loan-repayments/${id}/approve`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ approver, approved, approvalNote: approvalNote || '' }),
+    });
+    return handleResponse(res);
+  },
+  async deleteLoanRepayment(id: number): Promise<void> {
+    const res = await apiFetch(`${BASE_URL}/loan-repayments/${id}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error('删除还款单失败');
+  },
+
+  // ========== Departments (Phase 3) ==========
+  async getDepartments() {
+    const res = await apiFetch(`${BASE_URL}/departments`);
+    return handleResponse(res);
+  },
+  async createDepartment(body: { name: string; code: string; parentId?: number | null }) {
+    const res = await apiFetch(`${BASE_URL}/departments`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    return handleResponse(res);
+  },
+  async updateDepartment(id: number, body: { name: string; code: string; parentId?: number | null }) {
+    const res = await apiFetch(`${BASE_URL}/departments/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    return handleResponse(res);
+  },
+  async deleteDepartment(id: number): Promise<void> {
+    const res = await apiFetch(`${BASE_URL}/departments/${id}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error('删除部门失败');
+  },
+  async getDepartmentCostSummary() {
+    const res = await apiFetch(`${BASE_URL}/departments/reports/cost`);
+    return handleResponse(res);
   },
 
   // ========== Stock Operations ==========
@@ -520,6 +671,7 @@ export const apiService = {
     username: string;
     password: string;
     role: string;
+    departmentId?: number | null;
   }): Promise<{ id: number; username: string; role: string; enabled: boolean }> {
     const res = await apiFetch(`${BASE_URL}/users`, {
       method: 'POST',
@@ -531,7 +683,7 @@ export const apiService = {
 
   async updateUser(
     id: number,
-    body: { username?: string; password?: string; role?: string; enabled?: boolean }
+    body: { username?: string; password?: string; role?: string; enabled?: boolean; departmentId?: number | null }
   ): Promise<{ id: number; username: string; role: string; enabled: boolean }> {
     const res = await apiFetch(`${BASE_URL}/users/${id}`, {
       method: 'PUT',

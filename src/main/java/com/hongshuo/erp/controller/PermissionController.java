@@ -120,6 +120,9 @@ public class PermissionController {
         props.setProperty("inventory.view", "admin,pm,finance,clerk");
         props.setProperty("inventory-management.view", "admin,pm");
         props.setProperty("contracts.view", "admin,pm,finance");
+        props.setProperty("reimbursements.view", "admin,pm,finance,clerk");
+        props.setProperty("loans.view", "admin,pm,finance,clerk");
+        props.setProperty("departments.view", "admin,finance");
         props.setProperty("finance.view", "admin,pm,finance");
         props.setProperty("reports.view", "admin,pm,finance");
         props.setProperty("history.view", "admin");

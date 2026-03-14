@@ -8,6 +8,7 @@ export interface ProjectDocumentType {
   name: string;
   link?: string;
   remark?: string;
+  source?: string;
 }
 
 interface ProjectDocumentListProps {
@@ -21,10 +22,11 @@ const ProjectDocumentList: React.FC<ProjectDocumentListProps> = ({ projectId }) 
   const [editingDoc, setEditingDoc] = useState<ProjectDocumentType | null>(null);
   const [form, setForm] = useState({ name: '', link: '', remark: '' });
   const [saving, setSaving] = useState(false);
+  const [sourceFilter, setSourceFilter] = useState('');
 
   const loadDocs = async () => {
     try {
-      const list = await apiService.getProjectDocuments(projectId);
+      const list = await apiService.getProjectDocuments(projectId, sourceFilter || undefined);
       setDocs(Array.isArray(list) ? list : []);
     } catch {
       setDocs([]);
@@ -35,7 +37,7 @@ const ProjectDocumentList: React.FC<ProjectDocumentListProps> = ({ projectId }) 
 
   useEffect(() => {
     loadDocs();
-  }, [projectId]);
+  }, [projectId, sourceFilter]);
 
   const openAdd = () => {
     setEditingDoc(null);
@@ -97,7 +99,7 @@ const ProjectDocumentList: React.FC<ProjectDocumentListProps> = ({ projectId }) 
 
   return (
     <div className="bg-white rounded-3xl border border-slate-100/80 shadow-sm p-6">
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-4 gap-3">
         <div>
           <h3 className="font-bold text-slate-700 flex items-center gap-2">
             <FileText size={18} className="text-slate-600" />
@@ -107,13 +109,29 @@ const ProjectDocumentList: React.FC<ProjectDocumentListProps> = ({ projectId }) 
             记录文档名称与链接（实际文件可存钉钉/企微等），便于在系统内查阅清单。
           </p>
         </div>
-        <button
-          type="button"
-          onClick={openAdd}
-          className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700"
-        >
-          <Plus size={16} /> 新增文档
-        </button>
+        <div className="flex items-center gap-2">
+          <select
+            value={sourceFilter}
+            onChange={(e) => setSourceFilter(e.target.value)}
+            className="border border-slate-200 rounded-xl px-3 py-1.5 text-sm"
+          >
+            <option value="">全部来源</option>
+            <option value="manual">手工录入</option>
+            <option value="contract">合同</option>
+            <option value="change_order">变更单</option>
+            <option value="reimbursement">报销单</option>
+            <option value="finance">财务单</option>
+            <option value="loan">借款单</option>
+            <option value="loan_repayment">还款单</option>
+          </select>
+          <button
+            type="button"
+            onClick={openAdd}
+            className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700"
+          >
+            <Plus size={16} /> 新增文档
+          </button>
+        </div>
       </div>
       {loading ? (
         <div className="text-center text-slate-400 py-8">加载中...</div>
@@ -125,6 +143,7 @@ const ProjectDocumentList: React.FC<ProjectDocumentListProps> = ({ projectId }) 
             <thead>
               <tr className="border-b border-slate-200 text-slate-600 text-left">
                 <th className="py-2 px-3">名称</th>
+                <th className="py-2 px-3">来源</th>
                 <th className="py-2 px-3">链接</th>
                 <th className="py-2 px-3">备注</th>
                 <th className="py-2 px-3 w-24">操作</th>
@@ -134,6 +153,23 @@ const ProjectDocumentList: React.FC<ProjectDocumentListProps> = ({ projectId }) 
               {docs.map((doc) => (
                 <tr key={doc.id} className="border-b border-slate-100">
                   <td className="py-2 px-3 font-medium text-slate-700">{doc.name}</td>
+                  <td className="py-2 px-3 text-slate-600">
+                    {doc.source === 'manual'
+                      ? '手工录入'
+                      : doc.source === 'contract'
+                        ? '合同'
+                        : doc.source === 'change_order'
+                          ? '变更单'
+                          : doc.source === 'reimbursement'
+                            ? '报销单'
+                            : doc.source === 'finance'
+                              ? '财务单'
+                              : doc.source === 'loan'
+                                ? '借款单'
+                                : doc.source === 'loan_repayment'
+                                  ? '还款单'
+                                  : doc.source || '—'}
+                  </td>
                   <td className="py-2 px-3">
                     {doc.link ? (
                       <a
