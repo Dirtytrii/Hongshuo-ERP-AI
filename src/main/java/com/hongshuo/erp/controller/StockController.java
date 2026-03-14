@@ -47,7 +47,10 @@ public class StockController {
             if (request.get("projectId") != null) {
                 stockLog.setProjectId(Long.valueOf(request.get("projectId").toString()));
             }
-            
+            if (request.get("supplierId") != null && !request.get("supplierId").toString().isBlank()) {
+                stockLog.setSupplierId(Long.valueOf(request.get("supplierId").toString()));
+            }
+
             if (request.get("note") != null) {
                 stockLog.setNote(request.get("note").toString());
             }

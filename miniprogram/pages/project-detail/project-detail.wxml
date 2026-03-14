@@ -1,0 +1,34 @@
+<view class="container">
+  <view wx:if="{{loading}}" class="loading">加载中...</view>
+  <view wx:elif="{{error}}" class="error">{{error}}</view>
+  <view wx:elif="{{project}}" class="detail">
+    <view class="card">
+      <view class="title">{{project.name}}</view>
+      <view class="text-muted">{{project.code}} · {{project.managerId}}</view>
+    </view>
+    <view class="card">
+      <view class="row">
+        <text class="label">合同金额</text>
+        <text class="value">￥{{project.contractAmount}}</text>
+      </view>
+      <view class="row">
+        <text class="label">已收款</text>
+        <text class="value green">￥{{project.receivedAmount}}</text>
+      </view>
+      <view class="row">
+        <text class="label">进度</text>
+        <text class="value">{{project.progress}}%</text>
+      </view>
+      <view class="row" wx:if="{{project.totalBudget}}">
+        <text class="label">预算</text>
+        <text class="value">￥{{project.totalBudget}}</text>
+      </view>
+      <view class="row warn" wx:if="{{project.budgetAlertStatus === 'red'}}">
+        <text>已超预算</text>
+      </view>
+      <view class="row warn" wx:elif="{{project.budgetAlertStatus === 'yellow'}}">
+        <text>预算预警（≥80%）</text>
+      </view>
+    </view>
+  </view>
+</view>

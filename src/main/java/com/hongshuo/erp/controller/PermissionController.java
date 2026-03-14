@@ -75,6 +75,14 @@ public class PermissionController {
             try (InputStream is = Files.newInputStream(filePath)) {
                 props.load(is);
             }
+            // 合并默认权限：文件中没有的键用默认值补全（如新增的 users.view）
+            Properties defaults = new Properties();
+            setDefaultPermissions(defaults);
+            for (String key : defaults.stringPropertyNames()) {
+                if (!props.containsKey(key)) {
+                    props.setProperty(key, defaults.getProperty(key));
+                }
+            }
         } else {
             // 如果文件不存在，使用默认权限
             setDefaultPermissions(props);
@@ -112,8 +120,10 @@ public class PermissionController {
         props.setProperty("inventory.view", "admin,pm,finance,clerk");
         props.setProperty("inventory-management.view", "admin,pm");
         props.setProperty("finance.view", "admin,pm,finance");
+        props.setProperty("reports.view", "admin,pm,finance");
         props.setProperty("history.view", "admin");
         props.setProperty("ai.view", "admin,pm,finance,clerk");
+        props.setProperty("users.view", "admin");
         // 按钮级别权限
         props.setProperty("inventory.create", "admin,pm,clerk");
         props.setProperty("inventory.outbound.direct", "admin");

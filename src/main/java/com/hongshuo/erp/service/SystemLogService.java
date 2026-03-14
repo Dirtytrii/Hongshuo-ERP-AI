@@ -24,5 +24,9 @@ public class SystemLogService {
     public List<SystemLog> getLogsByAction(String action) {
         return systemLogRepository.findByAction(action);
     }
+
+    public void deleteLog(Long id) {
+        systemLogRepository.deleteById(id);
+    }
 }
 

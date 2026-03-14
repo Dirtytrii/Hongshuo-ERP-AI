@@ -8,18 +8,18 @@ interface ProjectFinanceProps {
 }
 
 const ProjectFinance: React.FC<ProjectFinanceProps> = ({ projectId, financeRecords = [] }) => {
-  const projectFinance = financeRecords.filter(r => r.projectId === projectId);
+  const projectFinance = financeRecords.filter((r) => r.projectId === projectId);
 
   const totalIncome = projectFinance
-    .filter(r => r.type === 'income' && r.status === 'approved')
+    .filter((r) => r.type === 'income' && r.status === 'approved')
     .reduce((sum, r) => sum + r.amount, 0);
-  
+
   const totalExpense = projectFinance
-    .filter(r => r.type === 'expense' && r.status === 'approved')
+    .filter((r) => r.type === 'expense' && r.status === 'approved')
     .reduce((sum, r) => sum + r.amount, 0);
 
   return (
-    <div className="bg-white rounded-2xl border shadow-sm p-6">
+    <div className="bg-white rounded-3xl border border-slate-100/80 shadow-sm p-6">
       <h3 className="font-bold text-slate-700 mb-4 flex items-center gap-2">
         <Wallet size={18} />
         项目财务关联
@@ -45,7 +45,7 @@ const ProjectFinance: React.FC<ProjectFinanceProps> = ({ projectId, financeRecor
           <div className="mt-4">
             <p className="text-sm font-medium text-slate-600 mb-2">财务记录 ({projectFinance.length}条)</p>
             <div className="space-y-2 max-h-60 overflow-y-auto">
-              {projectFinance.map(record => (
+              {projectFinance.map((record) => (
                 <div key={record.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
                   <div>
                     <p className="text-sm font-medium text-slate-700">{record.category}</p>
@@ -65,4 +65,3 @@ const ProjectFinance: React.FC<ProjectFinanceProps> = ({ projectId, financeRecor
 };
 
 export default ProjectFinance;
-

@@ -28,7 +28,11 @@ public class StockLog {
     
     @Column(name = "project_id")
     private Long projectId;
-    
+
+    /** 供应商ID，可选；入库可关联供应商。 */
+    @Column(name = "supplier_id")
+    private Long supplierId;
+
     @Column(nullable = false)
     private String status; // pending, approved, rejected, active
     

@@ -1,0 +1,13 @@
+{
+  "miniprogramRoot": ".",
+  "projectname": "hongshuo-erp",
+  "description": "宏硕建设 ERP 微信小程序",
+  "appid": "请填写小程序 AppID",
+  "setting": {
+    "urlCheck": true,
+    "es6": true,
+    "postcss": true,
+    "minified": true
+  },
+  "compileType": "miniprogram"
+}

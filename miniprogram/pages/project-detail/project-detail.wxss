@@ -1,0 +1,13 @@
+.loading, .error { padding: 48rpx; text-align: center; }
+.error { color: #dc2626; }
+.detail .row {
+  display: flex;
+  justify-content: space-between;
+  padding: 16rpx 0;
+  border-bottom: 1rpx solid #f3f4f6;
+}
+.detail .row:last-child { border-bottom: none; }
+.label { color: #6b7280; }
+.value { font-weight: bold; }
+.value.green { color: #16a34a; }
+.warn { color: #dc2626; font-size: 24rpx; }

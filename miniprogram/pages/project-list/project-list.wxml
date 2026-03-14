@@ -1,0 +1,21 @@
+<view class="container">
+  <view class="title">项目列表</view>
+  <view wx:if="{{loading}}" class="loading">加载中...</view>
+  <view wx:elif="{{error}}" class="error">{{error}}</view>
+  <view wx:else>
+    <view
+      class="card row"
+      wx:for="{{list}}"
+      wx:key="id"
+      data-id="{{item.id}}"
+      bindtap="goDetail"
+    >
+      <view>
+        <text class="name">{{item.name}}</text>
+        <text class="text-muted">{{item.code}} · 进度 {{item.progress}}%</text>
+      </view>
+      <text class="amount">￥{{item.contractAmount}}</text>
+    </view>
+    <view wx:if="{{list.length === 0}}" class="empty text-muted">暂无项目</view>
+  </view>
+</view>

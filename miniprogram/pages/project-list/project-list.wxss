@@ -1,0 +1,6 @@
+.title { font-size: 36rpx; font-weight: bold; margin-bottom: 24rpx; color: #166534; }
+.loading, .error, .empty { padding: 48rpx; text-align: center; }
+.error { color: #dc2626; }
+.row { display: flex; justify-content: space-between; align-items: center; }
+.row .name { display: block; font-weight: bold; margin-bottom: 8rpx; }
+.row .amount { color: #16a34a; font-weight: bold; }

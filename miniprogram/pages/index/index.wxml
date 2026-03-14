@@ -1,0 +1,52 @@
+<view class="container">
+  <view class="header">
+    <text class="title">仪表盘</text>
+    <text class="link" bindtap="logout">退出</text>
+  </view>
+
+  <view wx:if="{{loading}}" class="loading">加载中...</view>
+  <view wx:elif="{{error}}" class="error">{{error}}</view>
+
+  <block wx:else>
+    <view class="card">
+      <view class="title">近期待催款</view>
+      <view wx:if="{{upcoming.length === 0}}" class="text-muted">暂无</view>
+      <view wx:else>
+        <view
+          class="row"
+          wx:for="{{upcoming}}"
+          wx:key="id"
+        >
+          <text>{{item.name}}</text>
+          <text>￥{{item.planAmount}}</text>
+          <text class="text-muted">{{item.planDate}}</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="card">
+      <view class="title">里程碑超期预警</view>
+      <view wx:if="{{overdue.length === 0}}" class="text-muted">暂无</view>
+      <view wx:else>
+        <view class="row" wx:for="{{overdue}}" wx:key="id">
+          <text>{{item.name}}</text>
+          <text class="text-muted">计划 {{item.planDate}}</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="card" wx:if="{{budgetAlerts.length > 0}}">
+      <view class="title">预算预警</view>
+      <view class="row" wx:for="{{budgetAlerts}}" wx:key="id">
+        <text>{{item.name}}</text>
+        <text class="warn">{{item.budgetAlertStatus === 'red' ? '已超预算' : '≥80%'}}</text>
+      </view>
+    </view>
+
+    <view class="card">
+      <view class="title">项目列表</view>
+      <view class="text-muted">共 {{projects.length}} 个项目</view>
+      <button class="btn-primary" bindtap="goProjects">查看项目</button>
+    </view>
+  </block>
+</view>

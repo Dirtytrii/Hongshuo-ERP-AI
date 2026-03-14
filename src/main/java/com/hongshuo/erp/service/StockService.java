@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -26,6 +27,9 @@ public class StockService {
     
     @Autowired
     private SystemLogRepository systemLogRepository;
+
+    @Autowired
+    private com.hongshuo.erp.service.ProjectService projectService;
     
     /**
      * 创建库存操作记录（入库或出库申请）
@@ -58,7 +62,11 @@ public class StockService {
                 stockLog.setStatus("active");
                 stockLog.setCreator(creatorRole);
                 stockLog.setDate(LocalDate.now());
-                
+                // 超预算校验（关联项目且将生效时）
+                if (stockLog.getProjectId() != null) {
+                    BigDecimal outAmount = BigDecimal.valueOf(stockLog.getQty()).multiply(stockLog.getPrice());
+                    projectService.checkOverBudgetAllowAdmin(stockLog.getProjectId(), outAmount, creatorRole);
+                }
                 // 记录系统日志
                 logSystemAction(creatorRole, "物料出库", 
                     String.format("物料: %s, 数量: %d, 项目ID: %s", item.getName(), stockLog.getQty(), stockLog.getProjectId()));
@@ -125,6 +133,11 @@ public class StockService {
             .orElseThrow(() -> new RuntimeException("物料不存在"));
         
         if (approved) {
+            // 超预算校验（关联项目时）
+            if (stockLog.getProjectId() != null) {
+                BigDecimal outAmount = BigDecimal.valueOf(stockLog.getQty()).multiply(stockLog.getPrice());
+                projectService.checkOverBudgetAllowAdmin(stockLog.getProjectId(), outAmount, approverRole);
+            }
             // 批准：更新库存
             if (item.getQuantity() < stockLog.getQty()) {
                 throw new RuntimeException("库存不足，无法批准出库");

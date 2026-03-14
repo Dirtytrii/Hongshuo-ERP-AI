@@ -3,19 +3,23 @@ package com.hongshuo.erp.config;
 import com.hongshuo.erp.model.*;
 import com.hongshuo.erp.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.Arrays;
+import java.util.List;
 
 /**
  * 数据初始化组件
  * 在应用启动时自动执行，初始化基础数据
+ * 测试环境下不加载，避免影响单元测试
  */
 @Component
+@Profile("!test")
 public class DataInitializer implements CommandLineRunner {
 
     @Autowired
@@ -36,6 +40,15 @@ public class DataInitializer implements CommandLineRunner {
     @Autowired
     private SystemLogRepository systemLogRepository;
 
+    @Autowired
+    private com.hongshuo.erp.repository.UserRepository userRepository;
+
+    @Autowired
+    private com.hongshuo.erp.repository.RoleRepository roleRepository;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
     @Value("${app.data.reset-on-startup:false}")
     private boolean resetOnStartup;
 
@@ -46,6 +59,7 @@ public class DataInitializer implements CommandLineRunner {
         // 如果配置为不重置，且已有数据，则跳过初始化
         if (!resetOnStartup && hasData) {
             System.out.println("数据库已有数据，跳过初始化（app.data.reset-on-startup=false）");
+            initTestUsers();
             return;
         }
 
@@ -58,30 +72,35 @@ public class DataInitializer implements CommandLineRunner {
             milestoneRepository.deleteAll();
             projectRepository.deleteAll();
             inventoryItemRepository.deleteAll();
+            roleRepository.deleteAll();
+            userRepository.deleteAll();
             System.out.println("数据清空完成");
         }
 
         System.out.println("开始初始化数据库...");
 
-        // 1. 初始化项目
-        Project project1 = createProject("宏硕·云端大厦", "HS-2024-001", "pm", 
+        // 0. 初始化内置角色（如果不存在）
+        initDefaultRoles();
+
+        // 1. 初始化项目（进度先置 0，在里程碑创建后按「已完成/总数」统一重算）
+        Project project1 = createProject("宏硕·云端大厦", "HS-2024-001", "pm",
             new BigDecimal("5000000.00"), new BigDecimal("2000000.00"),
-            new BigDecimal("1200000.00"), new BigDecimal("800000.00"), 
-            new BigDecimal("100000.00"), "施工中", 45,
+            new BigDecimal("1200000.00"), new BigDecimal("800000.00"),
+            new BigDecimal("100000.00"), "施工中", 0,
             LocalDate.of(2024, 1, 10), LocalDate.of(2024, 12, 30));
         project1 = projectRepository.save(project1);
 
         Project project2 = createProject("宏硕·科技园区", "HS-2024-002", "pm",
             new BigDecimal("8000000.00"), new BigDecimal("3000000.00"),
             new BigDecimal("2000000.00"), new BigDecimal("1500000.00"),
-            new BigDecimal("200000.00"), "施工中", 30,
+            new BigDecimal("200000.00"), "施工中", 0,
             LocalDate.of(2024, 3, 1), LocalDate.of(2025, 6, 30));
         project2 = projectRepository.save(project2);
 
         Project project3 = createProject("宏硕·商业中心", "HS-2023-003", "pm",
             new BigDecimal("12000000.00"), new BigDecimal("10000000.00"),
             new BigDecimal("3500000.00"), new BigDecimal("2800000.00"),
-            new BigDecimal("300000.00"), "验收中", 95,
+            new BigDecimal("300000.00"), "验收中", 0,
             LocalDate.of(2023, 6, 1), LocalDate.of(2024, 5, 31));
         project3 = projectRepository.save(project3);
 
@@ -102,10 +121,15 @@ public class DataInitializer implements CommandLineRunner {
         createMilestone(project2, "主体施工", LocalDate.of(2024, 8, 1), 
             null, Milestone.MilestoneStatus.pending);
 
-        createMilestone(project3, "竣工验收", LocalDate.of(2024, 5, 20), 
+        createMilestone(project3, "竣工验收", LocalDate.of(2024, 5, 20),
             LocalDate.of(2024, 5, 25), Milestone.MilestoneStatus.completed);
-        createMilestone(project3, "交付使用", LocalDate.of(2024, 5, 31), 
+        createMilestone(project3, "交付使用", LocalDate.of(2024, 5, 31),
             null, Milestone.MilestoneStatus.in_progress);
+
+        // 2.1 按里程碑重算项目进度（与 ProjectService 口径一致）
+        updateProjectProgress(project1);
+        updateProjectProgress(project2);
+        updateProjectProgress(project3);
 
         // 3. 初始化库存物料
         InventoryItem item1 = createInventoryItem("42.5级硅酸盐水泥", "50kg/袋", "袋", 
@@ -187,7 +211,37 @@ public class DataInitializer implements CommandLineRunner {
         createSystemLog("2024-03-01 16:00:00", "小张 (Clerk)", "物料入库", "螺纹钢Φ16入库40吨");
         createSystemLog("2024-04-12 13:30:00", "小张 (Clerk)", "申请出库", "项目2申请出库螺纹钢12吨（待审核）");
 
+        initTestUsers();
         System.out.println("数据库初始化完成！");
+    }
+
+    /** 初始化默认角色：admin/pm/finance/clerk */
+    private void initDefaultRoles() {
+        if (roleRepository.count() == 0) {
+            saveRole("admin", "管理员", "系统管理员，拥有所有权限", true);
+            saveRole("pm", "项目经理", "负责项目管理与出库审批", true);
+            saveRole("finance", "财务", "负责财务收支与审批", true);
+            saveRole("clerk", "录入员", "负责基础数据与出入库录入", true);
+            return;
+        }
+        // 若角色表已存在，确保四个默认角色存在
+        saveRoleIfAbsent("admin", "管理员", "系统管理员，拥有所有权限", true);
+        saveRoleIfAbsent("pm", "项目经理", "负责项目管理与出库审批", true);
+        saveRoleIfAbsent("finance", "财务", "负责财务收支与审批", true);
+        saveRoleIfAbsent("clerk", "录入员", "负责基础数据与出入库录入", true);
+    }
+
+    /** 与 ProjectService 一致：按已完成里程碑数/总里程碑数计算进度并写回 */
+    private int computeProgressFromMilestones(Project project) {
+        List<Milestone> list = milestoneRepository.findByProjectId(project.getId());
+        if (list == null || list.isEmpty()) return 0;
+        long completed = list.stream().filter(m -> m.getStatus() == Milestone.MilestoneStatus.completed).count();
+        return (int) (completed * 100 / list.size());
+    }
+
+    private void updateProjectProgress(Project project) {
+        project.setProgress(computeProgressFromMilestones(project));
+        projectRepository.save(project);
     }
 
     private Project createProject(String name, String code, String managerId,
@@ -282,6 +336,40 @@ public class DataInitializer implements CommandLineRunner {
         log.setAction(action);
         log.setDetail(detail);
         systemLogRepository.save(log);
+    }
+
+    /** 初始化测试用户：admin + pm/finance/clerk，便于登录与权限测试 */
+    private void initTestUsers() {
+        if (userRepository.count() > 0) return;
+        String defaultPassword = "123456";
+        saveUser("admin", defaultPassword, "admin");
+        saveUser("pm", defaultPassword, "pm");
+        saveUser("finance", defaultPassword, "finance");
+        saveUser("clerk", defaultPassword, "clerk");
+        System.out.println("已创建测试用户: admin/pm/finance/clerk，密码均为 " + defaultPassword);
+    }
+
+    private void saveUser(String username, String password, String role) {
+        User u = new User();
+        u.setUsername(username);
+        u.setPasswordHash(passwordEncoder.encode(password));
+        u.setRole(role);
+        u.setEnabled(true);
+        userRepository.save(u);
+    }
+
+    private void saveRole(String code, String name, String description, boolean builtIn) {
+        com.hongshuo.erp.model.Role role = new com.hongshuo.erp.model.Role();
+        role.setCode(code);
+        role.setName(name);
+        role.setDescription(description);
+        role.setBuiltIn(builtIn);
+        roleRepository.save(role);
+    }
+
+    private void saveRoleIfAbsent(String code, String name, String description, boolean builtIn) {
+        if (roleRepository.existsByCode(code)) return;
+        saveRole(code, name, description, builtIn);
     }
 }
 

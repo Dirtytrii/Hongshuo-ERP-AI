@@ -1,0 +1,25 @@
+FROM maven:3.9.9-eclipse-temurin-17 AS build
+
+WORKDIR /app
+
+# 仅复制后端相关内容进行构建，加快镜像构建速度
+COPY pom.xml .
+COPY src ./src
+
+RUN mvn -q -DskipTests package
+
+
+FROM eclipse-temurin:17-jre-alpine
+
+WORKDIR /app
+
+# 复制打包好的 Spring Boot 可执行 Jar
+COPY --from=build /app/target/*.jar app.jar
+
+EXPOSE 8080
+
+# 使用与本地一致的 H2 文件路径（相对 /app）
+VOLUME ["/app/data"]
+
+ENTRYPOINT ["java", "-jar", "app.jar"]
+

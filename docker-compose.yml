@@ -1,0 +1,44 @@
+version: "3.9"
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: hongshuo-erp-backend
+    ports:
+      - "8080:8080"
+    environment:
+      # 使用与本地一致的 H2 文件路径（相对 /app）
+      - SPRING_DATASOURCE_URL=jdbc:h2:file:./data/hongshuo_erp
+      - SPRING_DATASOURCE_USERNAME=sa
+      - SPRING_DATASOURCE_PASSWORD=
+      - SPRING_PROFILES_ACTIVE=default
+    volumes:
+      - ./data:/app/data
+    networks:
+      - erp-net
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+      args:
+        # 构建期注入后端地址，用于 Vite 读取 VITE_API_BASE
+        VITE_API_BASE: http://backend:8080
+    container_name: hongshuo-erp-frontend
+    depends_on:
+      - backend
+    ports:
+      # 访问前端：http://localhost:3000
+      - "3000:80"
+    environment:
+      # 运行时保留，方便前端在需要时通过环境变量读取
+      - VITE_API_BASE=http://backend:8080
+    networks:
+      - erp-net
+
+networks:
+  erp-net:
+    driver: bridge
+

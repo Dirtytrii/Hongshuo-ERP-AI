@@ -30,5 +30,11 @@ public class SystemLogController {
     public ResponseEntity<List<SystemLog>> getLogsByAction(@PathVariable String action) {
         return ResponseEntity.ok(systemLogService.getLogsByAction(action));
     }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteLog(@PathVariable Long id) {
+        systemLogService.deleteLog(id);
+        return ResponseEntity.noContent().build();
+    }
 }
 

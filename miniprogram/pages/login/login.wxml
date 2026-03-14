@@ -1,0 +1,28 @@
+<view class="container">
+  <view class="card" style="margin-top: 120rpx;">
+    <view class="title">宏硕建设 ERP</view>
+    <view class="text-muted">请使用账号密码登录</view>
+    <view class="form">
+      <input
+        class="input"
+        placeholder="用户名"
+        value="{{username}}"
+        bindinput="onUsernameInput"
+      />
+      <input
+        class="input"
+        type="password"
+        placeholder="密码"
+        value="{{password}}"
+        bindinput="onPasswordInput"
+      />
+      <view class="error" wx:if="{{error}}">{{error}}</view>
+      <button
+        class="btn-primary"
+        loading="{{loading}}"
+        disabled="{{loading}}"
+        bindtap="doLogin"
+      >登录</button>
+    </view>
+  </view>
+</view>
