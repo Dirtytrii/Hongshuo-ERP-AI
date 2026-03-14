@@ -31,6 +31,8 @@ class ContractServiceTest {
     private ProjectRepository projectRepository;
     @Mock
     private ChangeOrderRepository changeOrderRepository;
+    @Mock
+    private ProjectDocumentAutoCollectService projectDocumentAutoCollectService;
 
     @InjectMocks
     private ContractService contractService;

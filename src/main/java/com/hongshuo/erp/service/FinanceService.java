@@ -56,14 +56,33 @@ public class FinanceService {
     
     /** 支出类别 -> 项目成本类型（仅允许的枚举类别） */
     private static String categoryToCostType(String category) {
-        if (category == null) return "other";
-        String c = category.trim();
+        String c = normalizeExpenseCategory(category);
+        if (c == null) return "other";
         for (Map<String, String> row : EXPENSE_CATEGORIES) {
             if (row.get("code").equals(c)) {
                 return row.get("costType");
             }
         }
         return "other";
+    }
+
+    /**
+     * 兼容历史数据类别（如：材料采购/设备/办公费），统一映射到标准支出类别。
+     */
+    private static String normalizeExpenseCategory(String rawCategory) {
+        if (rawCategory == null) return null;
+        String c = rawCategory.trim();
+        if (ALLOWED_EXPENSE_CATEGORY_CODES.contains(c)) {
+            return c;
+        }
+        if (c.contains("材料")) return "材料费";
+        if (c.contains("人工") || c.contains("工资")) return "人工费";
+        if (c.contains("机械") || c.contains("设备")) return "机械费";
+        if (c.contains("分包")) return "分包费";
+        if (c.contains("管理") || c.contains("办公") || c.contains("差旅") || c.contains("招待") || c.contains("大额")) {
+            return "间接管理费";
+        }
+        return null;
     }
     
     /**
@@ -80,9 +99,11 @@ public class FinanceService {
             if (record.getCategory() == null || record.getCategory().isBlank()) {
                 throw new IllegalArgumentException("支出类别不能为空，请从下拉选择");
             }
-            if (!ALLOWED_EXPENSE_CATEGORY_CODES.contains(record.getCategory().trim())) {
+            String normalizedCategory = normalizeExpenseCategory(record.getCategory());
+            if (normalizedCategory == null) {
                 throw new IllegalArgumentException("支出类别不在允许列表中，请从下拉选择：人工费、材料费、机械费、分包费、间接管理费");
             }
+            record.setCategory(normalizedCategory);
         }
         // 判断是否需要审核
         if (record.getType() == FinanceRecord.FinanceType.expense 

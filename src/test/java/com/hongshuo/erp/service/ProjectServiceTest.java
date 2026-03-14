@@ -2,8 +2,12 @@ package com.hongshuo.erp.service;
 
 import com.hongshuo.erp.model.Milestone;
 import com.hongshuo.erp.model.Project;
+import com.hongshuo.erp.model.User;
+import com.hongshuo.erp.repository.FinanceRecordRepository;
 import com.hongshuo.erp.repository.MilestoneRepository;
 import com.hongshuo.erp.repository.ProjectRepository;
+import com.hongshuo.erp.repository.StockLogRepository;
+import com.hongshuo.erp.repository.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -28,6 +32,12 @@ class ProjectServiceTest {
 
     @Mock
     private MilestoneRepository milestoneRepository;
+    @Mock
+    private StockLogRepository stockLogRepository;
+    @Mock
+    private UserRepository userRepository;
+    @Mock
+    private FinanceRecordRepository financeRecordRepository;
 
     @InjectMocks
     private ProjectService projectService;
@@ -61,7 +71,12 @@ class ProjectServiceTest {
     @Test
     void createProject_whenCodeUnique_savesAndReturns() {
         Project input = createProject(null, "New", "NEW001");
+        User manager = new User();
+        manager.setId(1L);
+        manager.setUsername("M1");
+        manager.setEnabled(true);
         when(projectRepository.existsByCode("NEW001")).thenReturn(false);
+        when(userRepository.findByUsername("M1")).thenReturn(Optional.of(manager));
         when(projectRepository.save(any(Project.class))).thenAnswer(inv -> {
             Project p = inv.getArgument(0);
             if (p.getId() == null) p.setId(1L);
@@ -93,8 +108,13 @@ class ProjectServiceTest {
         Project existing = createProject(1L, "Old", "CODE1");
         Project details = createProject(null, "Updated", "CODE1");
         details.setProgress(50);
+        User manager = new User();
+        manager.setId(1L);
+        manager.setUsername("M1");
+        manager.setEnabled(true);
         when(projectRepository.findById(1L)).thenReturn(Optional.of(existing));
         when(milestoneRepository.findByProjectId(1L)).thenReturn(List.of());
+        when(userRepository.findByUsername("M1")).thenReturn(Optional.of(manager));
         when(projectRepository.save(any(Project.class))).thenAnswer(inv -> inv.getArgument(0));
 
         Project result = projectService.updateProject(1L, details);

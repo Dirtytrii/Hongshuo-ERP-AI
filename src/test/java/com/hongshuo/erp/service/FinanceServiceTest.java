@@ -2,6 +2,7 @@ package com.hongshuo.erp.service;
 
 import com.hongshuo.erp.model.FinanceRecord;
 import com.hongshuo.erp.repository.FinanceRecordRepository;
+import com.hongshuo.erp.repository.ProjectRepository;
 import com.hongshuo.erp.repository.SystemLogRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -27,6 +28,14 @@ class FinanceServiceTest {
 
     @Mock
     private SystemLogRepository systemLogRepository;
+    @Mock
+    private ProjectRepository projectRepository;
+    @Mock
+    private ProjectService projectService;
+    @Mock
+    private ProjectDocumentAutoCollectService projectDocumentAutoCollectService;
+    @Mock
+    private WorkflowNotifyService workflowNotifyService;
 
     @InjectMocks
     private FinanceService financeService;
