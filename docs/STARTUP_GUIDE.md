@@ -186,6 +186,9 @@ mvn test
 - `integration.dingtalk.enabled`：是否启用钉钉机器人通知（`true/false`）
 - `integration.dingtalk.webhook`：钉钉机器人 Webhook 地址
 - `integration.mobile.enabled`：是否启用轻量移动端 API（`true/false`）
+- `integration.web.base-url`：钉钉消息中的前端回跳地址（如 `https://erp.xxx.com`）
+- `integration.notify.template.submitted`：提交通知模板（5 个 `%s` 占位）
+- `integration.notify.template.result`：结果通知模板（5 个 `%s` 占位）
 
 可通过以下方式配置：
 
