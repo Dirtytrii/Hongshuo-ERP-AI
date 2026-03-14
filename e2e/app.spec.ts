@@ -22,12 +22,7 @@ test.describe('App navigation and permissions', () => {
   test('can switch to 项目管理 and see project list or empty state', async ({ page }) => {
     await loginAsAdmin(page);
     await page.getByText('项目管理').first().click();
-    await expect(
-      page
-        .getByText('项目列表')
-        .or(page.getByText('暂无项目'))
-        .or(page.getByRole('button', { name: '新建项目' }))
-    ).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText('项目列表').first()).toBeVisible({ timeout: 5000 });
   });
 
   test('can switch to 物料仓库', async ({ page }) => {
