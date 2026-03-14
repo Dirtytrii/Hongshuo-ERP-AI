@@ -43,6 +43,26 @@ export interface Contract {
   updatedAt?: string;
 }
 
+export interface OperationDashboardSummary {
+  contractSignedAmount: number;
+  contractSettledAmount: number;
+  approvedIncomeAmount: number;
+  approvedExpenseAmount: number;
+  upcomingReceivableAmount: number;
+  overdueReceivableAmount: number;
+  upcomingReceivableCount: number;
+  overBudgetProjectCount: number;
+}
+
+export interface BudgetExecutionItem {
+  projectId: number;
+  projectName: string;
+  totalBudget: number | null;
+  actualCostTotal: number;
+  budgetRatio: number | null;
+  budgetAlertStatus: 'green' | 'yellow' | 'red' | null;
+}
+
 export interface Milestone {
   id: number;
   name: string;

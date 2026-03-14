@@ -48,7 +48,18 @@ import { analyzeConstructionDataStream } from './services/deepseekService';
 import { apiService, getStoredUser, clearStoredAuth } from './services/apiService';
 import type { AiMessage, AiSession } from './utils/aiHistory';
 import { loadSessions, appendOrUpdateSession, sessionTitleFromMessages, removeSession } from './utils/aiHistory';
-import { Project, InventoryItem, FinanceRecord, StockLog, SystemLog, Role, RoleDefinition, AppState } from './types';
+import {
+  Project,
+  InventoryItem,
+  FinanceRecord,
+  StockLog,
+  SystemLog,
+  Role,
+  RoleDefinition,
+  AppState,
+  OperationDashboardSummary,
+  BudgetExecutionItem,
+} from './types';
 import Login from './components/Login/Login';
 import SearchableSelect from './components/ui/SearchableSelect';
 import RoleManagement from './components/Users/RoleManagement';
@@ -243,6 +254,8 @@ const App = () => {
   const [overdueMilestones, setOverdueMilestones] = useState<
     Array<{ id: number; name: string; planDate: string; status: string; projectId: number; projectName?: string }>
   >([]);
+  const [operationDashboard, setOperationDashboard] = useState<OperationDashboardSummary | null>(null);
+  const [budgetExecutionDashboard, setBudgetExecutionDashboard] = useState<BudgetExecutionItem[]>([]);
   const [importMode, setImportMode] = useState<'restore' | 'project' | 'inventory' | 'finance' | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -497,14 +510,26 @@ const App = () => {
   // Load upcoming payment plans & overdue milestones when on dashboard
   useEffect(() => {
     if (activeTab !== 'dashboard') return;
-    apiService
-      .getUpcomingPaymentPlans(15)
-      .then((list: unknown) => setUpcomingPaymentPlans(Array.isArray(list) ? list : []))
-      .catch(() => setUpcomingPaymentPlans([]));
-    apiService
-      .getOverdueMilestones()
-      .then((list: unknown) => setOverdueMilestones(Array.isArray(list) ? (list as any) : []))
-      .catch(() => setOverdueMilestones([]));
+    Promise.all([
+      apiService.getUpcomingPaymentPlans(15).catch(() => []),
+      apiService.getOverdueMilestones().catch(() => []),
+      apiService.getOperationDashboard(15).catch(() => null),
+      apiService.getBudgetExecutionDashboard().catch(() => []),
+    ])
+      .then(([upcoming, overdue, operation, budgetExecution]) => {
+        setUpcomingPaymentPlans(Array.isArray(upcoming) ? (upcoming as any) : []);
+        setOverdueMilestones(Array.isArray(overdue) ? (overdue as any) : []);
+        setOperationDashboard(
+          operation && typeof operation === 'object' ? (operation as OperationDashboardSummary) : null
+        );
+        setBudgetExecutionDashboard(Array.isArray(budgetExecution) ? (budgetExecution as BudgetExecutionItem[]) : []);
+      })
+      .catch(() => {
+        setUpcomingPaymentPlans([]);
+        setOverdueMilestones([]);
+        setOperationDashboard(null);
+        setBudgetExecutionDashboard([]);
+      });
   }, [activeTab]);
 
   // Stock Action Handler
@@ -1844,6 +1869,8 @@ const App = () => {
                 systemLogs={systemLogs}
                 upcomingPaymentPlans={upcomingPaymentPlans}
                 overdueMilestones={overdueMilestones}
+                operationDashboard={operationDashboard}
+                budgetExecutionDashboard={budgetExecutionDashboard}
                 onProjectClick={(id) => {
                   setSelectedProjectId(id);
                   setActiveTab('projects');

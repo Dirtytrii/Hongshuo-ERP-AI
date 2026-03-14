@@ -20,5 +20,8 @@ public interface ContractRepository extends JpaRepository<Contract, Long> {
     @Query("select coalesce(sum(c.contractAmount), 0) from Contract c where c.projectId = :projectId")
     BigDecimal sumContractAmountByProjectId(@Param("projectId") Long projectId);
 
+    @Query("select coalesce(sum(c.contractAmount), 0) from Contract c where c.settlementStatus = :settlementStatus")
+    BigDecimal sumContractAmountBySettlementStatus(@Param("settlementStatus") String settlementStatus);
+
     long countByProjectId(Long projectId);
 }

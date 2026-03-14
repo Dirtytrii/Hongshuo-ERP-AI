@@ -109,6 +109,17 @@ export const apiService = {
     if (!res.ok) throw new Error('删除合同失败');
   },
 
+  // ========== Dashboard ==========
+  async getOperationDashboard(days: number = 15) {
+    const res = await apiFetch(`${BASE_URL}/dashboard/operation?days=${days}`);
+    return handleResponse(res);
+  },
+
+  async getBudgetExecutionDashboard() {
+    const res = await apiFetch(`${BASE_URL}/dashboard/budget-execution`);
+    return handleResponse(res);
+  },
+
   // ========== Projects ==========
   async getProjects() {
     const res = await apiFetch(`${BASE_URL}/projects`);
