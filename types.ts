@@ -201,6 +201,13 @@ export interface StockLog {
   date: string;
   creator: string;
   note?: string;
+  /** 红字冲销：关联的原单ID */
+  reversalOfId?: number | null;
+  /** 是否为冲销单 */
+  isReversal?: boolean;
+  approver?: string;
+  approvalDate?: string;
+  approvalNote?: string;
 }
 
 export interface SystemLog {

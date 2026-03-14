@@ -827,6 +827,31 @@ const App = () => {
     }
   };
 
+  // 红字冲销库存记录
+  const handleReversalStock = async (originalId: number) => {
+    if (!confirm('确定对该笔已生效库存记录进行红字冲销吗？冲销单审批通过后将回调库存数量。')) return;
+    try {
+      await apiService.createStockReversal(originalId, `冲销：原单#${originalId}`, currentUser.name);
+      setToast({ message: '库存冲销单已创建，待审批通过后生效。', type: 'success' });
+      await reloadCoreData();
+    } catch (error: any) {
+      setToast({ message: error.message || '库存冲销失败，请稍后重试。', type: 'error' });
+    }
+  };
+
+  // 审批库存冲销单
+  const handleApproveStockReversal = async (logId: number, approved: boolean) => {
+    const note = approved ? '' : prompt('请输入拒绝原因：') || '';
+    if (!approved && note === '') return;
+    try {
+      await apiService.approveStockReversal(logId, currentUser.name, approved, note);
+      setToast({ message: approved ? '冲销单已通过，库存已回调。' : '冲销单已拒绝。', type: 'success' });
+      await reloadCoreData();
+    } catch (error: any) {
+      setToast({ message: error.message || '审批失败，请稍后重试。', type: 'error' });
+    }
+  };
+
   const handleAiAnalysis = async () => {
     if (!aiPrompt.trim() || isAiThinking) return;
     const userContent = aiPrompt.trim();
@@ -2033,15 +2058,20 @@ const App = () => {
 
               {/* 待审批列表 - 项目经理和管理员可见，放在库存明细之上 */}
               {hasPermission(currentUser, 'inventory.approve') &&
-                stockLogs.filter((log) => log.status === 'pending' && log.type === 'out').length > 0 && (
+                stockLogs.filter((log) => log.status === 'pending' && log.type === 'out' && !log.isReversal).length >
+                  0 && (
                   <div className="bg-orange-50 border-2 border-orange-200 rounded-2xl p-6 shadow-sm">
                     <h3 className="font-bold text-orange-700 mb-4 flex items-center gap-2">
                       <Clock size={18} /> 待审批出库申请 (
-                      {stockLogs.filter((log) => log.status === 'pending' && log.type === 'out').length})
+                      {
+                        stockLogs.filter((log) => log.status === 'pending' && log.type === 'out' && !log.isReversal)
+                          .length
+                      }
+                      )
                     </h3>
                     <div className="space-y-3">
                       {stockLogs
-                        .filter((log) => log.status === 'pending' && log.type === 'out')
+                        .filter((log) => log.status === 'pending' && log.type === 'out' && !log.isReversal)
                         .map((log) => {
                           const item = inventory.find((i) => i.id === log.itemId);
                           const project = projects.find((p) => p.id === log.projectId);
@@ -2072,6 +2102,59 @@ const App = () => {
                                     const note = prompt('请输入拒绝原因（可选）:');
                                     await handleApproveStock(Number(log.id), false, note || '');
                                   }}
+                                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-bold hover:bg-red-700 transition-colors flex items-center justify-center gap-2"
+                                >
+                                  <X size={16} /> 拒绝
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                    </div>
+                  </div>
+                )}
+
+              {/* 待审批冲销单 - 管理员可见 */}
+              {(currentUser.id === 'admin' || authUser?.role === 'admin') &&
+                stockLogs.filter((log) => log.status === 'pending' && log.isReversal).length > 0 && (
+                  <div className="bg-amber-50 border-2 border-amber-200 rounded-2xl p-6 shadow-sm">
+                    <h3 className="font-bold text-amber-700 mb-4 flex items-center gap-2">
+                      <Clock size={18} /> 待审批库存冲销单 (
+                      {stockLogs.filter((log) => log.status === 'pending' && log.isReversal).length})
+                    </h3>
+                    <div className="space-y-3">
+                      {stockLogs
+                        .filter((log) => log.status === 'pending' && log.isReversal)
+                        .map((log) => {
+                          const item = inventory.find((i) => i.id === log.itemId);
+                          const project = projects.find((p) => p.id === log.projectId);
+                          return (
+                            <div key={log.id} className="bg-white rounded-xl border border-amber-200 p-4 shadow-sm">
+                              <div className="flex items-start justify-between mb-3">
+                                <div className="flex-1">
+                                  <p className="text-sm font-bold text-slate-700">
+                                    冲销{log.type === 'in' ? '入库' : '出库'} - {item?.name || '未知物料'}
+                                    <span className="ml-2 text-xs text-amber-600">原单#{log.reversalOfId}</span>
+                                  </p>
+                                  <p className="text-xs text-slate-400 mt-1">
+                                    {log.date} · 申请人: {log.creator} · 关联项目: {project?.name || '未指定'}
+                                  </p>
+                                  <p className="text-sm font-bold text-amber-600 mt-2">
+                                    冲销数量: {Math.abs(log.qty)} {item?.unit || ''}
+                                    {log.type === 'out' ? '（将回增库存）' : '（将回减库存）'}
+                                  </p>
+                                  {log.note && <p className="text-xs text-slate-500 mt-1">说明: {log.note}</p>}
+                                </div>
+                              </div>
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => handleApproveStockReversal(Number(log.id), true)}
+                                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-bold hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
+                                >
+                                  <Check size={16} /> 批准冲销
+                                </button>
+                                <button
+                                  onClick={() => handleApproveStockReversal(Number(log.id), false)}
                                   className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-bold hover:bg-red-700 transition-colors flex items-center justify-center gap-2"
                                 >
                                   <X size={16} /> 拒绝
@@ -2182,31 +2265,60 @@ const App = () => {
                       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
                       .map((log) => {
                         const item = inventory.find((i) => i.id === log.itemId);
+                        const isReversalLog = Boolean(log.isReversal);
                         const statusBadge =
-                          log.status === 'pending' ? (
+                          log.status === 'pending' && isReversalLog ? (
+                            <span className="inline-flex items-center gap-1 text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full text-xs font-bold">
+                              冲销待审批
+                            </span>
+                          ) : log.status === 'pending' ? (
                             <span className="inline-flex items-center gap-1 text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full text-xs font-bold">
                               待审批
+                            </span>
+                          ) : log.status === 'rejected' && isReversalLog ? (
+                            <span className="inline-flex items-center gap-1 text-red-600 bg-red-50 px-2 py-0.5 rounded-full text-xs font-bold">
+                              冲销已拒绝
                             </span>
                           ) : log.status === 'rejected' ? (
                             <span className="inline-flex items-center gap-1 text-red-600 bg-red-50 px-2 py-0.5 rounded-full text-xs font-bold">
                               已拒绝
                             </span>
+                          ) : isReversalLog && log.status === 'active' ? (
+                            <span className="inline-flex items-center gap-1 text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full text-xs font-bold">
+                              已冲销
+                            </span>
                           ) : null;
+
+                        const canReversal =
+                          log.status === 'active' &&
+                          !isReversalLog &&
+                          (currentUser.id === 'admin' ||
+                            authUser?.role === 'admin' ||
+                            authUser?.role === 'clerk' ||
+                            currentUser.name?.includes('管理员') ||
+                            currentUser.name?.includes('库管'));
+                        const canApproveReversal =
+                          isReversalLog &&
+                          log.status === 'pending' &&
+                          (currentUser.id === 'admin' ||
+                            authUser?.role === 'admin' ||
+                            currentUser.name?.includes('管理员'));
 
                         return (
                           <div
                             key={log.id}
-                            className="flex items-center justify-between py-3 border-b border-dashed last:border-0"
+                            className={`flex items-center justify-between py-3 border-b border-dashed last:border-0 ${isReversalLog ? 'bg-amber-50/50' : ''}`}
                           >
                             <div className="flex items-center gap-3">
                               <div
-                                className={`p-2 rounded-lg ${log.type === 'in' ? 'bg-green-50 text-green-600' : 'bg-blue-50 text-blue-600'}`}
+                                className={`p-2 rounded-lg ${isReversalLog ? 'bg-amber-50 text-amber-600' : log.type === 'in' ? 'bg-green-50 text-green-600' : 'bg-blue-50 text-blue-600'}`}
                               >
                                 {log.type === 'in' ? <Plus size={14} /> : <ArrowRightLeft size={14} />}
                               </div>
                               <div>
                                 <div className="flex items-center gap-2">
                                   <p className="text-sm font-bold">
+                                    {isReversalLog ? '冲销' : ''}
                                     {log.type === 'in' ? '物料入库' : '物料出库'} - {item?.name || '未知物料'}
                                   </p>
                                   {statusBadge}
@@ -2214,14 +2326,43 @@ const App = () => {
                                 <p className="text-xs text-slate-400">
                                   {log.date} · 操作员: {log.creator}
                                   {log.approver && ` · 审批人: ${log.approver}`}
+                                  {log.reversalOfId && ` · 原单#${log.reversalOfId}`}
                                 </p>
                               </div>
                             </div>
-                            <div className="text-right">
-                              <p className={`font-bold ${log.type === 'in' ? 'text-green-600' : 'text-blue-600'}`}>
-                                {log.type === 'in' ? '+' : '-'}
-                                {log.qty} {item?.unit || ''}
-                              </p>
+                            <div className="flex items-center gap-3">
+                              <div className="text-right">
+                                <p
+                                  className={`font-bold ${isReversalLog ? 'text-amber-600' : log.type === 'in' ? 'text-green-600' : 'text-blue-600'}`}
+                                >
+                                  {log.qty > 0 ? (log.type === 'in' ? '+' : '-') : ''}
+                                  {log.qty} {item?.unit || ''}
+                                </p>
+                              </div>
+                              {canReversal && (
+                                <button
+                                  onClick={() => handleReversalStock(Number(log.id))}
+                                  className="px-3 py-1 bg-amber-600 text-white rounded-lg text-xs font-bold hover:bg-amber-700 whitespace-nowrap"
+                                >
+                                  冲销
+                                </button>
+                              )}
+                              {canApproveReversal && (
+                                <div className="flex gap-1">
+                                  <button
+                                    onClick={() => handleApproveStockReversal(Number(log.id), true)}
+                                    className="px-2 py-1 bg-green-600 text-white rounded-lg text-xs font-bold hover:bg-green-700"
+                                  >
+                                    通过
+                                  </button>
+                                  <button
+                                    onClick={() => handleApproveStockReversal(Number(log.id), false)}
+                                    className="px-2 py-1 bg-red-600 text-white rounded-lg text-xs font-bold hover:bg-red-700"
+                                  >
+                                    拒绝
+                                  </button>
+                                </div>
+                              )}
                             </div>
                           </div>
                         );

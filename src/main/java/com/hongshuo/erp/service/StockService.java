@@ -166,6 +166,121 @@ public class StockService {
         return stockLogRepository.save(stockLog);
     }
     
+    /**
+     * 红字冲销：根据原单创建库存冲销单。
+     * <ul>
+     *   <li>出库冲销：冲销单审批通过后回增库存、回减项目出库金额</li>
+     *   <li>入库冲销：冲销单生效后回减库存</li>
+     * </ul>
+     * 仅管理员或库管可发起库存冲销。冲销单需审批（status = pending），审批通过后生效。
+     *
+     * @param originalId   原单 ID
+     * @param reversalNote 冲销说明
+     * @param creatorRole  发起人角色
+     * @return 冲销单记录
+     */
+    @Transactional
+    public StockLog createReversal(Long originalId, String reversalNote, String creatorRole) {
+        if (!isAllowedToCreateStockReversal(creatorRole)) {
+            throw new RuntimeException("仅管理员或库管可发起库存冲销");
+        }
+        StockLog original = stockLogRepository.findById(originalId)
+            .orElseThrow(() -> new RuntimeException("原单不存在，无法冲销"));
+        if (!"active".equals(original.getStatus())) {
+            throw new RuntimeException("只能对已生效的库存记录进行冲销");
+        }
+        if (Boolean.TRUE.equals(original.getIsReversal())) {
+            throw new RuntimeException("不能对冲销单再次冲销");
+        }
+
+        StockLog reversal = new StockLog();
+        reversal.setType(original.getType());
+        reversal.setItemId(original.getItemId());
+        reversal.setQty(-original.getQty());
+        reversal.setPrice(original.getPrice());
+        reversal.setProjectId(original.getProjectId());
+        reversal.setSupplierId(original.getSupplierId());
+        reversal.setReversalOfId(originalId);
+        reversal.setIsReversal(true);
+        reversal.setStatus("pending");
+        reversal.setCreator(creatorRole);
+        reversal.setDate(LocalDate.now());
+        reversal.setNote(reversalNote != null && !reversalNote.isBlank()
+            ? reversalNote
+            : "冲销：原单#" + originalId);
+
+        StockLog saved = stockLogRepository.save(reversal);
+        logSystemAction(creatorRole, "申请库存冲销",
+            String.format("原单#%d 类型:%s 物料ID:%d 数量:%d", originalId, original.getType(), original.getItemId(), original.getQty()));
+        return saved;
+    }
+
+    /**
+     * 审核库存冲销单。审批通过后执行库存回算。
+     *
+     * @param logId        冲销单 ID
+     * @param approverRole 审批人角色
+     * @param approvalNote 审批备注
+     * @param approved     是否通过
+     * @return 更新后的冲销单
+     */
+    @Transactional
+    public StockLog approveReversal(Long logId, String approverRole, String approvalNote, boolean approved) {
+        StockLog reversal = stockLogRepository.findById(logId)
+            .orElseThrow(() -> new RuntimeException("冲销记录不存在: " + logId));
+        if (!Boolean.TRUE.equals(reversal.getIsReversal())) {
+            throw new RuntimeException("该记录不是冲销单，请使用常规审批接口");
+        }
+        if (!"pending".equals(reversal.getStatus())) {
+            throw new RuntimeException("该冲销单已处理，无法再次审核");
+        }
+
+        boolean isAdmin = approverRole != null && (
+            approverRole.toLowerCase().contains("admin") ||
+            approverRole.contains("管理员") ||
+            approverRole.contains("王总")
+        );
+        if (!isAdmin) {
+            throw new RuntimeException("仅管理员可审批库存冲销单");
+        }
+
+        if (approved) {
+            InventoryItem item = inventoryItemRepository.findById(reversal.getItemId())
+                .orElseThrow(() -> new RuntimeException("物料不存在"));
+
+            if (reversal.getType() == StockLog.StockType.out) {
+                // 出库冲销 → 回增库存（qty 为负，取绝对值加回）
+                item.setQuantity(item.getQuantity() + Math.abs(reversal.getQty()));
+            } else {
+                // 入库冲销 → 回减库存
+                int reduceQty = Math.abs(reversal.getQty());
+                if (item.getQuantity() < reduceQty) {
+                    throw new RuntimeException("库存不足，无法冲销入库记录（当前库存: " + item.getQuantity() + "）");
+                }
+                item.setQuantity(item.getQuantity() - reduceQty);
+            }
+            inventoryItemRepository.save(item);
+
+            reversal.setStatus("active");
+            reversal.setApprover(approverRole);
+            reversal.setApprovalDate(LocalDate.now());
+            reversal.setApprovalNote(approvalNote);
+
+            logSystemAction(approverRole, "批准库存冲销",
+                String.format("冲销单#%d 物料: %s 类型: %s 数量: %d", logId, item.getName(), reversal.getType(), reversal.getQty()));
+        } else {
+            reversal.setStatus("rejected");
+            reversal.setApprover(approverRole);
+            reversal.setApprovalDate(LocalDate.now());
+            reversal.setApprovalNote(approvalNote);
+
+            logSystemAction(approverRole, "拒绝库存冲销",
+                String.format("冲销单#%d 原因: %s", logId, approvalNote));
+        }
+
+        return stockLogRepository.save(reversal);
+    }
+
     public List<StockLog> getAllStockLogs() {
         return stockLogRepository.findAll();
     }
@@ -177,11 +292,17 @@ public class StockService {
     public Optional<StockLog> getStockLogById(Long id) {
         return stockLogRepository.findById(id);
     }
+
+    private static boolean isAllowedToCreateStockReversal(String creatorRole) {
+        if (creatorRole == null) return false;
+        String r = creatorRole.toLowerCase();
+        return r.contains("admin") || r.contains("管理员") || r.contains("clerk") || r.contains("库管");
+    }
     
     private void logSystemAction(String operator, String action, String detail) {
         SystemLog log = new SystemLog();
         log.setTime(LocalDateTime.now());
-        log.setUser(operator);  // 字段名是user，但数据库列名是operator
+        log.setUser(operator);
         log.setAction(action);
         log.setDetail(detail);
         systemLogRepository.save(log);
