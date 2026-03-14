@@ -1871,6 +1871,7 @@ const App = () => {
                 overdueMilestones={overdueMilestones}
                 operationDashboard={operationDashboard}
                 budgetExecutionDashboard={budgetExecutionDashboard}
+                onTabNavigate={(tab) => setActiveTab(tab)}
                 onProjectClick={(id) => {
                   setSelectedProjectId(id);
                   setActiveTab('projects');
