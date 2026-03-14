@@ -2,7 +2,6 @@ package com.hongshuo.erp.service;
 
 import com.hongshuo.erp.model.Department;
 import com.hongshuo.erp.model.Loan;
-import com.hongshuo.erp.model.LoanRepayment;
 import com.hongshuo.erp.repository.DepartmentRepository;
 import com.hongshuo.erp.repository.LoanRepository;
 import com.hongshuo.erp.repository.ProjectRepository;
