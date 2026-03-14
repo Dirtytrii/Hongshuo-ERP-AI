@@ -29,6 +29,20 @@ export interface Project {
   budgetAlertStatus?: 'green' | 'yellow' | 'red';
 }
 
+export interface Contract {
+  id: number;
+  projectId: number;
+  contractNo: string;
+  name: string;
+  contractAmount: number;
+  signedDate: string;
+  settlementStatus: 'unsettled' | 'partial' | 'settled';
+  monitoringStatus: 'normal' | 'warning' | 'risk';
+  remark?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface Milestone {
   id: number;
   name: string;

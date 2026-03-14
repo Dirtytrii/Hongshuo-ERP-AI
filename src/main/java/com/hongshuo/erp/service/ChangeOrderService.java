@@ -21,6 +21,9 @@ public class ChangeOrderService {
     @Autowired
     private ProjectRepository projectRepository;
 
+    @Autowired
+    private ContractService contractService;
+
     public List<ChangeOrder> findAll() {
         return changeOrderRepository.findAll();
     }
@@ -86,6 +89,8 @@ public class ChangeOrderService {
             BigDecimal newContract = (project.getContractAmount() != null ? project.getContractAmount() : BigDecimal.ZERO).add(order.getAmount());
             project.setContractAmount(newContract);
             projectRepository.save(project);
+            // 若项目已启用合同主数据，回写规则以「合同汇总 + 已审批变更单」为准，避免口径漂移
+            contractService.recalculateProjectContractAmount(order.getProjectId());
         }
         return changeOrderRepository.save(order);
     }

@@ -29,6 +29,7 @@ import {
   BarChart2,
   Truck,
   FileEdit,
+  FileText,
 } from 'lucide-react';
 import {
   exportProjectsToExcel,
@@ -53,6 +54,7 @@ import SearchableSelect from './components/ui/SearchableSelect';
 import RoleManagement from './components/Users/RoleManagement';
 import SupplierManagement from './components/Suppliers/SupplierManagement';
 import ChangeOrderManagement from './components/ChangeOrders/ChangeOrderManagement';
+import ContractManagement from './components/Contracts/ContractManagement';
 
 function formatSessionTime(ts: number): string {
   const d = new Date(ts);
@@ -98,6 +100,7 @@ const permissionsConfig: Record<string, string[]> = {
   'projects.view': ['admin', 'pm'],
   'inventory.view': ['admin', 'pm', 'finance', 'clerk'],
   'inventory-management.view': ['admin', 'pm'],
+  'contracts.view': ['admin', 'pm', 'finance'],
   'finance.view': ['admin', 'pm', 'finance'],
   'reports.view': ['admin', 'pm', 'finance'],
   'history.view': ['admin'],
@@ -1618,6 +1621,7 @@ const App = () => {
             { id: 'projects', label: '项目管理', icon: Building2, permission: 'projects.view' },
             { id: 'inventory', label: '物料仓库', icon: Package, permission: 'inventory.view' },
             { id: 'inventory-management', label: '物料管理', icon: Settings, permission: 'inventory-management.view' },
+            { id: 'contracts', label: '合同管理', icon: FileText, permission: 'contracts.view' },
             { id: 'finance', label: '财务收支', icon: Wallet, permission: 'finance.view' },
             { id: 'suppliers', label: '供应商管理', icon: Truck, permission: 'finance.view' },
             { id: 'change-orders', label: '变更/签证单', icon: FileEdit, permission: 'projects.view' },
@@ -2590,6 +2594,17 @@ const App = () => {
           {!isLoading && activeTab === 'suppliers' && hasPermission(currentUser, 'finance.view') && (
             <div className="p-6 overflow-auto">
               <SupplierManagement />
+            </div>
+          )}
+
+          {!isLoading && activeTab === 'contracts' && hasPermission(currentUser, 'contracts.view') && (
+            <div className="p-6 overflow-auto">
+              <ContractManagement
+                projects={projects}
+                onProjectRefresh={() =>
+                  apiService.getProjects().then((data: unknown) => setProjects(Array.isArray(data) ? data : []))
+                }
+              />
             </div>
           )}
 

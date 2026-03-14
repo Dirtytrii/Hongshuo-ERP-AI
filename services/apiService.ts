@@ -50,6 +50,65 @@ async function handleResponse<T>(response: Response): Promise<T> {
 }
 
 export const apiService = {
+  // ========== Contracts ==========
+  async getContracts(params?: { projectId?: number; settlementStatus?: string; monitoringStatus?: string }) {
+    const q = new URLSearchParams();
+    if (params?.projectId != null) q.set('projectId', String(params.projectId));
+    if (params?.settlementStatus) q.set('settlementStatus', params.settlementStatus);
+    if (params?.monitoringStatus) q.set('monitoringStatus', params.monitoringStatus);
+    const res = await apiFetch(`${BASE_URL}/contracts${q.toString() ? '?' + q.toString() : ''}`);
+    return handleResponse(res);
+  },
+
+  async getContractById(id: number) {
+    const res = await apiFetch(`${BASE_URL}/contracts/${id}`);
+    return handleResponse(res);
+  },
+
+  async createContract(contract: {
+    projectId: number;
+    contractNo: string;
+    name: string;
+    contractAmount: number;
+    signedDate: string;
+    settlementStatus?: string;
+    monitoringStatus?: string;
+    remark?: string;
+  }) {
+    const res = await apiFetch(`${BASE_URL}/contracts`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(contract),
+    });
+    return handleResponse(res);
+  },
+
+  async updateContract(
+    id: number,
+    contract: Partial<{
+      projectId: number;
+      contractNo: string;
+      name: string;
+      contractAmount: number;
+      signedDate: string;
+      settlementStatus: string;
+      monitoringStatus: string;
+      remark: string;
+    }>
+  ) {
+    const res = await apiFetch(`${BASE_URL}/contracts/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(contract),
+    });
+    return handleResponse(res);
+  },
+
+  async deleteContract(id: number): Promise<void> {
+    const res = await apiFetch(`${BASE_URL}/contracts/${id}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error('删除合同失败');
+  },
+
   // ========== Projects ==========
   async getProjects() {
     const res = await apiFetch(`${BASE_URL}/projects`);
