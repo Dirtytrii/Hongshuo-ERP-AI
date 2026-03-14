@@ -1,0 +1,5 @@
+{
+  "install": "set -e; if [ -f package-lock.json ]; then npm ci --no-audit; elif [ -f package.json ]; then npm install --no-audit; fi; if ! command -v mvn >/dev/null 2>&1; then if command -v sudo >/dev/null 2>&1; then sudo apt-get update && sudo apt-get install -y maven; else apt-get update && apt-get install -y maven; fi; fi",
+  "start": "echo \"Cloud environment ready: npm + maven\"",
+  "persistedDirectories": ["node_modules", "/home/ubuntu/.m2/repository", "/root/.m2/repository"]
+}

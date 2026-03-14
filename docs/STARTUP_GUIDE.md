@@ -156,3 +156,23 @@ npm run build
 - `docs/DEPLOYMENT.md`：部署与 Docker 说明
 - `docs/USER_GUIDE.md`：用户操作指南
 - `docs/红字冲销业务规则与验收标准.md`：红字冲销业务规则与验收标准
+
+---
+
+## 六、Cloud Agent 环境固化（Cursor）
+
+仓库已提供 `.cursor/environment.json`，用于云端 Agent 启动时自动准备依赖环境：
+
+- 自动执行 `npm ci`（若存在 `package-lock.json`）
+- 若未安装 Maven，则自动安装 `maven`
+- 持久化 `node_modules` 与 Maven 本地仓库（`.m2/repository`），减少重复安装开销
+
+目标是保证云端开箱可执行：
+
+```bash
+npm run build
+npm run test:run
+mvn test
+```
+
+如果团队层或个人层已在 Cursor 平台配置了环境，会按 Cursor 优先级覆盖仓库内配置；可根据实际情况在平台侧做统一治理。
