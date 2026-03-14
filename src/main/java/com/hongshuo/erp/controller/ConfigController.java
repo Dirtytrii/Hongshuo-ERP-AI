@@ -1,112 +1,83 @@
 package com.hongshuo.erp.controller;
 
-import org.springframework.beans.factory.annotation.Value;
+import com.hongshuo.erp.service.ConfigFileService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
-import java.io.*;
-import java.math.BigDecimal;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Properties;
 
 @RestController
 @RequestMapping("/api/config")
 @CrossOrigin(origins = "*")
+@RequiredArgsConstructor
 public class ConfigController {
 
-    @Value("${app.config.file:config.properties}")
-    private String configFile;
+    private final ConfigFileService configFileService;
 
     @GetMapping
     public ResponseEntity<Map<String, Object>> getConfig() {
-        try {
-            Properties props = loadConfig();
-            Map<String, Object> config = new HashMap<>();
-            
-            // 读取配置值
-            config.put("lowStockThreshold", props.getProperty("lowStock.threshold", "100"));
-            config.put("largeExpenseThreshold", props.getProperty("finance.largeExpense.threshold", "100000"));
-            
-            return ResponseEntity.ok(config);
-        } catch (Exception e) {
-            // 返回默认值
-            Map<String, Object> defaultConfig = new HashMap<>();
-            defaultConfig.put("lowStockThreshold", "100");
-            defaultConfig.put("largeExpenseThreshold", "100000");
-            return ResponseEntity.ok(defaultConfig);
-        }
+        Map<String, Object> config = new HashMap<>();
+        config.put("lowStockThreshold", configFileService.get("lowStock.threshold", "100"));
+        config.put("largeExpenseThreshold", configFileService.get("finance.largeExpense.threshold", "100000"));
+        // Phase 4：钉钉/移动端集成开关
+        config.put("dingTalkEnabled", configFileService.get("integration.dingtalk.enabled", "false"));
+        config.put("dingTalkWebhookUrl", configFileService.get("integration.dingtalk.webhook", ""));
+        config.put("mobileApiEnabled", configFileService.get("integration.mobile.enabled", "true"));
+        config.put("webBaseUrl", configFileService.get("integration.web.base-url", "http://localhost:3000"));
+        config.put("notifySubmittedTemplate", configFileService.get(
+            "integration.notify.template.submitted",
+            "%s #%s 已提交审批\n发起人：%s\n摘要：%s\n办理入口：%s"
+        ));
+        config.put("notifyResultTemplate", configFileService.get(
+            "integration.notify.template.result",
+            "%s #%s 审批%s\n审批人：%s\n查看详情：%s"
+        ));
+        return ResponseEntity.ok(config);
     }
 
     @PostMapping
     public ResponseEntity<?> saveConfig(@RequestBody Map<String, Object> config) {
         try {
-            Properties props = new Properties();
-            
-            // 设置配置值
             if (config.containsKey("lowStockThreshold")) {
-                props.setProperty("lowStock.threshold", config.get("lowStockThreshold").toString());
+                configFileService.set("lowStock.threshold", String.valueOf(config.get("lowStockThreshold")));
             }
             if (config.containsKey("largeExpenseThreshold")) {
-                props.setProperty("finance.largeExpense.threshold", config.get("largeExpenseThreshold").toString());
+                configFileService.set("finance.largeExpense.threshold", String.valueOf(config.get("largeExpenseThreshold")));
             }
-            
-            saveConfig(props);
+            if (config.containsKey("dingTalkEnabled")) {
+                configFileService.set("integration.dingtalk.enabled", String.valueOf(config.get("dingTalkEnabled")));
+            }
+            if (config.containsKey("dingTalkWebhookUrl")) {
+                configFileService.set("integration.dingtalk.webhook", String.valueOf(config.get("dingTalkWebhookUrl")));
+            }
+            if (config.containsKey("mobileApiEnabled")) {
+                configFileService.set("integration.mobile.enabled", String.valueOf(config.get("mobileApiEnabled")));
+            }
+            if (config.containsKey("webBaseUrl")) {
+                configFileService.set("integration.web.base-url", String.valueOf(config.get("webBaseUrl")));
+            }
+            if (config.containsKey("notifySubmittedTemplate")) {
+                configFileService.set(
+                    "integration.notify.template.submitted",
+                    String.valueOf(config.get("notifySubmittedTemplate"))
+                );
+            }
+            if (config.containsKey("notifyResultTemplate")) {
+                configFileService.set(
+                    "integration.notify.template.result",
+                    String.valueOf(config.get("notifyResultTemplate"))
+                );
+            }
             return ResponseEntity.ok(Map.of("success", true, "message", "配置已保存"));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
-    }
-
-    private Properties loadConfig() throws IOException {
-        Properties props = new Properties();
-        
-        // 如果路径是相对路径，使用项目根目录
-        Path filePath;
-        if (configFile.startsWith("/") || configFile.contains(":")) {
-            // 绝对路径
-            filePath = Paths.get(configFile);
-        } else {
-            // 相对路径，使用项目根目录下的data文件夹
-            String projectRoot = System.getProperty("user.dir");
-            filePath = Paths.get(projectRoot, "data", configFile);
-        }
-        
-        if (Files.exists(filePath)) {
-            try (InputStream is = Files.newInputStream(filePath)) {
-                props.load(is);
-            }
-        } else {
-            // 如果文件不存在，设置默认值
-            props.setProperty("lowStock.threshold", "100");
-            props.setProperty("finance.largeExpense.threshold", "100000");
-        }
-        
-        return props;
-    }
-
-    private void saveConfig(Properties props) throws IOException {
-        // 如果路径是相对路径，使用项目根目录
-        Path filePath;
-        if (configFile.startsWith("/") || configFile.contains(":")) {
-            // 绝对路径
-            filePath = Paths.get(configFile);
-        } else {
-            // 相对路径，使用项目根目录下的data文件夹
-            String projectRoot = System.getProperty("user.dir");
-            filePath = Paths.get(projectRoot, "data", configFile);
-        }
-        
-        // 确保父目录存在
-        if (filePath.getParent() != null) {
-            Files.createDirectories(filePath.getParent());
-        }
-        
-        try (OutputStream os = Files.newOutputStream(filePath)) {
-            props.store(os, "System Configuration");
         }
     }
 }

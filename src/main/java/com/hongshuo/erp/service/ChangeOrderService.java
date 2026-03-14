@@ -21,6 +21,15 @@ public class ChangeOrderService {
     @Autowired
     private ProjectRepository projectRepository;
 
+    @Autowired
+    private ContractService contractService;
+
+    @Autowired
+    private ProjectDocumentAutoCollectService projectDocumentAutoCollectService;
+
+    @Autowired
+    private WorkflowNotifyService workflowNotifyService;
+
     public List<ChangeOrder> findAll() {
         return changeOrderRepository.findAll();
     }
@@ -44,7 +53,14 @@ public class ChangeOrderService {
         if (order.getStatus() == null || order.getStatus().isBlank()) {
             order.setStatus("pending");
         }
-        return changeOrderRepository.save(order);
+        ChangeOrder saved = changeOrderRepository.save(order);
+        workflowNotifyService.notifySubmitted(
+            "变更单",
+            saved.getId(),
+            "项目#" + saved.getProjectId(),
+            "金额: " + saved.getAmount()
+        );
+        return saved;
     }
 
     @Transactional
@@ -86,7 +102,20 @@ public class ChangeOrderService {
             BigDecimal newContract = (project.getContractAmount() != null ? project.getContractAmount() : BigDecimal.ZERO).add(order.getAmount());
             project.setContractAmount(newContract);
             projectRepository.save(project);
+            // 若项目已启用合同主数据，回写规则以「合同汇总 + 已审批变更单」为准，避免口径漂移
+            contractService.recalculateProjectContractAmount(order.getProjectId());
+            String link = "/change-orders/" + order.getId();
+            String remark = "变更单审批通过，金额: " + order.getAmount() + "，事由: " + order.getReason();
+            projectDocumentAutoCollectService.collect(
+                order.getProjectId(),
+                "change_order",
+                "变更单 #" + order.getId(),
+                link,
+                remark
+            );
         }
-        return changeOrderRepository.save(order);
+        ChangeOrder saved = changeOrderRepository.save(order);
+        workflowNotifyService.notifyApprovalResult("变更单", saved.getId(), approved, approverRole);
+        return saved;
     }
 }

@@ -81,6 +81,9 @@ public class UserController {
         user.setPasswordHash(passwordEncoder.encode(password));
         user.setRole(role.trim());
         user.setEnabled(true);
+        if (body.containsKey("departmentId") && body.get("departmentId") != null && !body.get("departmentId").toString().isBlank()) {
+            user.setDepartmentId(Long.valueOf(body.get("departmentId").toString()));
+        }
         user = userRepository.save(user);
         return ResponseEntity.status(HttpStatus.CREATED).body(userResponse(user));
     }
@@ -108,6 +111,11 @@ public class UserController {
         }
         if (body.containsKey("role")) user.setRole(((String) body.get("role")).trim());
         if (body.containsKey("enabled")) user.setEnabled(Boolean.TRUE.equals(body.get("enabled")));
+        if (body.containsKey("departmentId")) {
+            Object dep = body.get("departmentId");
+            if (dep == null || dep.toString().isBlank()) user.setDepartmentId(null);
+            else user.setDepartmentId(Long.valueOf(dep.toString()));
+        }
         user = userRepository.save(user);
         return ResponseEntity.ok(userResponse(user));
     }
@@ -138,11 +146,12 @@ public class UserController {
     }
 
     private static Map<String, Object> userResponse(User user) {
-        return Map.of(
-            "id", user.getId(),
-            "username", user.getUsername(),
-            "role", user.getRole(),
-            "enabled", user.getEnabled()
-        );
+        java.util.Map<String, Object> map = new java.util.HashMap<>();
+        map.put("id", user.getId());
+        map.put("username", user.getUsername());
+        map.put("role", user.getRole());
+        map.put("enabled", user.getEnabled());
+        map.put("departmentId", user.getDepartmentId());
+        return map;
     }
 }

@@ -18,7 +18,10 @@ public class ProjectDocumentService {
     @Autowired
     private ProjectRepository projectRepository;
 
-    public List<ProjectDocument> getByProjectId(Long projectId) {
+    public List<ProjectDocument> getByProjectId(Long projectId, String source) {
+        if (source != null && !source.isBlank()) {
+            return projectDocumentRepository.findByProjectIdAndSourceOrderByIdAsc(projectId, source);
+        }
         return projectDocumentRepository.findByProjectIdOrderByIdAsc(projectId);
     }
 
@@ -36,6 +39,9 @@ public class ProjectDocumentService {
         }
         doc.setProjectId(projectId);
         doc.setId(null);
+        if (doc.getSource() == null || doc.getSource().isBlank()) {
+            doc.setSource("manual");
+        }
         return projectDocumentRepository.save(doc);
     }
 
@@ -46,6 +52,7 @@ public class ProjectDocumentService {
         if (updates.getName() != null) existing.setName(updates.getName());
         if (updates.getLink() != null) existing.setLink(updates.getLink());
         if (updates.getRemark() != null) existing.setRemark(updates.getRemark());
+        if (updates.getSource() != null) existing.setSource(updates.getSource());
         return projectDocumentRepository.save(existing);
     }
 

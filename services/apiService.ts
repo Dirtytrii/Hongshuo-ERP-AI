@@ -50,6 +50,76 @@ async function handleResponse<T>(response: Response): Promise<T> {
 }
 
 export const apiService = {
+  // ========== Contracts ==========
+  async getContracts(params?: { projectId?: number; settlementStatus?: string; monitoringStatus?: string }) {
+    const q = new URLSearchParams();
+    if (params?.projectId != null) q.set('projectId', String(params.projectId));
+    if (params?.settlementStatus) q.set('settlementStatus', params.settlementStatus);
+    if (params?.monitoringStatus) q.set('monitoringStatus', params.monitoringStatus);
+    const res = await apiFetch(`${BASE_URL}/contracts${q.toString() ? '?' + q.toString() : ''}`);
+    return handleResponse(res);
+  },
+
+  async getContractById(id: number) {
+    const res = await apiFetch(`${BASE_URL}/contracts/${id}`);
+    return handleResponse(res);
+  },
+
+  async createContract(contract: {
+    projectId: number;
+    contractNo: string;
+    name: string;
+    contractAmount: number;
+    signedDate: string;
+    settlementStatus?: string;
+    monitoringStatus?: string;
+    remark?: string;
+  }) {
+    const res = await apiFetch(`${BASE_URL}/contracts`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(contract),
+    });
+    return handleResponse(res);
+  },
+
+  async updateContract(
+    id: number,
+    contract: Partial<{
+      projectId: number;
+      contractNo: string;
+      name: string;
+      contractAmount: number;
+      signedDate: string;
+      settlementStatus: string;
+      monitoringStatus: string;
+      remark: string;
+    }>
+  ) {
+    const res = await apiFetch(`${BASE_URL}/contracts/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(contract),
+    });
+    return handleResponse(res);
+  },
+
+  async deleteContract(id: number): Promise<void> {
+    const res = await apiFetch(`${BASE_URL}/contracts/${id}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error('删除合同失败');
+  },
+
+  // ========== Dashboard ==========
+  async getOperationDashboard(days: number = 15) {
+    const res = await apiFetch(`${BASE_URL}/dashboard/operation?days=${days}`);
+    return handleResponse(res);
+  },
+
+  async getBudgetExecutionDashboard() {
+    const res = await apiFetch(`${BASE_URL}/dashboard/budget-execution`);
+    return handleResponse(res);
+  },
+
   // ========== Projects ==========
   async getProjects() {
     const res = await apiFetch(`${BASE_URL}/projects`);
@@ -261,8 +331,10 @@ export const apiService = {
   },
 
   // ========== Project documents (项目文档清单 P2-1) ==========
-  async getProjectDocuments(projectId: number) {
-    const res = await apiFetch(`${BASE_URL}/project-documents?projectId=${projectId}`);
+  async getProjectDocuments(projectId: number, source?: string) {
+    const q = new URLSearchParams({ projectId: String(projectId) });
+    if (source) q.set('source', source);
+    const res = await apiFetch(`${BASE_URL}/project-documents?${q.toString()}`);
     return handleResponse(res);
   },
   async createProjectDocument(projectId: number, doc: { name: string; link?: string; remark?: string }) {
@@ -287,6 +359,155 @@ export const apiService = {
       const err = await res.json().catch(() => ({}));
       throw new Error((err as { error?: string }).error || res.statusText);
     }
+  },
+
+  // ========== Reimbursements (Phase 2) ==========
+  async getReimbursements(params?: { projectId?: number; departmentId?: number; status?: string }) {
+    const q = new URLSearchParams();
+    if (params?.projectId != null) q.set('projectId', String(params.projectId));
+    if (params?.departmentId != null) q.set('departmentId', String(params.departmentId));
+    if (params?.status) q.set('status', params.status);
+    const res = await apiFetch(`${BASE_URL}/reimbursements${q.toString() ? '?' + q.toString() : ''}`);
+    return handleResponse(res);
+  },
+  async createReimbursement(body: any) {
+    const res = await apiFetch(`${BASE_URL}/reimbursements`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    return handleResponse(res);
+  },
+  async updateReimbursement(id: number, body: any) {
+    const res = await apiFetch(`${BASE_URL}/reimbursements/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    return handleResponse(res);
+  },
+  async submitReimbursement(id: number) {
+    const res = await apiFetch(`${BASE_URL}/reimbursements/${id}/submit`, { method: 'POST' });
+    return handleResponse(res);
+  },
+  async approveReimbursement(id: number, approver: string, approved: boolean, approvalNote?: string) {
+    const res = await apiFetch(`${BASE_URL}/reimbursements/${id}/approve`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ approver, approved, approvalNote: approvalNote || '' }),
+    });
+    return handleResponse(res);
+  },
+  async deleteReimbursement(id: number): Promise<void> {
+    const res = await apiFetch(`${BASE_URL}/reimbursements/${id}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error('删除报销单失败');
+  },
+
+  // ========== Loans / Repayments (Phase 2) ==========
+  async getLoans(params?: { projectId?: number; departmentId?: number; status?: string }) {
+    const q = new URLSearchParams();
+    if (params?.projectId != null) q.set('projectId', String(params.projectId));
+    if (params?.departmentId != null) q.set('departmentId', String(params.departmentId));
+    if (params?.status) q.set('status', params.status);
+    const res = await apiFetch(`${BASE_URL}/loans${q.toString() ? '?' + q.toString() : ''}`);
+    return handleResponse(res);
+  },
+  async createLoan(body: any) {
+    const res = await apiFetch(`${BASE_URL}/loans`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    return handleResponse(res);
+  },
+  async updateLoan(id: number, body: any) {
+    const res = await apiFetch(`${BASE_URL}/loans/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    return handleResponse(res);
+  },
+  async submitLoan(id: number) {
+    const res = await apiFetch(`${BASE_URL}/loans/${id}/submit`, { method: 'POST' });
+    return handleResponse(res);
+  },
+  async approveLoan(id: number, approver: string, approved: boolean, approvalNote?: string) {
+    const res = await apiFetch(`${BASE_URL}/loans/${id}/approve`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ approver, approved, approvalNote: approvalNote || '' }),
+    });
+    return handleResponse(res);
+  },
+  async deleteLoan(id: number): Promise<void> {
+    const res = await apiFetch(`${BASE_URL}/loans/${id}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error('删除借款单失败');
+  },
+  async getLoanOutstanding(id: number) {
+    const res = await apiFetch(`${BASE_URL}/loans/${id}/outstanding`);
+    return handleResponse(res);
+  },
+  async getLoanRepayments(params?: { loanId?: number; status?: string }) {
+    const q = new URLSearchParams();
+    if (params?.loanId != null) q.set('loanId', String(params.loanId));
+    if (params?.status) q.set('status', params.status);
+    const res = await apiFetch(`${BASE_URL}/loan-repayments${q.toString() ? '?' + q.toString() : ''}`);
+    return handleResponse(res);
+  },
+  async createLoanRepayment(body: any) {
+    const res = await apiFetch(`${BASE_URL}/loan-repayments`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    return handleResponse(res);
+  },
+  async submitLoanRepayment(id: number) {
+    const res = await apiFetch(`${BASE_URL}/loan-repayments/${id}/submit`, { method: 'POST' });
+    return handleResponse(res);
+  },
+  async approveLoanRepayment(id: number, approver: string, approved: boolean, approvalNote?: string) {
+    const res = await apiFetch(`${BASE_URL}/loan-repayments/${id}/approve`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ approver, approved, approvalNote: approvalNote || '' }),
+    });
+    return handleResponse(res);
+  },
+  async deleteLoanRepayment(id: number): Promise<void> {
+    const res = await apiFetch(`${BASE_URL}/loan-repayments/${id}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error('删除还款单失败');
+  },
+
+  // ========== Departments (Phase 3) ==========
+  async getDepartments() {
+    const res = await apiFetch(`${BASE_URL}/departments`);
+    return handleResponse(res);
+  },
+  async createDepartment(body: { name: string; code: string; parentId?: number | null }) {
+    const res = await apiFetch(`${BASE_URL}/departments`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    return handleResponse(res);
+  },
+  async updateDepartment(id: number, body: { name: string; code: string; parentId?: number | null }) {
+    const res = await apiFetch(`${BASE_URL}/departments/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    return handleResponse(res);
+  },
+  async deleteDepartment(id: number): Promise<void> {
+    const res = await apiFetch(`${BASE_URL}/departments/${id}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error('删除部门失败');
+  },
+  async getDepartmentCostSummary() {
+    const res = await apiFetch(`${BASE_URL}/departments/reports/cost`);
+    return handleResponse(res);
   },
 
   // ========== Stock Operations ==========
@@ -409,12 +630,54 @@ export const apiService = {
     return handleResponse(res);
   },
 
-  async saveConfig(config: { lowStockThreshold?: string; largeExpenseThreshold?: string }) {
+  async saveConfig(config: {
+    lowStockThreshold?: string;
+    largeExpenseThreshold?: string;
+    dingTalkEnabled?: boolean | string;
+    dingTalkWebhookUrl?: string;
+    mobileApiEnabled?: boolean | string;
+    webBaseUrl?: string;
+    notifySubmittedTemplate?: string;
+    notifyResultTemplate?: string;
+  }) {
     const res = await apiFetch(`${BASE_URL}/config`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(config),
     });
+    return handleResponse(res);
+  },
+
+  // ========== Integrations (Phase 4) ==========
+  async getDingTalkStatus() {
+    const res = await apiFetch(`${BASE_URL}/integrations/dingtalk/status`);
+    return handleResponse(res);
+  },
+  async sendDingTalkTest(message?: string) {
+    const res = await apiFetch(`${BASE_URL}/integrations/dingtalk/test`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: message || '集成测试' }),
+    });
+    return handleResponse(res);
+  },
+  async getMobileIntegrationStatus() {
+    const res = await apiFetch(`${BASE_URL}/integrations/mobile/status`);
+    return handleResponse(res);
+  },
+  async getApprovalTodos(params?: { bizType?: string; keyword?: string }) {
+    const q = new URLSearchParams();
+    if (params?.bizType) q.set('bizType', params.bizType);
+    if (params?.keyword) q.set('keyword', params.keyword);
+    const res = await apiFetch(`${BASE_URL}/approval-center/todos${q.toString() ? '?' + q.toString() : ''}`);
+    return handleResponse(res);
+  },
+  async getMobileOverview() {
+    const res = await apiFetch(`${BASE_URL}/mobile/overview`);
+    return handleResponse(res);
+  },
+  async getMobileTodos() {
+    const res = await apiFetch(`${BASE_URL}/mobile/todos`);
     return handleResponse(res);
   },
 
@@ -450,6 +713,7 @@ export const apiService = {
     username: string;
     password: string;
     role: string;
+    departmentId?: number | null;
   }): Promise<{ id: number; username: string; role: string; enabled: boolean }> {
     const res = await apiFetch(`${BASE_URL}/users`, {
       method: 'POST',
@@ -461,7 +725,7 @@ export const apiService = {
 
   async updateUser(
     id: number,
-    body: { username?: string; password?: string; role?: string; enabled?: boolean }
+    body: { username?: string; password?: string; role?: string; enabled?: boolean; departmentId?: number | null }
   ): Promise<{ id: number; username: string; role: string; enabled: boolean }> {
     const res = await apiFetch(`${BASE_URL}/users/${id}`, {
       method: 'PUT',

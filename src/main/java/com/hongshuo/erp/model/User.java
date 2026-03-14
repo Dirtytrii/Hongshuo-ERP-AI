@@ -22,4 +22,7 @@ public class User {
 
     @Column(nullable = false)
     private Boolean enabled = true;
+
+    @Column(name = "department_id")
+    private Long departmentId;
 }

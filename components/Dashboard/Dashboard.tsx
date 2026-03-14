@@ -11,7 +11,15 @@ import {
   Check,
   Wallet,
 } from 'lucide-react';
-import { Project, InventoryItem, StockLog, FinanceRecord, SystemLog } from '../../types';
+import {
+  Project,
+  InventoryItem,
+  StockLog,
+  FinanceRecord,
+  SystemLog,
+  OperationDashboardSummary,
+  BudgetExecutionItem,
+} from '../../types';
 import ProjectProgressChart from './ProjectProgressChart';
 import FinanceTrendChart from './FinanceTrendChart';
 import InventoryStatusChart from './InventoryStatusChart';
@@ -39,8 +47,11 @@ interface DashboardProps {
     projectId: number;
     projectName?: string;
   }>;
+  operationDashboard?: OperationDashboardSummary | null;
+  budgetExecutionDashboard?: BudgetExecutionItem[];
   onProjectClick?: (projectId: number) => void;
   onFinanceCardClick?: (type: 'income' | 'expense' | 'all') => void;
+  onTabNavigate?: (tab: string) => void;
 }
 
 const Dashboard: React.FC<DashboardProps> = ({
@@ -51,8 +62,11 @@ const Dashboard: React.FC<DashboardProps> = ({
   systemLogs = [],
   upcomingPaymentPlans = [],
   overdueMilestones = [],
+  operationDashboard = null,
+  budgetExecutionDashboard = [],
   onProjectClick,
   onFinanceCardClick,
+  onTabNavigate,
 }) => {
   const StatsCards = () => {
     const totalOutbound = stockLogs
@@ -247,6 +261,7 @@ const Dashboard: React.FC<DashboardProps> = ({
         count: number;
         description: string;
         icon: React.ReactNode;
+        targetTab?: string;
       }> = [];
 
       if (lowStockItems.length > 0) {
@@ -260,6 +275,7 @@ const Dashboard: React.FC<DashboardProps> = ({
             .map((i) => i.name)
             .join('、')}${lowStockItems.length > 3 ? '等' : ''}库存不足`,
           icon: <AlertTriangle size={18} />,
+          targetTab: 'inventory',
         });
       }
 
@@ -271,6 +287,7 @@ const Dashboard: React.FC<DashboardProps> = ({
           count: pendingApprovals.length,
           description: `有${pendingApprovals.length}条出库申请等待审批`,
           icon: <Clock size={18} />,
+          targetTab: 'inventory',
         });
       }
 
@@ -282,6 +299,7 @@ const Dashboard: React.FC<DashboardProps> = ({
           count: pendingFinance.length,
           description: `有${pendingFinance.length}条财务记录等待审批`,
           icon: <Clock size={18} />,
+          targetTab: 'finance',
         });
       }
 
@@ -296,6 +314,7 @@ const Dashboard: React.FC<DashboardProps> = ({
             .map((p) => p.name)
             .join('、')}${overdueProjects.length > 2 ? '等' : ''}已逾期`,
           icon: <Building2 size={18} />,
+          targetTab: 'projects',
         });
       }
 
@@ -327,9 +346,15 @@ const Dashboard: React.FC<DashboardProps> = ({
         </h3>
         <div className="space-y-3">
           {alerts.map((alert) => (
-            <div
+            <button
+              type="button"
+              onClick={() => {
+                if (alert.targetTab) {
+                  onTabNavigate?.(alert.targetTab);
+                }
+              }}
               key={alert.id}
-              className={`p-4 rounded-xl border-2 ${
+              className={`p-4 rounded-xl border-2 text-left w-full hover:shadow-sm transition ${
                 alert.type === 'danger'
                   ? 'bg-red-50 border-red-200'
                   : alert.type === 'warning'
@@ -387,7 +412,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                   </p>
                 </div>
               </div>
-            </div>
+            </button>
           ))}
         </div>
       </div>
@@ -397,6 +422,116 @@ const Dashboard: React.FC<DashboardProps> = ({
   return (
     <div className="space-y-8">
       <StatsCards />
+      {operationDashboard && (
+        <div className="bg-white rounded-3xl border border-slate-100/80 shadow-sm p-6">
+          <h3 className="font-bold text-slate-700 mb-4 flex items-center gap-2">
+            <Sparkles size={18} className="text-blue-600" />
+            经营看板
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+            {[
+              {
+                label: '合同签订额',
+                value: operationDashboard.contractSignedAmount,
+                className: 'text-blue-700 bg-blue-50',
+                onClick: () => onTabNavigate?.('contracts'),
+              },
+              {
+                label: '合同结算额',
+                value: operationDashboard.contractSettledAmount,
+                className: 'text-indigo-700 bg-indigo-50',
+                onClick: () => onTabNavigate?.('contracts'),
+              },
+              {
+                label: '已审批收入',
+                value: operationDashboard.approvedIncomeAmount,
+                className: 'text-green-700 bg-green-50',
+                onClick: () => onFinanceCardClick?.('income'),
+              },
+              {
+                label: '已审批支出',
+                value: operationDashboard.approvedExpenseAmount,
+                className: 'text-red-700 bg-red-50',
+                onClick: () => onFinanceCardClick?.('expense'),
+              },
+              {
+                label: '近期待催款金额',
+                value: operationDashboard.upcomingReceivableAmount,
+                suffix: `${operationDashboard.upcomingReceivableCount || 0} 笔`,
+                className: 'text-amber-700 bg-amber-50',
+                onClick: () => onTabNavigate?.('projects'),
+              },
+              {
+                label: '逾期待收金额',
+                value: operationDashboard.overdueReceivableAmount,
+                className: 'text-orange-700 bg-orange-50',
+                onClick: () => onTabNavigate?.('projects'),
+              },
+              {
+                label: '超预算项目数',
+                value: operationDashboard.overBudgetProjectCount,
+                plain: true,
+                className: 'text-rose-700 bg-rose-50',
+                onClick: () => onTabNavigate?.('projects'),
+              },
+            ].map((kpi) => (
+              <button
+                type="button"
+                key={kpi.label}
+                onClick={kpi.onClick}
+                className={`rounded-2xl border border-slate-100 p-4 ${kpi.className} text-left hover:shadow-sm transition`}
+              >
+                <p className="text-xs font-semibold uppercase tracking-wide opacity-80">{kpi.label}</p>
+                <p className="text-xl font-bold mt-2">
+                  {kpi.plain ? String(kpi.value ?? 0) : `￥${Number(kpi.value || 0).toLocaleString()}`}
+                </p>
+                {kpi.suffix && <p className="text-xs mt-1 opacity-80">{kpi.suffix}</p>}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+      {(operationDashboard || budgetExecutionDashboard.length > 0 || overdueMilestones.length > 0) && (
+        <div className="bg-white rounded-3xl border border-slate-100/80 shadow-sm p-6">
+          <h3 className="font-bold text-slate-700 mb-4 flex items-center gap-2">
+            <AlertTriangle size={18} className="text-rose-600" />
+            运营风险（可穿透）
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <button
+              type="button"
+              onClick={() => onTabNavigate?.('projects')}
+              className="text-left rounded-2xl border border-red-100 bg-red-50 p-4 hover:shadow-sm transition"
+            >
+              <p className="text-xs font-semibold text-red-700 uppercase tracking-wide">超预算项目</p>
+              <p className="text-2xl font-bold text-red-700 mt-2">
+                {budgetExecutionDashboard.filter((i) => i.budgetAlertStatus === 'red').length}
+              </p>
+              <p className="text-xs text-red-600 mt-1">点击查看项目明细</p>
+            </button>
+            <button
+              type="button"
+              onClick={() => onTabNavigate?.('projects')}
+              className="text-left rounded-2xl border border-orange-100 bg-orange-50 p-4 hover:shadow-sm transition"
+            >
+              <p className="text-xs font-semibold text-orange-700 uppercase tracking-wide">里程碑超期</p>
+              <p className="text-2xl font-bold text-orange-700 mt-2">{overdueMilestones.length}</p>
+              <p className="text-xs text-orange-600 mt-1">点击查看项目明细</p>
+            </button>
+            <button
+              type="button"
+              onClick={() => onTabNavigate?.('finance')}
+              className="text-left rounded-2xl border border-amber-100 bg-amber-50 p-4 hover:shadow-sm transition"
+            >
+              <p className="text-xs font-semibold text-amber-700 uppercase tracking-wide">逾期待收金额</p>
+              <p className="text-2xl font-bold text-amber-700 mt-2">
+                ￥{Number(operationDashboard?.overdueReceivableAmount || 0).toLocaleString()}
+              </p>
+              <p className="text-xs text-amber-600 mt-1">点击跳转财务页核查</p>
+            </button>
+          </div>
+        </div>
+      )}
       {upcomingPaymentPlans.length > 0 && (
         <div className="bg-white rounded-3xl border border-slate-100/80 shadow-sm p-6">
           <h3 className="font-bold text-slate-700 mb-4 flex items-center gap-2">
@@ -495,72 +630,88 @@ const Dashboard: React.FC<DashboardProps> = ({
           </div>
         </div>
       )}
-      {(() => {
-        const budgetAlerts = projects.filter(
-          (p) =>
-            p.totalBudget != null &&
-            p.totalBudget > 0 &&
-            (p.budgetAlertStatus === 'yellow' || p.budgetAlertStatus === 'red')
-        );
-        return budgetAlerts.length > 0 ? (
-          <div className="bg-white rounded-3xl border border-slate-100/80 shadow-sm p-6">
-            <h3 className="font-bold text-slate-700 mb-4 flex items-center gap-2">
-              <AlertTriangle
-                size={18}
-                className={budgetAlerts.some((p) => p.budgetAlertStatus === 'red') ? 'text-red-600' : 'text-amber-600'}
-              />
-              预算预警（≥80% 黄灯，≥100% 红灯）
-            </h3>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-slate-200 text-slate-600 text-left">
-                    <th className="py-2 px-3">项目</th>
-                    <th className="py-2 px-3 text-right">控制预算</th>
-                    <th className="py-2 px-3 text-right">实际成本</th>
-                    <th className="py-2 px-3 text-right">使用比例</th>
-                    <th className="py-2 px-3">状态</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {budgetAlerts.map((p) => (
-                    <tr key={p.id} className="border-b border-slate-100">
-                      <td className="py-2 px-3">
-                        {onProjectClick ? (
-                          <button
-                            type="button"
-                            onClick={() => onProjectClick(p.id)}
-                            className="text-blue-600 hover:underline"
-                          >
-                            {p.name}
-                          </button>
-                        ) : (
-                          p.name
-                        )}
-                      </td>
-                      <td className="py-2 px-3 text-right">￥{(p.totalBudget ?? 0).toLocaleString()}</td>
-                      <td className="py-2 px-3 text-right">￥{(p.actualCostTotal ?? 0).toLocaleString()}</td>
-                      <td className="py-2 px-3 text-right">
-                        {p.budgetRatio != null ? (p.budgetRatio * 100).toFixed(1) : '0'}%
-                      </td>
-                      <td className="py-2 px-3">
+      {budgetExecutionDashboard.length > 0 && (
+        <div className="bg-white rounded-3xl border border-slate-100/80 shadow-sm p-6">
+          <h3 className="font-bold text-slate-700 mb-4 flex items-center gap-2">
+            <AlertTriangle
+              size={18}
+              className={
+                budgetExecutionDashboard.some((p) => p.budgetAlertStatus === 'red') ? 'text-red-600' : 'text-amber-600'
+              }
+            />
+            预算执行看板（预算 vs 实际成本）
+          </h3>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-slate-200 text-slate-600 text-left">
+                  <th className="py-2 px-3">项目</th>
+                  <th className="py-2 px-3 text-right">控制预算</th>
+                  <th className="py-2 px-3 text-right">实际成本</th>
+                  <th className="py-2 px-3 text-right">执行率</th>
+                  <th className="py-2 px-3">状态</th>
+                </tr>
+              </thead>
+              <tbody>
+                {budgetExecutionDashboard.map((p) => (
+                  <tr key={p.projectId} className="border-b border-slate-100">
+                    <td className="py-2 px-3">
+                      {onProjectClick ? (
+                        <button
+                          type="button"
+                          onClick={() => onProjectClick(p.projectId)}
+                          className="text-blue-600 hover:underline"
+                        >
+                          {p.projectName}
+                        </button>
+                      ) : (
+                        p.projectName
+                      )}
+                    </td>
+                    <td className="py-2 px-3 text-right">￥{Number(p.totalBudget || 0).toLocaleString()}</td>
+                    <td className="py-2 px-3 text-right">￥{Number(p.actualCostTotal || 0).toLocaleString()}</td>
+                    <td className="py-2 px-3 text-right">
+                      {p.budgetRatio != null ? (p.budgetRatio * 100).toFixed(1) : '0'}%
+                    </td>
+                    <td className="py-2 px-3">
+                      {p.totalBudget == null || Number(p.totalBudget) <= 0 ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-700">
+                          未设预算
+                        </span>
+                      ) : (
                         <span
-                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold ${p.budgetAlertStatus === 'red' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}
+                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold ${
+                            p.budgetAlertStatus === 'red'
+                              ? 'bg-red-100 text-red-700'
+                              : p.budgetAlertStatus === 'yellow'
+                                ? 'bg-amber-100 text-amber-700'
+                                : 'bg-green-100 text-green-700'
+                          }`}
                         >
                           <span
-                            className={`w-2 h-2 rounded-full ${p.budgetAlertStatus === 'red' ? 'bg-red-500' : 'bg-amber-500'}`}
+                            className={`w-2 h-2 rounded-full ${
+                              p.budgetAlertStatus === 'red'
+                                ? 'bg-red-500'
+                                : p.budgetAlertStatus === 'yellow'
+                                  ? 'bg-amber-500'
+                                  : 'bg-green-500'
+                            }`}
                           />
-                          {p.budgetAlertStatus === 'red' ? '已超预算' : '≥80%'}
+                          {p.budgetAlertStatus === 'red'
+                            ? '已超预算'
+                            : p.budgetAlertStatus === 'yellow'
+                              ? '预算预警'
+                              : '正常'}
                         </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        ) : null;
-      })()}
+        </div>
+      )}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <ProjectProgressChart projects={projects} onProjectClick={onProjectClick} />
         <FinanceTrendChart financeRecords={financeRecords} onFinanceCardClick={onFinanceCardClick} />

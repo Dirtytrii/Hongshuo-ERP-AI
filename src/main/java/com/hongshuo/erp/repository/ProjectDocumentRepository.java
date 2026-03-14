@@ -11,5 +11,7 @@ public interface ProjectDocumentRepository extends JpaRepository<ProjectDocument
 
     List<ProjectDocument> findByProjectIdOrderByIdAsc(Long projectId);
 
+    List<ProjectDocument> findByProjectIdAndSourceOrderByIdAsc(Long projectId, String source);
+
     void deleteByProjectId(Long projectId);
 }

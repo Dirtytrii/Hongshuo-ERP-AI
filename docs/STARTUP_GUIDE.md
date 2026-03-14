@@ -156,3 +156,54 @@ npm run build
 - `docs/DEPLOYMENT.md`：部署与 Docker 说明
 - `docs/USER_GUIDE.md`：用户操作指南
 - `docs/红字冲销业务规则与验收标准.md`：红字冲销业务规则与验收标准
+
+---
+
+## 六、Cloud Agent 环境固化（Cursor）
+
+仓库已提供 `.cursor/environment.json`，用于云端 Agent 启动时自动准备依赖环境：
+
+- 自动执行 `npm ci`（若存在 `package-lock.json`）
+- 若未安装 Maven，则自动安装 `maven`
+- 持久化 `node_modules` 与 Maven 本地仓库（`.m2/repository`），减少重复安装开销
+
+目标是保证云端开箱可执行：
+
+```bash
+npm run build
+npm run test:run
+mvn test
+```
+
+如果团队层或个人层已在 Cursor 平台配置了环境，会按 Cursor 优先级覆盖仓库内配置；可根据实际情况在平台侧做统一治理。
+
+---
+
+## 七、四阶段集成配置（钉钉 / 轻量移动端）
+
+二期 Phase 4 已新增「集成中心」，对应后端配置项存放于 `data/config.properties`：
+
+- `integration.dingtalk.enabled`：是否启用钉钉机器人通知（`true/false`）
+- `integration.dingtalk.webhook`：钉钉机器人 Webhook 地址
+- `integration.mobile.enabled`：是否启用轻量移动端 API（`true/false`）
+- `integration.web.base-url`：钉钉消息中的前端回跳地址（如 `https://erp.xxx.com`）
+- `integration.notify.template.submitted`：提交通知模板（5 个 `%s` 占位）
+- `integration.notify.template.result`：结果通知模板（5 个 `%s` 占位）
+
+可通过以下方式配置：
+
+1. Web 端「集成中心」页面直接保存；
+2. 或调用 `POST /api/config` 保存上述字段。
+
+新增接口（Phase 4）：
+
+- 集成状态与测试：
+  - `GET /api/integrations/dingtalk/status`
+  - `POST /api/integrations/dingtalk/test`
+  - `GET /api/integrations/mobile/status`
+- 审批中心聚合：
+  - `GET /api/approval-center/todos`
+  - `GET /api/approval-center/summary`
+- 轻量移动端：
+  - `GET /api/mobile/overview`
+  - `GET /api/mobile/todos`

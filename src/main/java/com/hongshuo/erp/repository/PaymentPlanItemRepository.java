@@ -14,6 +14,8 @@ public interface PaymentPlanItemRepository extends JpaRepository<PaymentPlanItem
 
     List<PaymentPlanItem> findByProjectIdOrderByPlanDateAsc(Long projectId);
 
+    List<PaymentPlanItem> findByPlanDateBeforeOrderByPlanDateAsc(LocalDate date);
+
     @Query("SELECT p FROM PaymentPlanItem p WHERE p.planDate BETWEEN :start AND :end AND (p.status != 'completed' OR p.receivedAmount < p.planAmount) ORDER BY p.planDate ASC")
     List<PaymentPlanItem> findUpcoming(@Param("start") LocalDate start, @Param("end") LocalDate end);
 }

@@ -149,6 +149,9 @@ public class FinanceController {
             if (request.get("supplierId") != null && !request.get("supplierId").toString().isBlank()) {
                 record.setSupplierId(Long.valueOf(request.get("supplierId").toString()));
             }
+            if (request.get("departmentId") != null && !request.get("departmentId").toString().isBlank()) {
+                record.setDepartmentId(Long.valueOf(request.get("departmentId").toString()));
+            }
 
             if (request.get("description") != null) {
                 record.setDescription(request.get("description").toString());
