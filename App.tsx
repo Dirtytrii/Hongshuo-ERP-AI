@@ -38,6 +38,9 @@ import {
   List,
 } from 'lucide-react';
 import {
+  downloadFinanceImportTemplate,
+  downloadInventoryImportTemplate,
+  downloadProjectImportTemplate,
   exportProjectsToExcel,
   exportInventoryToExcel,
   exportFinanceToExcel,
@@ -79,6 +82,7 @@ import LoanManagement from './components/Loans/LoanManagement';
 import DepartmentManagement from './components/Departments/DepartmentManagement';
 import IntegrationCenter from './components/Integration/IntegrationCenter';
 import ApprovalCenter from './components/ApprovalCenter/ApprovalCenter';
+import { getVisibleSidebarItems } from './app/navigation/sidebarItems';
 
 function formatSessionTime(ts: number): string {
   const d = new Date(ts);
@@ -1761,60 +1765,31 @@ const App = () => {
           {isSidebarOpen && <span className="font-bold text-lg tracking-tight">宏硕建设 ERP</span>}
         </div>
         <nav className="flex-1 px-4 py-4 space-y-1">
-          {[
-            { id: 'dashboard', label: '仪表盘', icon: LayoutDashboard, permission: null }, // 仪表盘所有人可见
-            { id: 'projects', label: '项目管理', icon: Building2, permission: 'projects.view' },
-            { id: 'inventory', label: '物料仓库', icon: Package, permission: 'inventory.view' },
-            { id: 'inventory-management', label: '物料管理', icon: Settings, permission: 'inventory-management.view' },
-            { id: 'contracts', label: '合同管理', icon: FileText, permission: 'contracts.view' },
-            { id: 'reimbursements', label: '报销管理', icon: Receipt, permission: 'reimbursements.view' },
-            { id: 'loans', label: '借还款管理', icon: HandCoins, permission: 'loans.view' },
-            { id: 'departments', label: '部门管理', icon: Building2, permission: 'departments.view' },
-            { id: 'approval-center', label: '审批中心', icon: CheckSquare, permission: 'approval-center.view' },
-            { id: 'integration', label: '集成中心', icon: Smartphone, permission: 'integration.view' },
-            { id: 'finance', label: '财务收支', icon: Wallet, permission: 'finance.view' },
-            { id: 'suppliers', label: '供应商管理', icon: Truck, permission: 'finance.view' },
-            { id: 'change-orders', label: '变更/签证单', icon: FileEdit, permission: 'projects.view' },
-            { id: 'reports', label: '报表', icon: BarChart2, permission: 'reports.view' },
-            { id: 'history', label: '操作日志', icon: History, permission: 'history.view' },
-            { id: 'ai', label: 'AI 决策室', icon: BrainCircuit, special: true, permission: 'ai.view' },
-            { id: 'users', label: '用户管理', icon: User, adminOnly: true, permission: null },
-            { id: 'roles', label: '角色管理', icon: Settings, adminOnly: true, permission: null },
-            { id: 'permissions', label: '权限管理', icon: Settings, adminOnly: true, permission: null },
-          ]
-            .filter((item) => {
-              if (item.adminOnly) {
-                return currentUser.id === 'admin';
-              }
-              // 如果没有权限要求，默认可见
-              if (!item.permission) {
-                return true;
-              }
-              // 使用权限系统检查
-              return hasPermission(currentUser, item.permission);
-            })
-            .map((item) => (
-              <button
-                key={item.id}
-                onClick={() => {
-                  if (item.id === 'permissions') {
-                    setIsPermissionsModalOpen(true);
-                  } else {
-                    setActiveTab(item.id);
-                  }
-                }}
-                className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-colors ${
-                  activeTab === item.id
-                    ? item.special
-                      ? 'bg-indigo-600 text-white shadow-lg'
-                      : 'bg-blue-50 text-blue-700'
-                    : 'text-slate-600 hover:bg-slate-100'
-                }`}
-              >
-                <item.icon size={20} />
-                {isSidebarOpen && <span className="font-medium">{item.label}</span>}
-              </button>
-            ))}
+          {getVisibleSidebarItems({
+            currentUserId: currentUser.id,
+            hasPermission: (permission) => hasPermission(currentUser, permission),
+          }).map((item) => (
+            <button
+              key={item.id}
+              onClick={() => {
+                if (item.id === 'permissions') {
+                  setIsPermissionsModalOpen(true);
+                } else {
+                  setActiveTab(item.id);
+                }
+              }}
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-colors ${
+                activeTab === item.id
+                  ? item.special
+                    ? 'bg-indigo-600 text-white shadow-lg'
+                    : 'bg-blue-50 text-blue-700'
+                  : 'text-slate-600 hover:bg-slate-100'
+              }`}
+            >
+              <item.icon size={20} />
+              {isSidebarOpen && <span className="font-medium">{item.label}</span>}
+            </button>
+          ))}
         </nav>
       </aside>
 
@@ -2566,6 +2541,12 @@ const App = () => {
                         hasPermission(currentUser, 'inventory.create')) && (
                         <>
                           <button
+                            onClick={downloadInventoryImportTemplate}
+                            className="px-4 py-2 border border-slate-200 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-slate-50 transition-colors"
+                          >
+                            下载模板
+                          </button>
+                          <button
                             onClick={() => {
                               setImportMode('inventory');
                               setTimeout(() => fileInputRef.current?.click(), 0);
@@ -2723,6 +2704,12 @@ const App = () => {
                     </button>
                     {hasPermission(currentUser, 'finance.create') && (
                       <>
+                        <button
+                          onClick={downloadFinanceImportTemplate}
+                          className="px-4 py-2 border border-slate-200 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-slate-50 transition-colors"
+                        >
+                          下载模板
+                        </button>
                         <button
                           onClick={() => {
                             setImportMode('finance');
@@ -2896,7 +2883,12 @@ const App = () => {
 
           {!isLoading && activeTab === 'approval-center' && hasPermission(currentUser, 'approval-center.view') && (
             <div className="p-6 overflow-auto">
-              <ApprovalCenter onNavigateTab={(tab) => setActiveTab(tab)} />
+              <ApprovalCenter
+                onNavigateTab={(tab) => setActiveTab(tab)}
+                projects={projects}
+                inventory={inventory}
+                overdueMilestones={overdueMilestones}
+              />
             </div>
           )}
 
@@ -3325,6 +3317,14 @@ const App = () => {
                       >
                         <Download size={16} /> 导出 Excel
                       </button>
+                      {hasPermission(currentUser, 'project.create') && (
+                        <button
+                          onClick={downloadProjectImportTemplate}
+                          className="px-4 py-2 border border-slate-200 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-slate-50 transition-colors"
+                        >
+                          下载模板
+                        </button>
+                      )}
                       {hasPermission(currentUser, 'project.create') && (
                         <button
                           onClick={() => {

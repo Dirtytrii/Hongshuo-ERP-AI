@@ -38,6 +38,33 @@ export function exportProjectsToExcel(projects: Project[]) {
   );
 }
 
+export function downloadProjectImportTemplate() {
+  const rows = [
+    {
+      项目名称: '示例项目',
+      项目编号: 'P-001',
+      项目经理ID: 'pm01',
+      合同金额: 1000000,
+      已收款: 200000,
+      材料成本: 150000,
+      人工成本: 80000,
+      其他成本: 20000,
+      状态: '施工中',
+      '进度%': 20,
+      开始日期: '2026-01-01',
+      结束日期: '2026-12-31',
+    },
+  ];
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '项目导入模板');
+  const buf = XLSX.write(wb, { type: 'array', bookType: 'xlsx' });
+  downloadBlob(
+    new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }),
+    '项目导入模板.xlsx'
+  );
+}
+
 export function exportInventoryToExcel(inventory: InventoryItem[]) {
   const rows = inventory.map((i) => ({
     物料名称: i.name,
@@ -55,6 +82,27 @@ export function exportInventoryToExcel(inventory: InventoryItem[]) {
   downloadBlob(
     new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }),
     `库存明细_${new Date().toISOString().slice(0, 10)}.xlsx`
+  );
+}
+
+export function downloadInventoryImportTemplate() {
+  const rows = [
+    {
+      物料名称: '示例物料',
+      规格: '规格A',
+      单位: '件',
+      参考单价: 100,
+      库存数量: 500,
+      预警阈值: 100,
+    },
+  ];
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '库存导入模板');
+  const buf = XLSX.write(wb, { type: 'array', bookType: 'xlsx' });
+  downloadBlob(
+    new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }),
+    '库存导入模板.xlsx'
   );
 }
 
@@ -76,6 +124,29 @@ export function exportFinanceToExcel(records: FinanceRecord[]) {
   downloadBlob(
     new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }),
     `财务记录_${new Date().toISOString().slice(0, 10)}.xlsx`
+  );
+}
+
+export function downloadFinanceImportTemplate() {
+  const rows = [
+    {
+      日期: '2026-03-01',
+      类型: '支出',
+      类别: '材料费',
+      金额: 50000,
+      关联项目ID: 1,
+      状态: 'pending',
+      创建人: '财务',
+      备注: '示例备注',
+    },
+  ];
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '财务导入模板');
+  const buf = XLSX.write(wb, { type: 'array', bookType: 'xlsx' });
+  downloadBlob(
+    new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }),
+    '财务导入模板.xlsx'
   );
 }
 

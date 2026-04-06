@@ -296,6 +296,7 @@ mvn clean package
 - 使用 Spring Boot DevTools 支持热重载
 - JPA 自动建表与迁移（`ddl-auto=update`），开发阶段无需手动维护表结构
 - 简单基于 Token 的登录态管理，后续可替换为 JWT/Redis 等更强方案
+- API 文档建议统一使用 OpenAPI/Swagger（如 `/swagger-ui/index.html`），并在提测前执行质量门禁：`npm run quality:gate`
 
 ## 📝 功能模块概览
 
@@ -345,6 +346,29 @@ mvn clean package
 - 项目/库存/财务组合分析
 - 简单策略建议生成
 
+## 📌 当前进度对齐（2026-03-28）
+
+为便于产品、研发与实施团队在同一口径下推进，本节给出当前版本的交付状态：
+
+- **已完成（可用）**
+  - 项目、里程碑、库存、出入库、财务收支、审批流、报表、用户/角色/权限等核心闭环能力。
+  - 仪表盘与项目详情已形成项目经营分析主视图，可支持日常经营跟踪。
+
+- **进行中（持续优化）**
+  - 自动化测试覆盖率提升（前端 Vitest / 后端 JUnit）。
+  - AI 决策分析提示词与业务口径进一步对齐（减少泛化结论、强化可执行建议）。
+
+- **下一阶段（建议优先级）**
+  1. 统一审批与消息中心，补齐超预算、里程碑逾期、库存阈值三类告警。
+  2. 完善 Excel 模板导入与批量操作，降低基础数据录入成本。
+  3. 增加接口文档与质量门禁（OpenAPI + Lint/Checkstyle + Git Hooks）。
+
+> 建议在每周例会后更新本节日期与状态，作为跨角色协同的单一进度视图。
+
+## 🚀 五期开发启动（Phase 5）
+
+已启动 Phase 5，当前迭代聚焦**消息中心能力沉淀 + 结构拆分**：已将仪表盘预警聚合逻辑迁入 `modules/dashboard/services` 作为领域服务，并扩展到回款节点与里程碑超期信号（低库存、待审批出库、待审批财务、逾期项目、近期待催款、里程碑超期）；同时将侧边栏菜单配置抽离到 `app/navigation`，减少 `App.tsx` 结构负担，为后续消息中心页面、钉钉推送与周报自动化打基础。
+
 ## 🔭 计划中的功能与优化方向
 
 > 以下为项目的中长期规划，不一定一次性全部完成，会按实际需求和时间逐步迭代。
@@ -369,6 +393,7 @@ mvn clean package
 
 - [`docs/DEVELOPMENT_PLAN_BUSINESS.md`](docs/DEVELOPMENT_PLAN_BUSINESS.md)：业务侧开发计划与阶段划分
 - [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md)：开发说明、架构与约定
+- [`docs/ARCHITECTURE_REDESIGN.md`](docs/ARCHITECTURE_REDESIGN.md)：Phase 5 代码结构重构方案（前后端）
 - [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md)：部署方案与环境配置
 - [`docs/USER_GUIDE.md`](docs/USER_GUIDE.md)：面向最终用户的使用指南
 - [`docs/CODE_QUALITY.md`](docs/CODE_QUALITY.md)：代码规范、Lint、Git Hooks 配置
