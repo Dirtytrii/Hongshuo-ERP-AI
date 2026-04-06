@@ -23,6 +23,7 @@ import {
 import ProjectProgressChart from './ProjectProgressChart';
 import FinanceTrendChart from './FinanceTrendChart';
 import InventoryStatusChart from './InventoryStatusChart';
+import { buildAlertSummary } from '../../modules/dashboard/services/alertSummary';
 
 interface DashboardProps {
   projects: Project[];
@@ -245,81 +246,18 @@ const Dashboard: React.FC<DashboardProps> = ({
 
   // 预警信息汇总面板
   const AlertSummaryPanel = () => {
-    const lowStockItems = inventory.filter((i) => i.quantity < i.threshold);
-    const pendingApprovals = stockLogs.filter((l) => l.status === 'pending');
-    const pendingFinance = financeRecords.filter((r) => r.status === 'pending');
-    const overdueProjects = projects.filter((p) => {
-      if (!p.endDate || p.status === '已完工') return false;
-      return new Date(p.endDate) < new Date() && p.progress < 100;
-    });
-
-    const alerts = useMemo(() => {
-      const alertList: Array<{
-        id: string;
-        type: 'warning' | 'danger' | 'info';
-        title: string;
-        count: number;
-        description: string;
-        icon: React.ReactNode;
-        targetTab?: string;
-      }> = [];
-
-      if (lowStockItems.length > 0) {
-        alertList.push({
-          id: 'low-stock',
-          type: 'danger',
-          title: '低库存预警',
-          count: lowStockItems.length,
-          description: `${lowStockItems
-            .slice(0, 3)
-            .map((i) => i.name)
-            .join('、')}${lowStockItems.length > 3 ? '等' : ''}库存不足`,
-          icon: <AlertTriangle size={18} />,
-          targetTab: 'inventory',
-        });
-      }
-
-      if (pendingApprovals.length > 0) {
-        alertList.push({
-          id: 'pending-stock',
-          type: 'warning',
-          title: '待审批出库',
-          count: pendingApprovals.length,
-          description: `有${pendingApprovals.length}条出库申请等待审批`,
-          icon: <Clock size={18} />,
-          targetTab: 'inventory',
-        });
-      }
-
-      if (pendingFinance.length > 0) {
-        alertList.push({
-          id: 'pending-finance',
-          type: 'warning',
-          title: '待审批财务',
-          count: pendingFinance.length,
-          description: `有${pendingFinance.length}条财务记录等待审批`,
-          icon: <Clock size={18} />,
-          targetTab: 'finance',
-        });
-      }
-
-      if (overdueProjects.length > 0) {
-        alertList.push({
-          id: 'overdue-projects',
-          type: 'info',
-          title: '逾期项目',
-          count: overdueProjects.length,
-          description: `${overdueProjects
-            .slice(0, 2)
-            .map((p) => p.name)
-            .join('、')}${overdueProjects.length > 2 ? '等' : ''}已逾期`,
-          icon: <Building2 size={18} />,
-          targetTab: 'projects',
-        });
-      }
-
-      return alertList;
-    }, [lowStockItems, pendingApprovals, pendingFinance, overdueProjects]);
+    const alerts = useMemo(
+      () =>
+        buildAlertSummary({
+          inventory,
+          stockLogs,
+          financeRecords,
+          projects,
+          upcomingPaymentPlans,
+          overdueMilestones,
+        }),
+      [inventory, stockLogs, financeRecords, projects, upcomingPaymentPlans, overdueMilestones]
+    );
 
     if (alerts.length === 0) {
       return (
@@ -372,7 +310,13 @@ const Dashboard: React.FC<DashboardProps> = ({
                         : 'bg-blue-100 text-blue-600'
                   }`}
                 >
-                  {alert.icon}
+                  {alert.type === 'danger' ? (
+                    <AlertTriangle size={18} />
+                  ) : alert.type === 'warning' ? (
+                    <Clock size={18} />
+                  ) : (
+                    <Building2 size={18} />
+                  )}
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center justify-between mb-1">
