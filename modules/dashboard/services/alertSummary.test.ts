@@ -74,6 +74,22 @@ describe('buildAlertSummary', () => {
     expect(alerts.map((a) => a.targetTab)).toEqual(['inventory', 'inventory', 'finance', 'projects']);
   });
 
+  it('待审批出库口径：pending-in 不应计入', () => {
+    const alerts = buildAlertSummary({
+      inventory: [],
+      stockLogs: [
+        { id: '1', type: 'in', itemId: 1, qty: 2, price: 500, status: 'pending', date: '2026-03-01', creator: '库管' },
+        { id: '2', type: 'out', itemId: 1, qty: 1, price: 500, status: 'pending', date: '2026-03-01', creator: '库管' },
+      ],
+      financeRecords: [],
+      projects: [],
+      now: new Date('2026-03-28T00:00:00Z'),
+    });
+
+    const pendingStock = alerts.find((a) => a.id === 'pending-stock');
+    expect(pendingStock?.count).toBe(1);
+    expect(pendingStock?.description).toContain('出库');
+  });
   it('无命中项时返回空数组', () => {
     const alerts = buildAlertSummary({
       inventory: inventory.map((i) => ({ ...i, quantity: i.threshold + 1 })),
@@ -103,9 +119,10 @@ describe('buildAlertSummary', () => {
       now: new Date('2026-03-28T00:00:00Z'),
     });
 
-    expect(alerts.map((a) => a.id)).toEqual(['upcoming-receivable', 'overdue-milestones']);
+    // danger 优先于 warning：里程碑超期应排在近期待催款之前
+    expect(alerts.map((a) => a.id)).toEqual(['overdue-milestones', 'upcoming-receivable']);
     expect(alerts[0].description).toContain('A项目');
-    expect(alerts[1].description).toContain('主体封顶');
+    expect(alerts[0].description).toContain('主体封顶');
   });
 
   it('包含预算预警项目时生成 budget-alert', () => {
@@ -123,5 +140,41 @@ describe('buildAlertSummary', () => {
     expect(alerts.map((a) => a.id)).toContain('budget-alert');
     const budgetAlert = alerts.find((a) => a.id === 'budget-alert');
     expect(budgetAlert?.type).toBe('danger');
+  });
+
+  it('排序稳定：按 danger>warning>info，再按业务优先级', () => {
+    const alerts = buildAlertSummary({
+      inventory,
+      stockLogs: [
+        {
+          id: 'p-out',
+          type: 'out',
+          itemId: 1,
+          qty: 2,
+          price: 500,
+          status: 'pending',
+          date: '2026-03-01',
+          creator: '库管',
+        },
+      ],
+      financeRecords,
+      projects: [{ ...projects[0], budgetAlertStatus: 'yellow' }, ...projects.slice(1)],
+      upcomingPaymentPlans: [{ projectName: 'A项目', planAmount: 100000, receivedAmount: 40000 }],
+      overdueMilestones: [{ projectName: 'A项目', name: '主体封顶' }],
+      now: new Date('2026-03-28T00:00:00Z'),
+    });
+
+    // danger: overdue-milestones -> low-stock -> budget-alert
+    // warning: pending-stock -> pending-finance -> upcoming-receivable
+    // info: overdue-projects
+    expect(alerts.map((a) => a.id)).toEqual([
+      'overdue-milestones',
+      'low-stock',
+      'budget-alert',
+      'pending-stock',
+      'pending-finance',
+      'upcoming-receivable',
+      'overdue-projects',
+    ]);
   });
 });

@@ -40,7 +40,8 @@ export function buildAlertSummary(params: {
   } = params;
 
   const lowStockItems = inventory.filter((i) => i.quantity < i.threshold);
-  const pendingApprovals = stockLogs.filter((l) => l.status === 'pending');
+  // 口径：待审批出库 = stockLogs 中 status=pending 且 type=out
+  const pendingApprovals = stockLogs.filter((l) => l.status === 'pending' && l.type === 'out');
   const pendingFinance = financeRecords.filter((r) => r.status === 'pending');
   const overdueProjects = projects.filter((p) => {
     if (!p.endDate || p.status === '已完工') return false;
@@ -143,5 +144,28 @@ export function buildAlertSummary(params: {
     });
   }
 
-  return alertList;
+  const typePriority: Record<AlertSummaryItem['type'], number> = {
+    danger: 0,
+    warning: 1,
+    info: 2,
+  };
+
+  const businessPriority: Record<string, number> = {
+    'overdue-milestones': 10,
+    'low-stock': 20,
+    'budget-alert': 30,
+    'pending-stock': 40,
+    'pending-finance': 50,
+    'upcoming-receivable': 60,
+    'overdue-projects': 70,
+  };
+
+  return [...alertList].sort((a, b) => {
+    const byType = typePriority[a.type] - typePriority[b.type];
+    if (byType !== 0) return byType;
+    const ap = businessPriority[a.id] ?? Number.MAX_SAFE_INTEGER;
+    const bp = businessPriority[b.id] ?? Number.MAX_SAFE_INTEGER;
+    if (ap !== bp) return ap - bp;
+    return a.id.localeCompare(b.id);
+  });
 }
