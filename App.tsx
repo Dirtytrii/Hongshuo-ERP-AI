@@ -2,7 +2,6 @@ import React, { useState, useEffect, useMemo, Suspense, lazy } from 'react';
 import {
   LayoutDashboard,
   Wallet,
-  HardHat,
   Package,
   Plus,
   Clock,
@@ -25,7 +24,6 @@ import {
   ChevronDown,
   User,
   Download,
-  Bell,
   Eye,
   BarChart2,
   Truck,
@@ -38,13 +36,12 @@ import {
   List,
 } from 'lucide-react';
 import {
-  downloadFinanceImportTemplate,
-  downloadInventoryImportTemplate,
-  downloadProjectImportTemplate,
   exportProjectsToExcel,
   exportInventoryToExcel,
   exportFinanceToExcel,
   exportAppStateAsBackup,
+  downloadInventoryImportTemplate,
+  downloadFinanceImportTemplate,
 } from './utils/export';
 import {
   parseBackupFile,
@@ -55,6 +52,16 @@ import {
 } from './utils/import';
 import { analyzeConstructionDataStream } from './services/deepseekService';
 import { apiService, getStoredUser, clearStoredAuth } from './services/apiService';
+import { canAccessTab, DEFAULT_TAB, getTabTitle, parseInitialTabState } from './app/navigation/tabRegistry';
+import AppShell from './app/layout/AppShell';
+import AppPageViewport from './app/layout/AppPageViewport';
+import AppLoadingState from './app/layout/AppLoadingState';
+import AppUnauthorizedState from './app/layout/AppUnauthorizedState';
+import AppHeader from './app/shell/AppHeader';
+import AppSidebar from './app/shell/AppSidebar';
+import MessageCenterPopover from './app/shell/MessageCenterPopover';
+import { buildAlertSummary } from './modules/dashboard/services/alertSummary';
+import { DEFAULT_PERMISSIONS_CONFIG, DEFAULT_ROLES, STATUS_COLORS } from './app/config/appDefaults';
 import type { AiMessage, AiSession } from './utils/aiHistory';
 import { loadSessions, appendOrUpdateSession, sessionTitleFromMessages, removeSession } from './utils/aiHistory';
 import {
@@ -82,7 +89,9 @@ import LoanManagement from './components/Loans/LoanManagement';
 import DepartmentManagement from './components/Departments/DepartmentManagement';
 import IntegrationCenter from './components/Integration/IntegrationCenter';
 import ApprovalCenter from './components/ApprovalCenter/ApprovalCenter';
-import { getVisibleSidebarItems } from './app/navigation/sidebarItems';
+import FinanceManagementPage from './components/Finance/FinanceManagementPage';
+import InventoryManagementPage from './components/Inventory/InventoryManagementPage';
+import InventoryWarehousePage from './components/Inventory/InventoryWarehousePage';
 
 function formatSessionTime(ts: number): string {
   const d = new Date(ts);
@@ -106,57 +115,11 @@ import FinanceReport from './components/Reports/FinanceReport';
 import InventoryReport from './components/Reports/InventoryReport';
 import ProjectReport from './components/Reports/ProjectReport';
 
-const ROLES: Record<string, Role> = {
-  admin: { id: 'admin', name: '王总 (Admin)', label: '管理员' },
-  pm: { id: 'pm', name: '李工 (PM)', label: '项目经理' },
-  finance: { id: 'finance', name: '赵姐 (Finance)', label: '财务' },
-  clerk: { id: 'clerk', name: '小张 (Clerk)', label: '录入员' },
-};
+const ROLES: Record<string, Role> = DEFAULT_ROLES;
 const ROLE_OPTIONS = Object.values(ROLES);
 
-const STATUS_COLORS: Record<string, string> = {
-  施工中: 'bg-blue-100 text-blue-700',
-  验收中: 'bg-purple-100 text-purple-700',
-  已完工: 'bg-green-100 text-green-700',
-  pending: 'bg-orange-100 text-orange-700',
-  active: 'bg-green-100 text-green-700',
-  rejected: 'bg-red-100 text-red-700',
-};
-
 // 权限配置状态（从后端加载）
-const permissionsConfig: Record<string, string[]> = {
-  // 页面级别权限
-  'projects.view': ['admin', 'pm'],
-  'inventory.view': ['admin', 'pm', 'finance', 'clerk'],
-  'inventory-management.view': ['admin', 'pm'],
-  'contracts.view': ['admin', 'pm', 'finance'],
-  'reimbursements.view': ['admin', 'pm', 'finance', 'clerk'],
-  'loans.view': ['admin', 'pm', 'finance', 'clerk'],
-  'departments.view': ['admin', 'finance'],
-  'approval-center.view': ['admin', 'pm', 'finance'],
-  'integration.view': ['admin', 'pm', 'finance'],
-  'finance.view': ['admin', 'pm', 'finance'],
-  'reports.view': ['admin', 'pm', 'finance'],
-  'history.view': ['admin'],
-  'ai.view': ['admin', 'pm', 'finance', 'clerk'],
-  'users.view': ['admin'],
-  // 按钮级别权限
-  'inventory.create': ['admin', 'pm', 'clerk'],
-  'inventory.outbound.direct': ['admin'],
-  'inventory.outbound.request': ['clerk'],
-  'inventory.approve': ['pm', 'admin'],
-  'inventory.delete': ['admin', 'pm'],
-  'inventory.edit': ['admin', 'pm'],
-  'project.create': ['admin', 'pm'],
-  'project.edit': ['admin', 'pm'],
-  'project.delete': ['admin'],
-  'finance.create': ['admin', 'finance'],
-  'finance.approve.large': ['admin'],
-  'finance.approve.normal': ['admin', 'finance'],
-  'finance.delete': ['admin'],
-  'log.export': ['admin'],
-  'log.delete': ['admin'],
-};
+const permissionsConfig: Record<string, string[]> = DEFAULT_PERMISSIONS_CONFIG;
 
 type AuthUser = { id: number; username: string; role: string; enabled: boolean };
 
@@ -178,7 +141,7 @@ const App = () => {
     return { id: authUser.role, name: authUser.username, label: r ? r.label : authUser.role };
   }, [authUser, roleLabelMap]);
 
-  const [activeTab, setActiveTab] = useState('inventory');
+  const [activeTab, setActiveTab] = useState<string>(DEFAULT_TAB);
   const [tabInitializedFromUrl, setTabInitializedFromUrl] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
@@ -320,6 +283,30 @@ const App = () => {
     return allowedRoles.includes(currentUser.id);
   };
 
+  const navigateToTab = (tabId: string) => {
+    setActiveTab(tabId);
+  };
+
+  const alerts = useMemo(() => {
+    return buildAlertSummary({
+      inventory,
+      stockLogs,
+      financeRecords,
+      projects,
+      upcomingPaymentPlans: upcomingPaymentPlans.map((p) => ({
+        projectName: projects.find((proj) => proj.id === p.projectId)?.name,
+        planAmount: p.planAmount,
+        receivedAmount: p.receivedAmount,
+      })),
+      overdueMilestones: overdueMilestones.map((m) => ({
+        projectName: m.projectName,
+        name: m.name,
+      })),
+    });
+  }, [financeRecords, inventory, overdueMilestones, projects, stockLogs, upcomingPaymentPlans]);
+
+  const messageCenterCount = useMemo(() => alerts.reduce((sum, item) => sum + (item.count || 0), 0), [alerts]);
+
   // 统一数据刷新函数：供按钮成功回调调用
   const reloadCoreData = async () => {
     if (!authUser) return;
@@ -438,37 +425,20 @@ const App = () => {
   // Load data from backend（仅登录后加载）
   useEffect(() => {
     if (tabInitializedFromUrl) return;
-    const params = new URLSearchParams(window.location.search);
-    const tab = params.get('tab');
-    const id = params.get('id');
-    const allowedTabs = new Set([
-      'dashboard',
-      'projects',
-      'inventory',
-      'inventory-management',
-      'finance',
-      'suppliers',
-      'contracts',
-      'change-orders',
-      'reimbursements',
-      'loans',
-      'departments',
-      'approval-center',
-      'integration',
-      'reports',
-      'history',
-      'ai',
-      'users',
-      'roles',
-    ]);
-    if (tab && allowedTabs.has(tab)) {
-      setActiveTab(tab);
-      if (tab === 'projects' && id && !Number.isNaN(Number(id))) {
-        setSelectedProjectId(Number(id));
-      }
+    const initial = parseInitialTabState(window.location.search);
+    const desiredTab = initial.tabId ?? DEFAULT_TAB;
+    const canAccessDesired = canAccessTab({
+      tabId: desiredTab,
+      currentUserId: currentUser.id,
+      hasPermission: (permission) => hasPermission(currentUser, permission),
+    });
+    const nextTab = canAccessDesired ? desiredTab : 'dashboard';
+    setActiveTab(nextTab);
+    if (nextTab === 'projects' && initial.projectId) {
+      setSelectedProjectId(initial.projectId);
     }
     setTabInitializedFromUrl(true);
-  }, [tabInitializedFromUrl]);
+  }, [currentUser, tabInitializedFromUrl]);
 
   // Load data from backend（仅登录后加载）
   useEffect(() => {
@@ -1170,7 +1140,7 @@ const App = () => {
   }
 
   return (
-    <div className="flex h-screen bg-slate-50 text-slate-900 overflow-hidden font-sans">
+    <>
       {/* Stock Modal */}
       {/* Toast Notification */}
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
@@ -1754,213 +1724,74 @@ const App = () => {
         </div>
       )}
 
-      {/* 侧边栏 */}
-      <aside
-        className={`${isSidebarOpen ? 'w-64' : 'w-20'} bg-white border-r border-slate-200/70 transition-all duration-300 flex flex-col rounded-r-2xl overflow-hidden`}
-      >
-        <div className="p-6 flex items-center gap-3">
-          <div className="bg-blue-600 p-2 rounded-lg text-white">
-            <HardHat size={20} />
-          </div>
-          {isSidebarOpen && <span className="font-bold text-lg tracking-tight">宏硕建设 ERP</span>}
-        </div>
-        <nav className="flex-1 px-4 py-4 space-y-1">
-          {getVisibleSidebarItems({
-            currentUserId: currentUser.id,
-            hasPermission: (permission) => hasPermission(currentUser, permission),
-          }).map((item) => (
-            <button
-              key={item.id}
-              onClick={() => {
-                if (item.id === 'permissions') {
-                  setIsPermissionsModalOpen(true);
-                } else {
-                  setActiveTab(item.id);
-                }
-              }}
-              className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-colors ${
-                activeTab === item.id
-                  ? item.special
-                    ? 'bg-indigo-600 text-white shadow-lg'
-                    : 'bg-blue-50 text-blue-700'
-                  : 'text-slate-600 hover:bg-slate-100'
-              }`}
-            >
-              <item.icon size={20} />
-              {isSidebarOpen && <span className="font-medium">{item.label}</span>}
-            </button>
-          ))}
-        </nav>
-      </aside>
-
-      {/* 主内容 */}
-      <main className="flex-1 flex flex-col overflow-hidden">
-        <header className="h-16 bg-white border-b border-slate-200/70 px-8 flex items-center justify-between shadow-sm z-10 rounded-b-2xl">
-          <h2 className="text-lg font-bold capitalize">{activeTab}</h2>
-          <div className="flex items-center gap-4">
-            <div
-              className={`px-3 py-1.5 rounded-full flex items-center gap-2 border ${
-                isBackendConnected ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'
-              }`}
-            >
-              <div
-                className={`w-2 h-2 rounded-full ${isBackendConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}
-              ></div>
-              <span className={`text-xs font-medium ${isBackendConnected ? 'text-green-700' : 'text-red-700'}`}>
-                {isBackendConnected ? '后端连接正常' : '后端连接失败'}
-              </span>
-            </div>
-
-            {/* 消息中心：待审批出库、财务待审批、低库存预警；红点与列表项均含上述三类数量 */}
-            <div className="relative">
-              <button
-                onClick={() => setIsNotificationOpen(!isNotificationOpen)}
-                className="relative p-2 rounded-xl border border-slate-200 hover:bg-slate-50 transition-colors"
-                title="消息通知"
-              >
-                <Bell size={18} className="text-slate-600" />
-                {(stockLogs.filter((l) => l.status === 'pending' && l.type === 'out').length > 0 ||
-                  financeRecords.filter((r) => r.status === 'pending').length > 0 ||
-                  inventory.filter((i) => i.quantity < i.threshold).length > 0) && (
-                  <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
-                    {stockLogs.filter((l) => l.status === 'pending' && l.type === 'out').length +
-                      financeRecords.filter((r) => r.status === 'pending').length +
-                      inventory.filter((i) => i.quantity < i.threshold).length}
-                  </span>
-                )}
-              </button>
-              {isNotificationOpen && (
-                <>
-                  <div className="fixed inset-0 z-40" onClick={() => setIsNotificationOpen(false)} />
-                  <div className="absolute right-0 mt-2 w-64 bg-white border border-slate-200 rounded-xl shadow-lg z-50 overflow-hidden">
-                    <div className="p-2 border-b bg-slate-50 font-medium text-slate-700 text-sm">消息中心</div>
-                    <div className="p-2 space-y-1">
-                      {stockLogs.filter((l) => l.status === 'pending' && l.type === 'out').length > 0 && (
-                        <button
-                          onClick={() => {
-                            setActiveTab('inventory');
-                            setIsNotificationOpen(false);
-                          }}
-                          className="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50 text-sm flex items-center gap-2"
-                        >
-                          <Clock size={14} className="text-orange-500" />
-                          待审批出库 {stockLogs.filter((l) => l.status === 'pending' && l.type === 'out').length} 条
-                        </button>
-                      )}
-                      {financeRecords.filter((r) => r.status === 'pending').length > 0 && (
-                        <button
-                          onClick={() => {
-                            setActiveTab('finance');
-                            setIsNotificationOpen(false);
-                          }}
-                          className="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50 text-sm flex items-center gap-2"
-                        >
-                          <Clock size={14} className="text-orange-500" />
-                          财务待审批 {financeRecords.filter((r) => r.status === 'pending').length} 条
-                        </button>
-                      )}
-                      {inventory.filter((i) => i.quantity < i.threshold).length > 0 && (
-                        <button
-                          onClick={() => {
-                            setActiveTab('inventory');
-                            setIsNotificationOpen(false);
-                          }}
-                          className="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50 text-sm flex items-center gap-2"
-                        >
-                          <AlertTriangle size={14} className="text-red-500" />
-                          低库存预警 {inventory.filter((i) => i.quantity < i.threshold).length} 种
-                        </button>
-                      )}
-                      {stockLogs.filter((l) => l.status === 'pending' && l.type === 'out').length === 0 &&
-                        financeRecords.filter((r) => r.status === 'pending').length === 0 &&
-                        inventory.filter((i) => i.quantity < i.threshold).length === 0 && (
-                          <p className="px-3 py-2 text-slate-400 text-sm">暂无新消息</p>
-                        )}
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-
-            {/* 重置数据按钮（仅Admin可见，测试用） */}
-            {currentUser.id === 'admin' && (
-              <>
-                <button
-                  onClick={async () => {
-                    try {
-                      const state = (await apiService.getAppState()) as {
-                        projects: unknown[];
-                        inventory: unknown[];
-                        financeRecords: unknown[];
-                        stockLogs: unknown[];
-                      };
-                      exportAppStateAsBackup(state);
-                      setToast({ message: '备份已下载', type: 'success' });
-                    } catch (e) {
-                      setToast({ message: '备份失败', type: 'error' });
-                    }
-                  }}
-                  className="px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-bold hover:bg-slate-50 flex items-center gap-2"
-                  title="导出当前数据为 JSON 备份"
-                >
-                  <Download size={14} /> 备份
-                </button>
-                <button
-                  onClick={() => {
-                    setImportMode('restore');
-                    setTimeout(() => fileInputRef.current?.click(), 0);
-                  }}
-                  className="px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-bold hover:bg-slate-50 flex items-center gap-2"
-                  title="从 JSON 备份恢复"
-                >
-                  恢复
-                </button>
-                <button
-                  onClick={handleResetData}
-                  className="px-3 py-1.5 bg-red-600 text-white rounded-lg text-xs font-bold hover:bg-red-700 transition-colors flex items-center gap-2"
-                  title="重置所有数据（测试用）"
-                >
-                  <Trash2 size={14} /> 重置数据
-                </button>
-              </>
-            )}
-
-            {/* 当前用户与退出 */}
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-slate-600">
-                {authUser.username}（{currentUser.label}）
-              </span>
-              <button
-                type="button"
-                onClick={() => {
-                  clearStoredAuth();
-                  setAuthUser(null);
-                }}
-                className="px-3 py-1.5 text-sm border border-slate-200 rounded-lg hover:bg-slate-100 text-slate-600"
-              >
-                退出
-              </button>
-            </div>
-          </div>
-        </header>
-
-        <div className="flex-1 overflow-y-auto p-8">
-          {isLoading && (
-            <div className="flex items-center justify-center h-full">
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                <p className="text-slate-500">加载数据中...</p>
-              </div>
-            </div>
-          )}
-          {!isLoading && activeTab === 'dashboard' && (
-            <Suspense
-              fallback={
-                <div className="flex items-center justify-center h-64">
-                  <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600" />
-                </div>
+      <AppShell
+        sidebar={
+          <AppSidebar
+            activeTab={activeTab}
+            currentUserId={currentUser.id}
+            hasPermission={(permission) => hasPermission(currentUser, permission)}
+            isOpen={isSidebarOpen}
+            onToggle={() => setIsSidebarOpen((v) => !v)}
+            onSelectTab={(tabId) => navigateToTab(tabId)}
+            onOpenPermissions={() => setIsPermissionsModalOpen(true)}
+          />
+        }
+        header={
+          <AppHeader
+            title={getTabTitle(activeTab)}
+            isSidebarOpen={isSidebarOpen}
+            isBackendConnected={isBackendConnected}
+            authUsername={authUser.username}
+            roleLabel={currentUser.label}
+            isAdmin={currentUser.id === 'admin'}
+            messageCenterCount={messageCenterCount}
+            onToggleSidebar={() => setIsSidebarOpen((v) => !v)}
+            onToggleMessageCenter={() => setIsNotificationOpen((v) => !v)}
+            onBackup={async () => {
+              try {
+                const state = (await apiService.getAppState()) as {
+                  projects: unknown[];
+                  inventory: unknown[];
+                  financeRecords: unknown[];
+                  stockLogs: unknown[];
+                };
+                exportAppStateAsBackup(state);
+                setToast({ message: '备份已下载', type: 'success' });
+              } catch {
+                setToast({ message: '备份失败', type: 'error' });
               }
-            >
+            }}
+            onRestore={() => {
+              setImportMode('restore');
+              setTimeout(() => fileInputRef.current?.click(), 0);
+            }}
+            onResetData={handleResetData}
+            onLogout={() => {
+              clearStoredAuth();
+              setAuthUser(null);
+            }}
+            messageCenter={
+              <MessageCenterPopover
+                alerts={alerts}
+                isOpen={isNotificationOpen}
+                onClose={() => setIsNotificationOpen(false)}
+                onNavigateTab={(tabId) => {
+                  const canAccess = canAccessTab({
+                    tabId,
+                    currentUserId: currentUser.id,
+                    hasPermission: (permission) => hasPermission(currentUser, permission),
+                  });
+                  navigateToTab(canAccess ? tabId : 'dashboard');
+                }}
+              />
+            }
+          />
+        }
+      >
+        <AppPageViewport>
+          {isLoading && <AppLoadingState />}
+          {!isLoading && activeTab === 'dashboard' && (
+            <Suspense fallback={<AppLoadingState />}>
               <Dashboard
                 projects={projects}
                 inventory={inventory}
@@ -1984,372 +1815,38 @@ const App = () => {
           {/* 如果当前页面没有权限，显示提示 */}
           {!isLoading &&
             activeTab !== 'dashboard' &&
-            !hasPermission(currentUser, `${activeTab}.view`) &&
-            activeTab !== 'permissions' && (
-              <div className="p-20 text-center">
-                <div className="bg-white rounded-3xl border border-slate-100/80 shadow-sm p-8 max-w-md mx-auto">
-                  <AlertTriangle className="mx-auto mb-4 text-red-500" size={48} />
-                  <h3 className="text-lg font-bold text-slate-700 mb-2">无访问权限</h3>
-                  <p className="text-slate-500 mb-4">您当前没有访问此页面的权限，请联系管理员。</p>
-                  <button
-                    onClick={() => setActiveTab('dashboard')}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition-colors"
-                  >
-                    返回仪表盘
-                  </button>
-                </div>
-              </div>
-            )}
+            !canAccessTab({
+              tabId: activeTab,
+              currentUserId: currentUser.id,
+              hasPermission: (permission) => hasPermission(currentUser, permission),
+            }) && <AppUnauthorizedState onBackToDashboard={() => navigateToTab('dashboard')} />}
 
           {!isLoading && activeTab === 'inventory' && hasPermission(currentUser, 'inventory.view') && (
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-                <div className="bg-blue-600 text-white p-6 rounded-2xl shadow-lg relative overflow-hidden group">
-                  <div className="absolute right-[-20px] top-[-20px] opacity-10 group-hover:scale-110 transition-transform">
-                    <Package size={140} />
-                  </div>
-                  <p className="text-blue-100 text-sm">仓库物料总值</p>
-                  <p className="text-3xl font-bold">
-                    ￥{(inventory.reduce((a, b) => a + b.price * b.quantity, 0) / 10000).toFixed(1)}万
-                  </p>
-                </div>
-                <div className="bg-white border border-slate-100/80 p-6 rounded-3xl flex justify-between items-center hover:border-red-200 transition-colors">
-                  <div>
-                    <p className="text-slate-500 text-sm">低库存预警</p>
-                    <p className="text-3xl font-bold text-red-500">
-                      {inventory.filter((i) => i.quantity < i.threshold).length}
-                    </p>
-                  </div>
-                  <div className="p-3 bg-red-50 text-red-500 rounded-xl">
-                    <AlertTriangle size={24} />
-                  </div>
-                </div>
-                <div className="bg-white border border-slate-100/80 p-6 rounded-3xl flex justify-between items-center hover:border-blue-200 transition-colors">
-                  <div>
-                    <p className="text-slate-500 text-sm">今日操作记录</p>
-                    <p className="text-3xl font-bold text-blue-600">{stockLogs.length}</p>
-                  </div>
-                  <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
-                    <ArrowRightLeft size={24} />
-                  </div>
-                </div>
-              </div>
-
-              {/* 待审批列表 - 项目经理和管理员可见，放在库存明细之上 */}
-              {hasPermission(currentUser, 'inventory.approve') &&
-                stockLogs.filter((log) => log.status === 'pending' && log.type === 'out' && !log.isReversal).length >
-                  0 && (
-                  <div className="bg-orange-50 border-2 border-orange-200 rounded-2xl p-6 shadow-sm">
-                    <h3 className="font-bold text-orange-700 mb-4 flex items-center gap-2">
-                      <Clock size={18} /> 待审批出库申请 (
-                      {
-                        stockLogs.filter((log) => log.status === 'pending' && log.type === 'out' && !log.isReversal)
-                          .length
-                      }
-                      )
-                    </h3>
-                    <div className="space-y-3">
-                      {stockLogs
-                        .filter((log) => log.status === 'pending' && log.type === 'out' && !log.isReversal)
-                        .map((log) => {
-                          const item = inventory.find((i) => i.id === log.itemId);
-                          const project = projects.find((p) => p.id === log.projectId);
-                          return (
-                            <div key={log.id} className="bg-white rounded-xl border border-orange-200 p-4 shadow-sm">
-                              <div className="flex items-start justify-between mb-3">
-                                <div className="flex-1">
-                                  <p className="text-sm font-bold text-slate-700">
-                                    物料出库 - {item?.name || '未知物料'}
-                                  </p>
-                                  <p className="text-xs text-slate-400 mt-1">
-                                    {log.date} · 申请人: {log.creator} · 关联项目: {project?.name || '未指定'}
-                                  </p>
-                                  <p className="text-sm font-bold text-blue-600 mt-2">
-                                    数量: {log.qty} {item?.unit || ''}
-                                  </p>
-                                </div>
-                              </div>
-                              <div className="flex gap-2">
-                                <button
-                                  onClick={() => handleApproveStock(Number(log.id), true)}
-                                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-bold hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
-                                >
-                                  <Check size={16} /> 批准
-                                </button>
-                                <button
-                                  onClick={async () => {
-                                    const note = prompt('请输入拒绝原因（可选）:');
-                                    await handleApproveStock(Number(log.id), false, note || '');
-                                  }}
-                                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-bold hover:bg-red-700 transition-colors flex items-center justify-center gap-2"
-                                >
-                                  <X size={16} /> 拒绝
-                                </button>
-                              </div>
-                            </div>
-                          );
-                        })}
-                    </div>
-                  </div>
-                )}
-
-              {/* 待审批冲销单 - 管理员可见 */}
-              {(currentUser.id === 'admin' || authUser?.role === 'admin') &&
-                stockLogs.filter((log) => log.status === 'pending' && log.isReversal).length > 0 && (
-                  <div className="bg-amber-50 border-2 border-amber-200 rounded-2xl p-6 shadow-sm">
-                    <h3 className="font-bold text-amber-700 mb-4 flex items-center gap-2">
-                      <Clock size={18} /> 待审批库存冲销单 (
-                      {stockLogs.filter((log) => log.status === 'pending' && log.isReversal).length})
-                    </h3>
-                    <div className="space-y-3">
-                      {stockLogs
-                        .filter((log) => log.status === 'pending' && log.isReversal)
-                        .map((log) => {
-                          const item = inventory.find((i) => i.id === log.itemId);
-                          const project = projects.find((p) => p.id === log.projectId);
-                          return (
-                            <div key={log.id} className="bg-white rounded-xl border border-amber-200 p-4 shadow-sm">
-                              <div className="flex items-start justify-between mb-3">
-                                <div className="flex-1">
-                                  <p className="text-sm font-bold text-slate-700">
-                                    冲销{log.type === 'in' ? '入库' : '出库'} - {item?.name || '未知物料'}
-                                    <span className="ml-2 text-xs text-amber-600">原单#{log.reversalOfId}</span>
-                                  </p>
-                                  <p className="text-xs text-slate-400 mt-1">
-                                    {log.date} · 申请人: {log.creator} · 关联项目: {project?.name || '未指定'}
-                                  </p>
-                                  <p className="text-sm font-bold text-amber-600 mt-2">
-                                    冲销数量: {Math.abs(log.qty)} {item?.unit || ''}
-                                    {log.type === 'out' ? '（将回增库存）' : '（将回减库存）'}
-                                  </p>
-                                  {log.note && <p className="text-xs text-slate-500 mt-1">说明: {log.note}</p>}
-                                </div>
-                              </div>
-                              <div className="flex gap-2">
-                                <button
-                                  onClick={() => handleApproveStockReversal(Number(log.id), true)}
-                                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-bold hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
-                                >
-                                  <Check size={16} /> 批准冲销
-                                </button>
-                                <button
-                                  onClick={() => handleApproveStockReversal(Number(log.id), false)}
-                                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-bold hover:bg-red-700 transition-colors flex items-center justify-center gap-2"
-                                >
-                                  <X size={16} /> 拒绝
-                                </button>
-                              </div>
-                            </div>
-                          );
-                        })}
-                    </div>
-                  </div>
-                )}
-
-              <div className="bg-white rounded-3xl border border-slate-100/80 shadow-sm overflow-hidden">
-                <div className="p-6 border-b flex flex-wrap justify-between items-center gap-4">
-                  <h3 className="font-bold flex items-center gap-2 text-slate-700">
-                    <Package size={18} /> 实时库存明细
-                  </h3>
-                  <div className="flex gap-3">
-                    {hasPermission(currentUser, 'inventory.create') && (
-                      <button
-                        onClick={() => {
-                          setStockModalType('in');
-                          setIsStockModalOpen(true);
-                        }}
-                        className="px-4 py-2 border border-green-200 bg-green-50 text-green-700 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-green-100 transition-colors shadow-sm"
-                      >
-                        <Plus size={16} /> 入库登记
-                      </button>
-                    )}
-                    {(hasPermission(currentUser, 'inventory.outbound.direct') ||
-                      hasPermission(currentUser, 'inventory.outbound.request')) && (
-                      <button
-                        onClick={() => {
-                          setStockModalType('out');
-                          setIsStockModalOpen(true);
-                        }}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-blue-700 transition-all shadow-lg active:scale-95"
-                      >
-                        <ArrowRightLeft size={16} /> 出库申请
-                      </button>
-                    )}
-                  </div>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left">
-                    <thead className="bg-slate-50 border-b text-slate-400 text-xs uppercase tracking-wider">
-                      <tr>
-                        <th className="px-6 py-4 font-bold">物料名称</th>
-                        <th className="px-6 py-4 font-bold">规格参数</th>
-                        <th className="px-6 py-4 font-bold">参考单价</th>
-                        <th className="px-6 py-4 font-bold">库存余额</th>
-                        <th className="px-6 py-4 font-bold">预警阈值</th>
-                        <th className="px-6 py-4 font-bold">当前状态</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y text-sm">
-                      {inventory.length === 0 ? (
-                        <tr>
-                          <td colSpan={6} className="px-6 py-12 text-center text-slate-400">
-                            暂无物料
-                          </td>
-                        </tr>
-                      ) : (
-                        inventory.map((item) => (
-                          <tr key={item.id} className="hover:bg-slate-50/80 transition-colors group">
-                            <td className="px-6 py-4">
-                              <span className="font-bold text-slate-700">{item.name}</span>
-                            </td>
-                            <td className="px-6 py-4 text-slate-500">{item.spec}</td>
-                            <td className="px-6 py-4 text-slate-600 font-mono">￥{item.price.toLocaleString()}</td>
-                            <td className="px-6 py-4">
-                              <span
-                                className={`font-bold ${item.quantity < item.threshold ? 'text-red-500' : 'text-slate-800'}`}
-                              >
-                                {item.quantity.toLocaleString()} {item.unit}
-                              </span>
-                            </td>
-                            <td className="px-6 py-4 text-slate-600">
-                              {item.threshold.toLocaleString()} {item.unit}
-                            </td>
-                            <td className="px-6 py-4">
-                              {item.quantity < item.threshold ? (
-                                <span className="inline-flex items-center gap-1 text-red-600 bg-red-50 px-2.5 py-1 rounded-full text-xs font-bold ring-1 ring-red-100">
-                                  <AlertTriangle size={12} /> 低于安全位
-                                </span>
-                              ) : (
-                                <span className="inline-flex items-center gap-1 text-green-600 bg-green-50 px-2.5 py-1 rounded-full text-xs font-bold ring-1 ring-green-100">
-                                  <Check size={12} /> 供应充足
-                                </span>
-                              )}
-                            </td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              {/* 简易操作日志 */}
-              {stockLogs.length > 0 && (
-                <div className="bg-white rounded-3xl border border-slate-100/80 p-6 shadow-sm">
-                  <h3 className="font-bold text-slate-700 mb-4 flex items-center gap-2">
-                    <History size={18} /> 最近出入库流水
-                  </h3>
-                  <div className="space-y-3">
-                    {[...stockLogs]
-                      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-                      .map((log) => {
-                        const item = inventory.find((i) => i.id === log.itemId);
-                        const isReversalLog = Boolean(log.isReversal);
-                        const statusBadge =
-                          log.status === 'pending' && isReversalLog ? (
-                            <span className="inline-flex items-center gap-1 text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full text-xs font-bold">
-                              冲销待审批
-                            </span>
-                          ) : log.status === 'pending' ? (
-                            <span className="inline-flex items-center gap-1 text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full text-xs font-bold">
-                              待审批
-                            </span>
-                          ) : log.status === 'rejected' && isReversalLog ? (
-                            <span className="inline-flex items-center gap-1 text-red-600 bg-red-50 px-2 py-0.5 rounded-full text-xs font-bold">
-                              冲销已拒绝
-                            </span>
-                          ) : log.status === 'rejected' ? (
-                            <span className="inline-flex items-center gap-1 text-red-600 bg-red-50 px-2 py-0.5 rounded-full text-xs font-bold">
-                              已拒绝
-                            </span>
-                          ) : isReversalLog && log.status === 'active' ? (
-                            <span className="inline-flex items-center gap-1 text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full text-xs font-bold">
-                              已冲销
-                            </span>
-                          ) : null;
-
-                        const canReversal =
-                          log.status === 'active' &&
-                          !isReversalLog &&
-                          (currentUser.id === 'admin' ||
-                            authUser?.role === 'admin' ||
-                            authUser?.role === 'clerk' ||
-                            currentUser.name?.includes('管理员') ||
-                            currentUser.name?.includes('库管'));
-                        const canApproveReversal =
-                          isReversalLog &&
-                          log.status === 'pending' &&
-                          (currentUser.id === 'admin' ||
-                            authUser?.role === 'admin' ||
-                            currentUser.name?.includes('管理员'));
-
-                        return (
-                          <div
-                            key={log.id}
-                            className={`flex items-center justify-between py-3 border-b border-dashed last:border-0 ${isReversalLog ? 'bg-amber-50/50' : ''}`}
-                          >
-                            <div className="flex items-center gap-3">
-                              <div
-                                className={`p-2 rounded-lg ${isReversalLog ? 'bg-amber-50 text-amber-600' : log.type === 'in' ? 'bg-green-50 text-green-600' : 'bg-blue-50 text-blue-600'}`}
-                              >
-                                {log.type === 'in' ? <Plus size={14} /> : <ArrowRightLeft size={14} />}
-                              </div>
-                              <div>
-                                <div className="flex items-center gap-2">
-                                  <p className="text-sm font-bold">
-                                    {isReversalLog ? '冲销' : ''}
-                                    {log.type === 'in' ? '物料入库' : '物料出库'} - {item?.name || '未知物料'}
-                                  </p>
-                                  {statusBadge}
-                                </div>
-                                <p className="text-xs text-slate-400">
-                                  {log.date} · 操作员: {log.creator}
-                                  {log.approver && ` · 审批人: ${log.approver}`}
-                                  {log.reversalOfId && ` · 原单#${log.reversalOfId}`}
-                                </p>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-3">
-                              <div className="text-right">
-                                <p
-                                  className={`font-bold ${isReversalLog ? 'text-amber-600' : log.type === 'in' ? 'text-green-600' : 'text-blue-600'}`}
-                                >
-                                  {log.qty > 0 ? (log.type === 'in' ? '+' : '-') : ''}
-                                  {log.qty} {item?.unit || ''}
-                                </p>
-                              </div>
-                              {canReversal && (
-                                <button
-                                  onClick={() => handleReversalStock(Number(log.id))}
-                                  className="px-3 py-1 bg-amber-600 text-white rounded-lg text-xs font-bold hover:bg-amber-700 whitespace-nowrap"
-                                >
-                                  冲销
-                                </button>
-                              )}
-                              {canApproveReversal && (
-                                <div className="flex gap-1">
-                                  <button
-                                    onClick={() => handleApproveStockReversal(Number(log.id), true)}
-                                    className="px-2 py-1 bg-green-600 text-white rounded-lg text-xs font-bold hover:bg-green-700"
-                                  >
-                                    通过
-                                  </button>
-                                  <button
-                                    onClick={() => handleApproveStockReversal(Number(log.id), false)}
-                                    className="px-2 py-1 bg-red-600 text-white rounded-lg text-xs font-bold hover:bg-red-700"
-                                  >
-                                    拒绝
-                                  </button>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })}
-                  </div>
-                </div>
-              )}
-            </div>
+            <InventoryWarehousePage
+              inventory={inventory}
+              stockLogs={stockLogs}
+              projects={projects}
+              currentUserId={currentUser.id}
+              currentUserName={currentUser.name}
+              authRole={authUser?.role}
+              canCreateStockEntry={hasPermission(currentUser, 'inventory.create')}
+              canRequestOutbound={
+                hasPermission(currentUser, 'inventory.outbound.direct') ||
+                hasPermission(currentUser, 'inventory.outbound.request')
+              }
+              canApproveOutbound={hasPermission(currentUser, 'inventory.approve')}
+              onOpenInbound={() => {
+                setStockModalType('in');
+                setIsStockModalOpen(true);
+              }}
+              onOpenOutbound={() => {
+                setStockModalType('out');
+                setIsStockModalOpen(true);
+              }}
+              onApproveStock={handleApproveStock}
+              onApproveStockReversal={handleApproveStockReversal}
+              onReverseStock={handleReversalStock}
+            />
           )}
 
           {!isLoading && activeTab === 'ai' && hasPermission(currentUser, 'ai.view') && (
@@ -2521,330 +2018,80 @@ const App = () => {
 
           {/* 财务收支页面 */}
           {/* 物料管理页面 */}
+
           {!isLoading &&
             activeTab === 'inventory-management' &&
             hasPermission(currentUser, 'inventory-management.view') && (
-              <div className="space-y-6">
-                <div className="bg-white rounded-3xl border border-slate-100/80 shadow-sm overflow-hidden">
-                  <div className="p-6 border-b flex flex-wrap justify-between items-center gap-4">
-                    <h3 className="font-bold flex items-center gap-2 text-slate-700">
-                      <Package size={18} /> 物料管理
-                    </h3>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => exportInventoryToExcel(inventory)}
-                        className="px-4 py-2 border border-slate-200 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-slate-50 transition-colors"
-                      >
-                        <Download size={16} /> 导出 Excel
-                      </button>
-                      {(hasPermission(currentUser, 'inventory.edit') ||
-                        hasPermission(currentUser, 'inventory.create')) && (
-                        <>
-                          <button
-                            onClick={downloadInventoryImportTemplate}
-                            className="px-4 py-2 border border-slate-200 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-slate-50 transition-colors"
-                          >
-                            下载模板
-                          </button>
-                          <button
-                            onClick={() => {
-                              setImportMode('inventory');
-                              setTimeout(() => fileInputRef.current?.click(), 0);
-                            }}
-                            className="px-4 py-2 border border-slate-200 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-slate-50 transition-colors"
-                          >
-                            导入 Excel
-                          </button>
-                          <button
-                            onClick={() => {
-                              setEditingInventoryItem(null);
-                              setInventoryForm({ name: '', spec: '', unit: '', price: 0, quantity: 0, threshold: 0 });
-                              setIsInventoryModalOpen(true);
-                            }}
-                            className="px-4 py-2 bg-purple-600 text-white rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-purple-700 transition-colors shadow-lg"
-                          >
-                            <Plus size={16} /> 新建物料
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left">
-                      <thead className="bg-slate-50 border-b text-slate-400 text-xs uppercase tracking-wider">
-                        <tr>
-                          <th className="px-6 py-4 font-bold">物料名称</th>
-                          <th className="px-6 py-4 font-bold">规格参数</th>
-                          <th className="px-6 py-4 font-bold">单位</th>
-                          <th className="px-6 py-4 font-bold">参考单价</th>
-                          <th className="px-6 py-4 font-bold">库存余额</th>
-                          <th className="px-6 py-4 font-bold">预警阈值</th>
-                          <th className="px-6 py-4 font-bold">当前状态</th>
-                          {(hasPermission(currentUser, 'inventory.edit') ||
-                            hasPermission(currentUser, 'inventory.delete')) && (
-                            <th className="px-6 py-4 font-bold">操作</th>
-                          )}
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y text-sm">
-                        {inventory.length === 0 ? (
-                          <tr>
-                            <td
-                              colSpan={
-                                hasPermission(currentUser, 'inventory.edit') ||
-                                hasPermission(currentUser, 'inventory.delete')
-                                  ? 8
-                                  : 7
-                              }
-                              className="px-6 py-12 text-center text-slate-400"
-                            >
-                              暂无物料，点击"新建物料"添加
-                            </td>
-                          </tr>
-                        ) : (
-                          inventory.map((item) => (
-                            <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
-                              <td className="px-6 py-4">
-                                <span className="font-bold text-slate-700">{item.name}</span>
-                              </td>
-                              <td className="px-6 py-4 text-slate-500">{item.spec}</td>
-                              <td className="px-6 py-4 text-slate-600">{item.unit}</td>
-                              <td className="px-6 py-4 text-slate-600 font-mono">￥{item.price.toLocaleString()}</td>
-                              <td className="px-6 py-4">
-                                <span
-                                  className={`font-bold ${item.quantity < item.threshold ? 'text-red-500' : 'text-slate-800'}`}
-                                >
-                                  {item.quantity.toLocaleString()} {item.unit}
-                                </span>
-                              </td>
-                              <td className="px-6 py-4 text-slate-600">
-                                {item.threshold.toLocaleString()} {item.unit}
-                              </td>
-                              <td className="px-6 py-4">
-                                {item.quantity < item.threshold ? (
-                                  <span className="inline-flex items-center gap-1 text-red-600 bg-red-50 px-2.5 py-1 rounded-full text-xs font-bold ring-1 ring-red-100">
-                                    <AlertTriangle size={12} /> 低于安全位
-                                  </span>
-                                ) : (
-                                  <span className="inline-flex items-center gap-1 text-green-600 bg-green-50 px-2.5 py-1 rounded-full text-xs font-bold ring-1 ring-green-100">
-                                    <Check size={12} /> 供应充足
-                                  </span>
-                                )}
-                              </td>
-                              {(hasPermission(currentUser, 'inventory.edit') ||
-                                hasPermission(currentUser, 'inventory.delete')) && (
-                                <td className="px-6 py-4">
-                                  <div className="flex gap-2">
-                                    {hasPermission(currentUser, 'inventory.edit') && (
-                                      <button
-                                        onClick={() => {
-                                          setEditingInventoryItem(item);
-                                          setInventoryForm({
-                                            name: item.name,
-                                            spec: item.spec,
-                                            unit: item.unit,
-                                            price: item.price,
-                                            quantity: item.quantity,
-                                            threshold: item.threshold,
-                                          });
-                                          setIsInventoryModalOpen(true);
-                                        }}
-                                        className="px-3 py-1 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700"
-                                      >
-                                        编辑
-                                      </button>
-                                    )}
-                                    {hasPermission(currentUser, 'inventory.delete') && (
-                                      <button
-                                        onClick={async () => {
-                                          if (confirm(`确定要删除物料 "${item.name}" 吗？此操作不可恢复！`)) {
-                                            try {
-                                              await apiService.deleteInventoryItem(item.id);
-                                              setToast({ message: '物料已删除', type: 'success' });
-                                              const inventoryData = (await apiService
-                                                .getInventory()
-                                                .catch(() => [])) as InventoryItem[];
-                                              setInventory(Array.isArray(inventoryData) ? inventoryData : []);
-                                            } catch (error: any) {
-                                              setToast({ message: error.message || '删除失败', type: 'error' });
-                                            }
-                                          }
-                                        }}
-                                        className="px-3 py-1 bg-red-600 text-white rounded-lg text-xs font-bold hover:bg-red-700"
-                                      >
-                                        删除
-                                      </button>
-                                    )}
-                                  </div>
-                                </td>
-                              )}
-                            </tr>
-                          ))
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
+              <InventoryManagementPage
+                inventory={inventory}
+                canCreateInventory={hasPermission(currentUser, 'inventory.create')}
+                canEditInventory={hasPermission(currentUser, 'inventory.edit')}
+                canDeleteInventory={hasPermission(currentUser, 'inventory.delete')}
+                onExport={() => exportInventoryToExcel(inventory)}
+                onDownloadTemplate={downloadInventoryImportTemplate}
+                onImport={() => {
+                  setImportMode('inventory');
+                  setTimeout(() => fileInputRef.current?.click(), 0);
+                }}
+                onCreate={() => {
+                  setEditingInventoryItem(null);
+                  setInventoryForm({ name: '', spec: '', unit: '', price: 0, quantity: 0, threshold: 0 });
+                  setIsInventoryModalOpen(true);
+                }}
+                onEdit={(item) => {
+                  setEditingInventoryItem(item);
+                  setInventoryForm({
+                    name: item.name,
+                    spec: item.spec,
+                    unit: item.unit,
+                    price: item.price,
+                    quantity: item.quantity,
+                    threshold: item.threshold,
+                  });
+                  setIsInventoryModalOpen(true);
+                }}
+                onDelete={async (item) => {
+                  if (!confirm(`确定要删除物料“${item.name}”吗？此操作不可恢复。`)) {
+                    return;
+                  }
+
+                  try {
+                    await apiService.deleteInventoryItem(item.id);
+                    setToast({ message: '物料已删除', type: 'success' });
+                    const inventoryData = (await apiService.getInventory().catch(() => [])) as InventoryItem[];
+                    setInventory(Array.isArray(inventoryData) ? inventoryData : []);
+                  } catch (error: any) {
+                    setToast({ message: error.message || '删除失败', type: 'error' });
+                  }
+                }}
+              />
             )}
 
           {!isLoading && activeTab === 'finance' && hasPermission(currentUser, 'finance.view') && (
-            <div className="space-y-6">
-              <div className="bg-white rounded-3xl border border-slate-100/80 shadow-sm overflow-hidden">
-                <div className="p-6 border-b flex flex-wrap justify-between items-center gap-4">
-                  <h3 className="font-bold flex items-center gap-2 text-slate-700">
-                    <Wallet size={18} /> 财务收支记录
-                  </h3>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => exportFinanceToExcel(financeRecords)}
-                      className="px-4 py-2 border border-slate-200 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-slate-50 transition-colors"
-                    >
-                      <Download size={16} /> 导出 Excel
-                    </button>
-                    {hasPermission(currentUser, 'finance.create') && (
-                      <>
-                        <button
-                          onClick={downloadFinanceImportTemplate}
-                          className="px-4 py-2 border border-slate-200 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-slate-50 transition-colors"
-                        >
-                          下载模板
-                        </button>
-                        <button
-                          onClick={() => {
-                            setImportMode('finance');
-                            setTimeout(() => fileInputRef.current?.click(), 0);
-                          }}
-                          className="px-4 py-2 border border-slate-200 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-slate-50 transition-colors"
-                        >
-                          导入 Excel
-                        </button>
-                        <button
-                          onClick={openFinanceModal}
-                          className="px-4 py-2 bg-green-600 text-white rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-green-700 transition-colors shadow-lg"
-                        >
-                          <Plus size={16} /> 新增财务记录
-                        </button>
-                      </>
-                    )}
-                  </div>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left">
-                    <thead className="bg-slate-50 border-b text-slate-400 text-xs uppercase tracking-wider">
-                      <tr>
-                        <th className="px-6 py-4 font-bold">日期</th>
-                        <th className="px-6 py-4 font-bold">类型</th>
-                        <th className="px-6 py-4 font-bold">类别</th>
-                        <th className="px-6 py-4 font-bold">金额</th>
-                        <th className="px-6 py-4 font-bold">关联项目</th>
-                        <th className="px-6 py-4 font-bold">状态</th>
-                        <th className="px-6 py-4 font-bold">操作人</th>
-                        {hasPermission(currentUser, 'finance.approve.normal') && (
-                          <th className="px-6 py-4 font-bold">操作</th>
-                        )}
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y text-sm">
-                      {financeRecords.length === 0 ? (
-                        <tr>
-                          <td
-                            colSpan={currentUser.id === 'admin' ? 8 : 7}
-                            className="px-6 py-12 text-center text-slate-400"
-                          >
-                            暂无财务记录
-                          </td>
-                        </tr>
-                      ) : (
-                        financeRecords.map((record) => {
-                          const project = projects.find((p) => p.id === record.projectId);
-                          return (
-                            <tr key={record.id} className="hover:bg-slate-50/80 transition-colors">
-                              <td className="px-6 py-4 text-slate-600">{record.date}</td>
-                              <td className="px-6 py-4">
-                                <span
-                                  className={`px-2.5 py-1 rounded-full text-xs font-bold ${
-                                    record.type === 'income' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                                  }`}
-                                >
-                                  {record.type === 'income' ? '收入' : '支出'}
-                                  {record.isReversal && <span className="ml-1 text-amber-600">冲销</span>}
-                                </span>
-                              </td>
-                              <td className="px-6 py-4 text-slate-700">{record.category}</td>
-                              <td
-                                className={`px-6 py-4 font-bold ${
-                                  record.type === 'income' ? 'text-green-600' : 'text-red-600'
-                                }`}
-                              >
-                                {record.type === 'income' ? '+' : '-'}￥{record.amount.toLocaleString()}
-                              </td>
-                              <td className="px-6 py-4 text-slate-500">{project?.name || '未关联'}</td>
-                              <td className="px-6 py-4">
-                                <span
-                                  className={`px-2.5 py-1 rounded-full text-xs font-bold ${
-                                    record.status === 'approved'
-                                      ? 'bg-green-100 text-green-700'
-                                      : record.status === 'pending'
-                                        ? 'bg-orange-100 text-orange-700'
-                                        : 'bg-red-100 text-red-700'
-                                  }`}
-                                >
-                                  {record.status === 'approved'
-                                    ? '已批准'
-                                    : record.status === 'pending'
-                                      ? '待审批'
-                                      : '已拒绝'}
-                                </span>
-                              </td>
-                              <td className="px-6 py-4 text-slate-500">{record.creator}</td>
-                              {hasPermission(currentUser, 'finance.approve.normal') && (
-                                <td className="px-6 py-4">
-                                  {record.status === 'pending' ? (
-                                    <div className="flex gap-2">
-                                      <button
-                                        onClick={() => handleApproveFinance(Number(record.id), true)}
-                                        className="px-3 py-1 bg-green-600 text-white rounded-lg text-xs font-bold hover:bg-green-700"
-                                      >
-                                        批准
-                                      </button>
-                                      <button
-                                        onClick={() => {
-                                          setPendingRejectLogId(Number(record.id));
-                                          setRejectNote('');
-                                          setIsRejectNoteModalOpen(true);
-                                          (window as any).__pendingRejectIsFinance = true;
-                                        }}
-                                        className="px-3 py-1 bg-red-600 text-white rounded-lg text-xs font-bold hover:bg-red-700"
-                                      >
-                                        拒绝
-                                      </button>
-                                    </div>
-                                  ) : record.status === 'approved' &&
-                                    !record.isReversal &&
-                                    (currentUser.id === 'admin' ||
-                                      authUser?.role === 'finance' ||
-                                      currentUser.name?.includes('财务')) ? (
-                                    <button
-                                      onClick={() => handleReversalFinance(Number(record.id))}
-                                      className="px-3 py-1 bg-amber-600 text-white rounded-lg text-xs font-bold hover:bg-amber-700"
-                                    >
-                                      冲销
-                                    </button>
-                                  ) : (
-                                    <span className="text-slate-400">—</span>
-                                  )}
-                                </td>
-                              )}
-                            </tr>
-                          );
-                        })
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
+            <FinanceManagementPage
+              financeRecords={financeRecords}
+              projects={projects}
+              currentUserId={currentUser.id}
+              currentUserName={currentUser.name}
+              authRole={authUser?.role}
+              canCreateFinance={hasPermission(currentUser, 'finance.create')}
+              canApproveFinance={hasPermission(currentUser, 'finance.approve.normal')}
+              onExport={() => exportFinanceToExcel(financeRecords)}
+              onDownloadTemplate={downloadFinanceImportTemplate}
+              onImport={() => {
+                setImportMode('finance');
+                setTimeout(() => fileInputRef.current?.click(), 0);
+              }}
+              onCreate={openFinanceModal}
+              onApprove={handleApproveFinance}
+              onReject={(recordId) => {
+                setPendingRejectLogId(recordId);
+                setRejectNote('');
+                setIsRejectNoteModalOpen(true);
+                (window as any).__pendingRejectIsFinance = true;
+              }}
+              onReverse={handleReversalFinance}
+            />
           )}
 
           {!isLoading && activeTab === 'suppliers' && hasPermission(currentUser, 'finance.view') && (
@@ -2883,12 +2130,7 @@ const App = () => {
 
           {!isLoading && activeTab === 'approval-center' && hasPermission(currentUser, 'approval-center.view') && (
             <div className="p-6 overflow-auto">
-              <ApprovalCenter
-                onNavigateTab={(tab) => setActiveTab(tab)}
-                projects={projects}
-                inventory={inventory}
-                overdueMilestones={overdueMilestones}
-              />
+              <ApprovalCenter onNavigateTab={(tab) => setActiveTab(tab)} />
             </div>
           )}
 
@@ -3319,14 +2561,6 @@ const App = () => {
                       </button>
                       {hasPermission(currentUser, 'project.create') && (
                         <button
-                          onClick={downloadProjectImportTemplate}
-                          className="px-4 py-2 border border-slate-200 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-slate-50 transition-colors"
-                        >
-                          下载模板
-                        </button>
-                      )}
-                      {hasPermission(currentUser, 'project.create') && (
-                        <button
                           onClick={() => {
                             setImportMode('project');
                             setTimeout(() => fileInputRef.current?.click(), 0);
@@ -3446,8 +2680,8 @@ const App = () => {
               )}
             </div>
           )}
-        </div>
-      </main>
+        </AppPageViewport>
+      </AppShell>
 
       {/* 权限管理模态框 */}
       {isPermissionsModalOpen && (
@@ -3770,7 +3004,7 @@ const App = () => {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 };
 
