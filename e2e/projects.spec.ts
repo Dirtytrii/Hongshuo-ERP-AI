@@ -1,79 +1,8 @@
 import { test, expect, type Page } from '@playwright/test';
-
-async function installApiMocks(page: Page) {
-  const base = '/api';
-  await page.route('**/api/**', async (route) => {
-    const request = route.request();
-    const url = new URL(request.url());
-    const path = url.pathname.replace(base, '');
-
-    if (path === '/auth/login' && request.method() === 'POST') {
-      const body = (() => {
-        try {
-          return request.postDataJSON() as { username: string };
-        } catch {
-          return undefined;
-        }
-      })();
-      const username = body?.username ?? 'admin';
-      return route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ token: 'e2e-token', user: { id: 1, username, role: 'admin', enabled: true } }),
-      });
-    }
-    if (path === '/permissions' && request.method() === 'GET') {
-      return route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          'projects.view': ['admin', 'finance'],
-          'inventory.view': ['admin', 'clerk', 'finance'],
-          'finance.view': ['admin', 'finance'],
-          'project.create': ['admin', 'pm'],
-        }),
-      });
-    }
-    if (path === '/roles' && request.method() === 'GET') {
-      return route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify([{ id: 1, code: 'admin', name: '管理员', description: '系统管理员', enabled: true }]),
-      });
-    }
-    if (path === '/config' && request.method() === 'GET') {
-      return route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ lowStockThreshold: '100', largeExpenseThreshold: '100000' }),
-      });
-    }
-    if (path === '/projects' && request.method() === 'GET') {
-      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([]) });
-    }
-    if (path === '/inventory' && request.method() === 'GET') {
-      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([]) });
-    }
-    if (path === '/finance' && request.method() === 'GET') {
-      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([]) });
-    }
-    if (path === '/stock' && request.method() === 'GET') {
-      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([]) });
-    }
-    if (path.startsWith('/dashboard/operation') && request.method() === 'GET') {
-      return route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ days: 15, metrics: {}, trend: [], financeTrend: [], inventoryTrend: [] }),
-      });
-    }
-
-    return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({}) });
-  });
-}
+import { installApiMocks } from './utils/apiMock';
 
 async function loginAsAdmin(page: Page) {
-  await installApiMocks(page);
+  await installApiMocks(page, { role: 'admin' });
   await page.goto('/');
   const loginTitle = page.getByRole('heading', { name: '登录' });
   if (await loginTitle.isVisible().catch(() => false)) {
