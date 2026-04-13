@@ -23,5 +23,17 @@ module.exports = {
     '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
     'no-empty': ['error', { allowEmptyCatch: true }],
   },
-  ignorePatterns: ['dist', 'node_modules', '*.cjs', 'vitest-result.json', 'test-results/', 'playwright-report/'],
+  ignorePatterns: [
+    'dist',
+    'node_modules',
+    '*.cjs',
+    'vitest-result.json',
+    'test-results/',
+    'playwright-report/',
+    // 避免扫描大文件/二进制导致 lint 卡死
+    'data/**/*.db',
+    '**/*.db',
+    '**/*.zip',
+    'dist.zip',
+  ],
 };
