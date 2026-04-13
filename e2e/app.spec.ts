@@ -81,7 +81,16 @@ async function installApiMocks(page: import('@playwright/test').Page, role: Mock
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify([
-          { id: 's1', type: 'out', itemId: 1, qty: 1, price: 1, status: 'pending', date: '2026-03-01', creator: '库管' },
+          {
+            id: 's1',
+            type: 'out',
+            itemId: 1,
+            qty: 1,
+            price: 1,
+            status: 'pending',
+            date: '2026-03-01',
+            creator: '库管',
+          },
         ]),
       });
     }

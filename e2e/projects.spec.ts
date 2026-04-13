@@ -1,6 +1,6 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 
-async function installApiMocks(page: import('@playwright/test').Page) {
+async function installApiMocks(page: Page) {
   const base = '/api';
   await page.route('**/api/**', async (route) => {
     const request = route.request();
@@ -8,7 +8,13 @@ async function installApiMocks(page: import('@playwright/test').Page) {
     const path = url.pathname.replace(base, '');
 
     if (path === '/auth/login' && request.method() === 'POST') {
-      const body = request.postDataJSON?.() as { username: string } | undefined;
+      const body = (() => {
+        try {
+          return request.postDataJSON() as { username: string };
+        } catch {
+          return undefined;
+        }
+      })();
       const username = body?.username ?? 'admin';
       return route.fulfill({
         status: 200,
@@ -66,7 +72,7 @@ async function installApiMocks(page: import('@playwright/test').Page) {
   });
 }
 
-async function loginAsAdmin(page: import('@playwright/test').Page) {
+async function loginAsAdmin(page: Page) {
   await installApiMocks(page);
   await page.goto('/');
   const loginTitle = page.getByRole('heading', { name: '登录' });
