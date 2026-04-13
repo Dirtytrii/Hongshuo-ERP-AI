@@ -1,6 +1,6 @@
 import React from 'react';
 import { Building2 } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { Project } from '../../types';
 
 interface ProjectProgressChartProps {
@@ -56,7 +56,7 @@ const ProjectProgressChart: React.FC<ProjectProgressChartProps> = ({ projects, o
                       borderRadius: '8px',
                       padding: '8px',
                     }}
-                    formatter={(value: number, name: string) => [`${value}%`, '进度']}
+                    formatter={(value: number, _name: string) => [`${value}%`, '进度']}
                     labelFormatter={(label) => {
                       const project = chartData.find((p) => p.name === label);
                       return project?.fullName || label;

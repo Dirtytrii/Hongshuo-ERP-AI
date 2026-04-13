@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Wallet, TrendingUp, TrendingDown, Download } from 'lucide-react';
+import { Wallet, Download } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { FinanceRecord } from '../../types';
 import { exportFinanceDetailToExcel } from '../../utils/export';

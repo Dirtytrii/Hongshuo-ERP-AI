@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { FileText, Plus } from 'lucide-react';
 import { apiService } from '../../services/apiService';
 import type { Contract, Project } from '../../types';
@@ -42,7 +42,7 @@ const ContractManagement: React.FC<ContractManagementProps> = ({ projects, onPro
     remark: '',
   });
 
-  const load = async () => {
+  const load = useCallback(async () => {
     try {
       setLoading(true);
       const params: { projectId?: number; settlementStatus?: string; monitoringStatus?: string } = {};
@@ -57,11 +57,11 @@ const ContractManagement: React.FC<ContractManagementProps> = ({ projects, onPro
     } finally {
       setLoading(false);
     }
-  };
+  }, [filterProjectId, filterSettlementStatus, filterMonitoringStatus]);
 
   useEffect(() => {
     load();
-  }, [filterProjectId, filterSettlementStatus, filterMonitoringStatus]);
+  }, [load]);
 
   const openNew = () => {
     setEditing(null);

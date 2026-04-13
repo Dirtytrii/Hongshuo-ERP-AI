@@ -1,8 +1,6 @@
 import React, { useMemo } from 'react';
 import { Wallet } from 'lucide-react';
 import {
-  LineChart,
-  Line,
   XAxis,
   YAxis,
   CartesianGrid,

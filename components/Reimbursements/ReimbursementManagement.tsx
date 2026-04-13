@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Receipt, Plus } from 'lucide-react';
 import { apiService } from '../../services/apiService';
 import type { Department, Project, Reimbursement } from '../../types';
@@ -34,7 +34,7 @@ const ReimbursementManagement: React.FC<ReimbursementManagementProps> = ({
     description: '',
   });
 
-  const load = async () => {
+  const load = useCallback(async () => {
     try {
       setLoading(true);
       const data = await apiService.getReimbursements({ status: filterStatus || undefined });
@@ -45,11 +45,11 @@ const ReimbursementManagement: React.FC<ReimbursementManagementProps> = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [filterStatus]);
 
   useEffect(() => {
     load();
-  }, [filterStatus]);
+  }, [load]);
 
   const getProjectName = (projectId?: number | null) =>
     projectId == null ? '—' : projects.find((p) => p.id === projectId)?.name || `项目#${projectId}`;

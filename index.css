@@ -17,4 +17,12 @@
   .ring-card {
     @apply rounded-3xl border border-slate-100/80 shadow-sm;
   }
+
+  .surface-card {
+    @apply rounded-3xl border border-slate-100/80 bg-white shadow-sm;
+  }
+
+  .page-shell {
+    @apply space-y-6;
+  }
 }

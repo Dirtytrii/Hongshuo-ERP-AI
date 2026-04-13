@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { FileEdit, Plus, Trash2, Check, X } from 'lucide-react';
+import React, { useCallback, useEffect, useState } from 'react';
+import { FileEdit, Plus } from 'lucide-react';
 import { apiService, type ChangeOrderType } from '../../services/apiService';
 import { Project } from '../../types';
 import SearchableSelect from '../ui/SearchableSelect';
@@ -26,7 +26,7 @@ const ChangeOrderManagement: React.FC<ChangeOrderManagementProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [approvingId, setApprovingId] = useState<number | null>(null);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     try {
       setLoading(true);
       const params: { projectId?: number; status?: string } = {};
@@ -39,11 +39,11 @@ const ChangeOrderManagement: React.FC<ChangeOrderManagementProps> = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [filterProjectId, filterStatus]);
 
   useEffect(() => {
     load();
-  }, [filterProjectId, filterStatus]);
+  }, [load]);
 
   const openNew = () => {
     setEditing(null);

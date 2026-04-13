@@ -46,7 +46,7 @@ const MilestoneGantt: React.FC<MilestoneGanttProps> = ({ projectName, startDate,
   const [sortAsc, setSortAsc] = useState(true);
   const [hoveredId, setHoveredId] = useState<number | null>(null);
 
-  const { rows, ticks, startTs, endTs, todayPct } = useMemo(() => {
+  const { rows, ticks, todayPct } = useMemo(() => {
     const sTs = parseTs(startDate);
     const eTs = endDate ? parseTs(endDate) : sTs + 365 * DAY_MS;
     const totalDays = Math.max(1, (eTs - sTs) / DAY_MS);
@@ -78,8 +78,6 @@ const MilestoneGantt: React.FC<MilestoneGanttProps> = ({ projectName, startDate,
     return {
       rows: rowsData,
       ticks: generateMonthTicks(sTs, eTs),
-      startTs: sTs,
-      endTs: eTs,
       todayPct: tPct,
     };
   }, [startDate, endDate, milestones, sortField, sortAsc]);

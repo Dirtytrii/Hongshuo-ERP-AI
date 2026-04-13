@@ -1,7 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Smartphone, MessageSquare, RefreshCcw } from 'lucide-react';
 import { apiService } from '../../services/apiService';
 import type { ApprovalTodoItem, MobileOverview } from '../../types';
+import EmptyState from '../../shared/ui/EmptyState';
+import PageHeader from '../../shared/ui/PageHeader';
+import SectionCard from '../../shared/ui/SectionCard';
+import Toolbar from '../../shared/ui/Toolbar';
 
 interface ConfigPayload {
   dingTalkEnabled?: string | boolean;
@@ -41,7 +45,7 @@ const IntegrationCenter: React.FC = () => {
   const [mobileOverview, setMobileOverview] = useState<MobileOverview | null>(null);
   const [mobileTodos, setMobileTodos] = useState<ApprovalTodoItem[]>([]);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     try {
       setLoading(true);
       const [cfg, ding, mobileStatus, overview, todos] = await Promise.all([
@@ -77,11 +81,11 @@ const IntegrationCenter: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     load();
-  }, []);
+  }, [load]);
 
   const saveConfig = async () => {
     try {
@@ -112,25 +116,32 @@ const IntegrationCenter: React.FC = () => {
   };
 
   if (loading) {
-    return <div className="p-8 text-center text-slate-500">加载中...</div>;
+    return <EmptyState title="加载中..." description="正在读取集成中心配置和移动端状态。" compact />;
   }
 
   return (
-    <div className="space-y-8">
-      <div className="bg-white rounded-3xl border border-slate-100/80 shadow-sm overflow-hidden">
-        <div className="p-6 border-b flex items-center justify-between">
-          <h3 className="font-bold flex items-center gap-2 text-slate-700">
-            <MessageSquare size={18} /> 钉钉机器人集成
-          </h3>
-          <button
-            type="button"
-            onClick={load}
-            className="px-3 py-1.5 border border-slate-200 rounded-xl text-sm flex items-center gap-1 hover:bg-slate-50"
-          >
-            <RefreshCcw size={14} /> 刷新
-          </button>
-        </div>
-        <div className="p-6 space-y-4">
+    <div className="page-shell">
+      <PageHeader
+        title="集成中心"
+        description="统一管理钉钉通知、移动端接口和回跳配置。页面样式与审批中心保持一致。"
+        icon={<MessageSquare size={20} />}
+        actions={
+          <Toolbar>
+            <button
+              type="button"
+              onClick={load}
+              className="px-3 py-1.5 border border-slate-200 rounded-xl text-sm flex items-center gap-1 hover:bg-slate-50"
+            >
+              <RefreshCcw size={14} /> 刷新
+            </button>
+          </Toolbar>
+        }
+      />
+      <SectionCard
+        title="钉钉机器人集成"
+        description="配置审批通知 Webhook、消息模板和 Web 回跳地址。"
+        icon={<MessageSquare size={18} />}
+      >
           {error && <p className="text-sm text-red-600">{error}</p>}
           <label className="flex items-center gap-2 text-sm text-slate-700">
             <input
@@ -198,16 +209,13 @@ const IntegrationCenter: React.FC = () => {
               发送测试消息
             </button>
           </div>
-        </div>
-      </div>
+      </SectionCard>
 
-      <div className="bg-white rounded-3xl border border-slate-100/80 shadow-sm overflow-hidden">
-        <div className="p-6 border-b flex items-center justify-between">
-          <h3 className="font-bold flex items-center gap-2 text-slate-700">
-            <Smartphone size={18} /> 轻量移动端接口
-          </h3>
-        </div>
-        <div className="p-6 space-y-4">
+      <SectionCard
+        title="轻量移动端接口"
+        description="控制移动端概览与待办接口开关，并查看当前聚合结果。"
+        icon={<Smartphone size={18} />}
+      >
           <label className="flex items-center gap-2 text-sm text-slate-700">
             <input
               type="checkbox"
@@ -240,8 +248,8 @@ const IntegrationCenter: React.FC = () => {
               <tbody>
                 {mobileTodos.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="py-6 text-center text-slate-400">
-                      暂无待办
+                    <td colSpan={5}>
+                      <EmptyState title="暂无待办" description="移动端待办为空时，这里不会展示审批记录。" compact />
                     </td>
                   </tr>
                 ) : (
@@ -258,8 +266,7 @@ const IntegrationCenter: React.FC = () => {
               </tbody>
             </table>
           </div>
-        </div>
-      </div>
+      </SectionCard>
     </div>
   );
 };

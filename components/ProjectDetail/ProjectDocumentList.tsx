@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { FileText, Plus, Edit2, Trash2, ExternalLink } from 'lucide-react';
 import { apiService } from '../../services/apiService';
 
@@ -24,7 +24,7 @@ const ProjectDocumentList: React.FC<ProjectDocumentListProps> = ({ projectId }) 
   const [saving, setSaving] = useState(false);
   const [sourceFilter, setSourceFilter] = useState('');
 
-  const loadDocs = async () => {
+  const loadDocs = useCallback(async () => {
     try {
       const list = await apiService.getProjectDocuments(projectId, sourceFilter || undefined);
       setDocs(Array.isArray(list) ? list : []);
@@ -33,11 +33,11 @@ const ProjectDocumentList: React.FC<ProjectDocumentListProps> = ({ projectId }) 
     } finally {
       setLoading(false);
     }
-  };
+  }, [projectId, sourceFilter]);
 
   useEffect(() => {
     loadDocs();
-  }, [projectId, sourceFilter]);
+  }, [loadDocs]);
 
   const openAdd = () => {
     setEditingDoc(null);

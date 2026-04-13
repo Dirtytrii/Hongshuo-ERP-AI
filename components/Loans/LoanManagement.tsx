@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { HandCoins, Plus } from 'lucide-react';
 import { apiService } from '../../services/apiService';
 import type { Department, Loan, LoanRepayment, Project } from '../../types';
@@ -39,7 +39,7 @@ const LoanManagement: React.FC<LoanManagementProps> = ({
     note: '',
   });
 
-  const loadLoans = async () => {
+  const loadLoans = useCallback(async () => {
     try {
       setLoading(true);
       const data = await apiService.getLoans();
@@ -54,9 +54,9 @@ const LoanManagement: React.FC<LoanManagementProps> = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedLoanId]);
 
-  const loadRepayments = async (loanId: number | null) => {
+  const loadRepayments = useCallback(async (loanId: number | null) => {
     if (loanId == null) {
       setRepayments([]);
       return;
@@ -67,15 +67,15 @@ const LoanManagement: React.FC<LoanManagementProps> = ({
     } catch {
       setRepayments([]);
     }
-  };
-
-  useEffect(() => {
-    loadLoans();
   }, []);
 
   useEffect(() => {
+    loadLoans();
+  }, [loadLoans]);
+
+  useEffect(() => {
     loadRepayments(selectedLoanId);
-  }, [selectedLoanId]);
+  }, [loadRepayments, selectedLoanId]);
 
   const getProjectName = (projectId?: number | null) =>
     projectId == null ? '—' : projects.find((p) => p.id === projectId)?.name || `项目#${projectId}`;

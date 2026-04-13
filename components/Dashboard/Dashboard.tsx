@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import {
   Building2,
   ArrowRightLeft,
@@ -7,7 +7,6 @@ import {
   Clock,
   History,
   Plus,
-  X,
   Check,
   Wallet,
 } from 'lucide-react';
@@ -129,7 +128,7 @@ const Dashboard: React.FC<DashboardProps> = ({
 
   // 最近操作时间线
   const RecentActivityTimeline = () => {
-    const recentActivities = useMemo(() => {
+    const recentActivities = (() => {
       const activities: Array<{
         id: string;
         time: string;
@@ -190,7 +189,7 @@ const Dashboard: React.FC<DashboardProps> = ({
         });
 
       return activities.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime()).slice(0, 8);
-    }, [stockLogs, inventory, financeRecords, systemLogs]);
+    })();
 
     return (
       <div className="bg-white rounded-3xl border border-slate-100/80 shadow-sm p-6">
@@ -246,18 +245,14 @@ const Dashboard: React.FC<DashboardProps> = ({
 
   // 预警信息汇总面板
   const AlertSummaryPanel = () => {
-    const alerts = useMemo(
-      () =>
-        buildAlertSummary({
-          inventory,
-          stockLogs,
-          financeRecords,
-          projects,
-          upcomingPaymentPlans,
-          overdueMilestones,
-        }),
-      [inventory, stockLogs, financeRecords, projects, upcomingPaymentPlans, overdueMilestones]
-    );
+    const alerts = buildAlertSummary({
+      inventory,
+      stockLogs,
+      financeRecords,
+      projects,
+      upcomingPaymentPlans,
+      overdueMilestones,
+    });
 
     if (alerts.length === 0) {
       return (

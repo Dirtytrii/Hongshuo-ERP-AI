@@ -1,29 +1,24 @@
-import React, { useEffect, useState } from 'react';
-import { AlertTriangle, CheckSquare, RefreshCcw } from 'lucide-react';
+import React, { useCallback, useEffect, useState } from 'react';
+import { CheckSquare, RefreshCcw } from 'lucide-react';
 import { apiService } from '../../services/apiService';
-import type { ApprovalTodoItem, InventoryItem, Project } from '../../types';
-import { buildAlertSummary } from '../../modules/dashboard/services/alertSummary';
+import type { ApprovalTodoItem } from '../../types';
+import EmptyState from '../../shared/ui/EmptyState';
+import PageHeader from '../../shared/ui/PageHeader';
+import SectionCard from '../../shared/ui/SectionCard';
+import Toolbar from '../../shared/ui/Toolbar';
 
 interface ApprovalCenterProps {
   onNavigateTab?: (tab: string) => void;
-  projects?: Project[];
-  inventory?: InventoryItem[];
-  overdueMilestones?: Array<{ name: string; projectName?: string }>;
 }
 
-const ApprovalCenter: React.FC<ApprovalCenterProps> = ({
-  onNavigateTab,
-  projects = [],
-  inventory = [],
-  overdueMilestones = [],
-}) => {
+const ApprovalCenter: React.FC<ApprovalCenterProps> = ({ onNavigateTab }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [todos, setTodos] = useState<ApprovalTodoItem[]>([]);
   const [bizType, setBizType] = useState('');
   const [keyword, setKeyword] = useState('');
 
-  const loadTodos = async () => {
+  const loadTodos = useCallback(async () => {
     try {
       setLoading(true);
       const data = await apiService.getApprovalTodos({
@@ -37,11 +32,11 @@ const ApprovalCenter: React.FC<ApprovalCenterProps> = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [bizType, keyword]);
 
   useEffect(() => {
     loadTodos();
-  }, [bizType]);
+  }, [loadTodos]);
 
   const bizLabel = (type: string) => {
     switch (type) {
@@ -74,50 +69,18 @@ const ApprovalCenter: React.FC<ApprovalCenterProps> = ({
     }
   };
 
-  const messageAlerts = buildAlertSummary({
-    inventory,
-    stockLogs: [],
-    financeRecords: [],
-    projects,
-    overdueMilestones,
-  }).filter((a) => ['low-stock', 'overdue-milestones', 'budget-alert'].includes(a.id));
-
   if (loading) {
-    return <div className="p-8 text-center text-slate-500">加载中...</div>;
+    return <EmptyState title="加载中..." description="正在加载审批待办列表。" compact />;
   }
 
   return (
-    <div className="space-y-4">
-      <div className="bg-white rounded-3xl border border-slate-100/80 shadow-sm p-4">
-        <h4 className="font-bold text-slate-700 mb-3 flex items-center gap-2">
-          <AlertTriangle size={16} className="text-orange-500" />
-          消息中心告警（库存阈值 / 里程碑逾期 / 预算预警）
-        </h4>
-        {messageAlerts.length === 0 ? (
-          <p className="text-sm text-slate-500">暂无关键告警</p>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            {messageAlerts.map((alert) => (
-              <button
-                key={alert.id}
-                type="button"
-                className="text-left border rounded-xl p-3 hover:bg-slate-50"
-                onClick={() => alert.targetTab && onNavigateTab?.(alert.targetTab)}
-              >
-                <div className="text-xs text-slate-500">{alert.title}</div>
-                <div className="text-lg font-bold text-slate-700">{alert.count}</div>
-                <div className="text-xs text-slate-500 line-clamp-2">{alert.description}</div>
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-      <div className="bg-white rounded-3xl border border-slate-100/80 shadow-sm overflow-hidden">
-        <div className="p-6 border-b flex flex-wrap justify-between items-center gap-4">
-          <h3 className="font-bold flex items-center gap-2 text-slate-700">
-            <CheckSquare size={18} /> 审批中心
-          </h3>
-          <div className="flex items-center gap-2">
+    <div className="page-shell">
+      <PageHeader
+        title="审批中心"
+        description="统一处理财务、变更、报销、借款与还款待办。经营预警统一进入顶部消息中心，不再和审批待办混排。"
+        icon={<CheckSquare size={20} />}
+        actions={
+          <Toolbar>
             <select
               value={bizType}
               onChange={(e) => setBizType(e.target.value)}
@@ -143,10 +106,16 @@ const ApprovalCenter: React.FC<ApprovalCenterProps> = ({
             >
               <RefreshCcw size={14} /> 刷新
             </button>
-          </div>
-        </div>
-        {error && <p className="px-6 py-2 text-sm text-red-600">{error}</p>}
-        <div className="overflow-x-auto">
+          </Toolbar>
+        }
+      />
+      <SectionCard
+        title="待办列表"
+        description="点击进入单据页继续处理审批。"
+        icon={<CheckSquare size={18} />}
+      >
+        {error && <p className="pb-3 text-sm text-red-600">{error}</p>}
+        <div className="overflow-x-auto -mx-6">
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200 text-left">
@@ -162,8 +131,8 @@ const ApprovalCenter: React.FC<ApprovalCenterProps> = ({
             <tbody>
               {todos.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="p-8 text-center text-slate-500">
-                    当前无待办
+                  <td colSpan={7}>
+                    <EmptyState title="当前无待办" description="待办审批为空时，可从消息中心继续查看经营预警。" />
                   </td>
                 </tr>
               ) : (
@@ -186,7 +155,7 @@ const ApprovalCenter: React.FC<ApprovalCenterProps> = ({
             </tbody>
           </table>
         </div>
-      </div>
+      </SectionCard>
     </div>
   );
 };

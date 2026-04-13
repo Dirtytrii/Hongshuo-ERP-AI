@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Wallet, Plus, Edit2, Trash2 } from 'lucide-react';
 import { apiService } from '../../services/apiService';
 import SearchableSelect from '../ui/SearchableSelect';
@@ -38,7 +38,7 @@ const PaymentPlanList: React.FC<PaymentPlanListProps> = ({ projectId, onRefresh 
   });
   const [saving, setSaving] = useState(false);
 
-  const loadPlans = async () => {
+  const loadPlans = useCallback(async () => {
     try {
       const list = await apiService.getPaymentPlansByProject(projectId);
       setPlans(Array.isArray(list) ? list : []);
@@ -47,11 +47,11 @@ const PaymentPlanList: React.FC<PaymentPlanListProps> = ({ projectId, onRefresh 
     } finally {
       setLoading(false);
     }
-  };
+  }, [projectId]);
 
   useEffect(() => {
     loadPlans();
-  }, [projectId]);
+  }, [loadPlans]);
 
   const openAdd = () => {
     setEditingItem(null);
