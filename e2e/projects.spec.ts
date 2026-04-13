@@ -1,6 +1,73 @@
 import { test, expect } from '@playwright/test';
 
+async function installApiMocks(page: import('@playwright/test').Page) {
+  const base = '/api';
+  await page.route('**/api/**', async (route) => {
+    const request = route.request();
+    const url = new URL(request.url());
+    const path = url.pathname.replace(base, '');
+
+    if (path === '/auth/login' && request.method() === 'POST') {
+      const body = request.postDataJSON?.() as { username: string } | undefined;
+      const username = body?.username ?? 'admin';
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ token: 'e2e-token', user: { id: 1, username, role: 'admin', enabled: true } }),
+      });
+    }
+    if (path === '/permissions' && request.method() === 'GET') {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          'projects.view': ['admin', 'finance'],
+          'inventory.view': ['admin', 'clerk', 'finance'],
+          'finance.view': ['admin', 'finance'],
+          'project.create': ['admin', 'pm'],
+        }),
+      });
+    }
+    if (path === '/roles' && request.method() === 'GET') {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify([{ id: 1, code: 'admin', name: '管理员', description: '系统管理员', enabled: true }]),
+      });
+    }
+    if (path === '/config' && request.method() === 'GET') {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ lowStockThreshold: '100', largeExpenseThreshold: '100000' }),
+      });
+    }
+    if (path === '/projects' && request.method() === 'GET') {
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([]) });
+    }
+    if (path === '/inventory' && request.method() === 'GET') {
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([]) });
+    }
+    if (path === '/finance' && request.method() === 'GET') {
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([]) });
+    }
+    if (path === '/stock' && request.method() === 'GET') {
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([]) });
+    }
+    if (path.startsWith('/dashboard/operation') && request.method() === 'GET') {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ days: 15, metrics: {}, trend: [], financeTrend: [], inventoryTrend: [] }),
+      });
+    }
+
+    return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({}) });
+  });
+}
+
 async function loginAsAdmin(page: import('@playwright/test').Page) {
+  await installApiMocks(page);
   await page.goto('/');
   const loginTitle = page.getByRole('heading', { name: '登录' });
   if (await loginTitle.isVisible().catch(() => false)) {
@@ -8,7 +75,7 @@ async function loginAsAdmin(page: import('@playwright/test').Page) {
     await page.getByPlaceholder('请输入密码').fill('123456');
     await page.getByRole('button', { name: '登录' }).click();
   }
-  await expect(page.getByText('仪表盘').first()).toBeVisible({ timeout: 10000 });
+  await expect(page.getByText('物料仓库').first()).toBeVisible({ timeout: 10000 });
 }
 
 test.describe('Projects flow', () => {
