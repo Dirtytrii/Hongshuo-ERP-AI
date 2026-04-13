@@ -4,3 +4,17 @@ target
 *.min.js
 package-lock.json
 data
+
+# Runtime data / local databases
+data/**/*.db
+*.mv.db
+*.trace.db
+
+# Test & build artifacts
+playwright-report
+test-results
+vitest-result.json
+
+# Local exports / bundles
+dist.zip
+*.zip

@@ -12,6 +12,20 @@ dist
 dist-ssr
 *.local
 
+# Runtime data / local databases
+data/**/*.db
+*.mv.db
+*.trace.db
+
+# Test & build artifacts
+playwright-report/
+test-results/
+vitest-result.json
+
+# Local exports / bundles
+dist.zip
+*.zip
+
 # Environment variables
 .env
 .env.local
