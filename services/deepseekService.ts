@@ -1,14 +1,37 @@
 import { AppState } from '../types';
 
-const DEEPSEEK_API_URL = 'https://api.deepseek.com/v1/chat/completions';
+const DEFAULT_CHAT_COMPLETIONS_URL = 'https://api.deepseek.com/v1/chat/completions';
+const CHAT_COMPLETIONS_PATH = '/v1/chat/completions';
 
 /** 推荐模型：deepseek-chat — 通用对话、性价比高、适合决策室数据分析 */
 const DEFAULT_MODEL = 'deepseek-chat';
 
+export function resolveChatCompletionsUrl(): string {
+  const baseUrl =
+    process.env.OPENROUTER_BASE_URL?.trim() ||
+    process.env.OPENROUTER_FANS_BASE_URL?.trim() ||
+    process.env.OPENAI_COMPAT_BASE_URL?.trim();
+
+  if (!baseUrl) {
+    return DEFAULT_CHAT_COMPLETIONS_URL;
+  }
+
+  const normalizedBaseUrl = baseUrl.replace(/\/+$/, '');
+  if (normalizedBaseUrl.endsWith(CHAT_COMPLETIONS_PATH)) {
+    return normalizedBaseUrl;
+  }
+  if (normalizedBaseUrl.endsWith('/v1')) {
+    return `${normalizedBaseUrl}/chat/completions`;
+  }
+  return `${normalizedBaseUrl}${CHAT_COMPLETIONS_PATH}`;
+}
+
 function getApiKey(): string {
-  const apiKey = process.env.DEEPSEEK_API_KEY;
+  const apiKey = process.env.OPENROUTER_API_KEY?.trim() || process.env.DEEPSEEK_API_KEY?.trim();
   if (!apiKey) {
-    throw new Error('DEEPSEEK_API_KEY 未设置。请在项目根目录 .env 或 .env.local 中设置 DEEPSEEK_API_KEY=你的key');
+    throw new Error(
+      'OPENROUTER_API_KEY 或 DEEPSEEK_API_KEY 未设置。请在项目根目录 .env 或 .env.local 中配置可用的 AI API Key'
+    );
   }
   return apiKey;
 }
@@ -51,7 +74,7 @@ export const analyzeConstructionData = async (query: string, data: AppState): Pr
     const prompt = buildPrompt(query, data);
 
     const apiKey = getApiKey();
-    const res = await fetch(DEEPSEEK_API_URL, {
+    const res = await fetch(resolveChatCompletionsUrl(), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -117,7 +140,7 @@ export const analyzeConstructionDataStream = async (
   try {
     const prompt = buildPrompt(query, data);
     const apiKey = getApiKey();
-    const res = await fetch(DEEPSEEK_API_URL, {
+    const res = await fetch(resolveChatCompletionsUrl(), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

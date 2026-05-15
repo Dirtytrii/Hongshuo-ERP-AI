@@ -134,6 +134,19 @@
 - 已确认当前最适合交给第一个开发 agent 的任务是“恢复前端测试基线”。
 - 后端测试当前受 Maven 依赖下载 TLS 握手失败影响，暂不作为代码质量结论。
 
+### 2026-05-15 第一轮开发：恢复前端测试基线
+
+- 已修复 `services/apiService.test.ts` 的测试环境问题：在 `tests/setup.ts` 提供可清理的内存版 `localStorage`，保留 `apiService.ts` 现有认证 header 语义不变。
+- 已对齐 AI 决策室 OpenAI-compatible 配置契约：`services/deepseekService.ts` 导出 `resolveChatCompletionsUrl()`，支持默认 DeepSeek URL，并按 `OPENROUTER_BASE_URL`、`OPENROUTER_FANS_BASE_URL`、`OPENAI_COMPAT_BASE_URL` 归一化到 `/v1/chat/completions`；API Key 优先使用 `OPENROUTER_API_KEY`，再回退 `DEEPSEEK_API_KEY`；普通请求与流式请求共用同一套 URL/key 解析。
+- 已补充 `services/deepseekService.test.ts` 覆盖默认 DeepSeek、OpenRouter base URL、`OPENROUTER_FANS_BASE_URL`、通用 OpenAI-compatible base URL、base URL 优先级、OpenRouter key 优先级，以及流式请求路径。
+- 已更新 `vite.config.ts` 注入新增 OpenRouter/OpenAI-compatible 环境变量，避免生产构建后浏览器端访问未定义的 `process.env` 字段。
+- 验证结果：
+  - `npm run test:run`：通过，12 个测试文件、54 个测试全部通过。
+  - `npm run build`：通过；仍有 Vite chunk 超过 500 kB 的既有提示。
+  - `npm run lint`：通过，0 errors、66 warnings；warnings 主要仍集中在 `App.tsx`、`services/apiService.ts`、`utils/import.ts` 等既有 `any`、未使用变量与 hook deps。
+  - `mvn -q test`：已按要求重试两次，均未再卡在 Maven Central TLS；当前失败为后端编译/检查问题，包括 `DataInitializer.run` 方法长度、`ContractController` final 字段构造器初始化、多个 model getter/setter 符号缺失以及 `log` 字段缺失等，属于后端基线遗留风险，本轮未修复。
+- 剩余风险：前端测试基线已恢复；后端 Maven 基线当前不是环境网络阻塞，而是代码编译失败，需要后续单独拆任务处理。
+
 ## 8. 给开发 agent 的首轮提示词
 
 ```text
