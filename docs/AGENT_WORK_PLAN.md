@@ -293,12 +293,73 @@
 - `npm run test:run`、`npm run build`、`mvn -q test` 通过。
 - 本文档执行记录中写清楚验证命令、结果和剩余风险。
 
-## 9. 后续候选任务
+## 9. 第五轮开发任务：接入用户管理页面组件
 
-第四轮完成并提交后，再安排以下任务，暂不同时开工：
+### 目标
+
+继续 Phase 5 结构收口：把 `App.tsx` 内联的用户管理页面 JSX 接入已有 `components/Users/UserManagementPage.tsx`。该任务不新增用户业务能力，不改动后端 API，只迁移页面渲染边界，让 `App.tsx` 继续负责用户列表状态、弹窗、增删改回调、toast 与权限入口。
+
+### 当前依据
+
+2026-05-15 复核结果：
+
+- 第四轮已完成并提交 `757be30 接入操作日志页面组件并完成并行任务`。
+- `components/Users/UserManagementPage.tsx` 已存在。
+- `components/Users/UserManagementPage.test.tsx` 已在第四轮并行任务中补齐，覆盖列表、角色标签、启用状态、搜索、新建/编辑/删除回调和空态。
+- `App.tsx` 当前仍直接渲染 `activeTab === 'users'` 下的用户管理页，包含搜索输入、新建按钮、表格、空态、编辑与删除按钮。
+- 用户管理页当前只在 `currentUser.id === 'admin'` 时显示；本轮必须保留该入口条件。
+
+### 建议写入范围
+
+- `App.tsx`
+- `components/Users/UserManagementPage.tsx`
+- `components/Users/UserManagementPage.test.tsx`
+- `docs/AGENT_WORK_PLAN.md`
+
+### 具体要求
+
+1. 接入已有用户管理组件。
+   - 在 `App.tsx` 中引入并使用 `UserManagementPage`。
+   - 删除 `App.tsx` 中 `activeTab === 'users'` 下重复的用户管理内联 JSX。
+   - 保留 `!isLoading && activeTab === 'users' && currentUser.id === 'admin'` 的入口条件。
+
+2. 保留现有行为。
+   - 搜索框仍使用 `userSearch` / `setUserSearch`。
+   - 新建用户仍调用 `openUserModal()`。
+   - 编辑用户仍调用 `openUserModal(user)`。
+   - 删除用户仍调用 `handleDeleteUser(user)`，保留“不能删除当前登录用户”、`confirm`、删除成功刷新列表与 toast。
+   - 角色标签仍按 `ROLES[role]?.label ?? role` 的口径展示；搜索仍同时匹配用户名和角色中文标签。
+   - 空数据时显示“暂无用户”。
+
+3. 清理 `App.tsx` 中本轮迁移后不再需要的 import。
+   - 重点关注用户页专用的 `User`、`Plus`、`Settings`、`Trash2` 是否还被其他区域使用。
+   - 不要顺手处理 hook deps、`any` 或其他页面 lint warning。
+
+4. 组件测试跟随接入结果调整。
+   - 现有 `UserManagementPage` 组件测试应继续通过。
+   - 如果为类型或回调适配调整了组件 props，需要同步调整测试。
+
+### 验收命令
+
+- `npm run test:run`
+- `npm run build`
+- `mvn -q test`
+- 建议 `npm run lint`，记录 warning 数量；本轮预期不消灭全部 warning。
+
+### 完成标准
+
+- `App.tsx` 用户管理页不再保留大段重复 JSX，而是通过 `UserManagementPage` 装配。
+- 用户搜索、新建、编辑、删除、角色标签、启用状态、空态与管理员入口条件不回退。
+- 前端测试、构建、后端测试通过。
+- 本文档执行记录中写清楚验证命令、结果和剩余风险。
+- 及时提交，提交信息使用中文；建议提交信息：`接入用户管理页面组件`。
+
+## 10. 后续候选任务
+
+第五轮完成并提交后，再安排以下任务，暂不同时开工：
 
 1. 继续按页面域切分 `App.tsx`。
-   - 优先抽离用户管理页面、库存弹窗编排、财务弹窗编排、权限管理等高噪声区域。
+   - 优先抽离库存弹窗编排、财务弹窗编排、权限管理等高噪声区域。
    - 每次只迁移一个页面域，迁移前后补或保留测试。
 
 2. 清理 lint warnings。
@@ -313,7 +374,7 @@
    - 统一本地 Java 版本到 17 或至少验证 Java 21/25 下的兼容性。
    - 处理 Maven Central 拉取失败的环境问题后再评价后端测试真实状态。
 
-## 10. 批量任务池与并行安排
+## 11. 批量任务池与并行安排
 
 > 这组任务用于多开发 agent 同时推进。原则：同一时间最多一个 agent 改 `App.tsx`，其余 agent 只做不重叠文件，避免冲突。
 
@@ -351,7 +412,7 @@
 
 #### 任务 D：接入用户管理页面组件
 
-- 依赖：任务 A 已完成，可排队开工；执行时仍避免与其他 `App.tsx` 任务并行。
+- 状态：下一轮主线，任务 A/B/C 已完成，可立即开工；执行时仍避免与其他 `App.tsx` 任务并行。
 - 建议写入范围：`App.tsx`、`components/Users/UserManagementPage.tsx`、`components/Users/UserManagementPage.test.tsx`、`docs/AGENT_WORK_PLAN.md`。
 - 目标：把 `App.tsx` 内联的 `activeTab === 'users'` 用户管理 JSX 接入已有 `UserManagementPage`，保留搜索、新建、编辑、删除、角色标签与启用状态行为。
 - 验收：`npm run test:run`、`npm run build`、`mvn -q test`，建议 `npm run lint`。
@@ -374,18 +435,14 @@
 ### 给并行开发 agent 的简短分派
 
 ```text
-当前可以同时开 3 个开发 agent：
+下一轮只开 1 个会改 App.tsx 的开发 agent：
 
-Agent A：执行 docs/AGENT_WORK_PLAN.md 的“第四轮开发任务：接入操作日志页面组件”。这是唯一允许改 App.tsx 的任务。
+Agent D：执行 docs/AGENT_WORK_PLAN.md 的“第五轮开发任务：接入用户管理页面组件”。
 
-Agent B：执行“任务 B：拆分 DataInitializer，清理后端 Checkstyle 噪音”。只改后端 DataInitializer 相关文件，不碰前端和 App.tsx。
-
-Agent C：执行“任务 C：补 UserManagementPage 组件测试”。只补用户管理页面组件测试，不接入 App.tsx。
-
-三者都完成后，再安排任务 D：接入用户管理页面组件。不要让 D 和 A 同时进行。
+执行期间不要并行安排任务 E/F 或任何其他会触碰 App.tsx 的任务。
 ```
 
-## 11. 执行记录
+## 12. 执行记录
 
 ### 2026-05-15 总控摸底
 
@@ -475,7 +532,14 @@ Agent C：执行“任务 C：补 UserManagementPage 组件测试”。只补用
   - `npm run lint`：通过，0 errors、66 warnings；warning 数量未增加，仍为既有 `App.tsx` 未使用 import、`any`、hook deps 等问题。
 - 剩余风险：本轮未处理既有 lint warnings 和 Vite 大 chunk 提示；任务 D“接入用户管理页面组件”已具备前置组件测试，可作为下一轮串行任务开工。
 
-## 12. 给开发 agent 的提示词
+### 2026-05-15 总控安排：第五轮任务
+
+- 已确认第四轮提交 `757be30 接入操作日志页面组件并完成并行任务` 已落地，当前分支领先远端 9 个提交。
+- 已确认 `components/Users/UserManagementPage.tsx` 与 `components/Users/UserManagementPage.test.tsx` 均已存在，用户管理组件具备接入前置测试。
+- 已复核 `App.tsx` 中 `activeTab === 'users'` 仍保留内联用户管理页 JSX，第五轮任务确定为“接入用户管理页面组件”。
+- 本轮仍按串行执行：只允许该开发 agent 触碰 `App.tsx`；不要同时推进清理 import 或库存/财务弹窗拆分。
+
+## 13. 给开发 agent 的提示词
 
 ### 第一轮提示词（已完成）
 
@@ -623,4 +687,50 @@ Agent C：执行“任务 C：补 UserManagementPage 组件测试”。只补用
 - 更新 docs/AGENT_WORK_PLAN.md 的“执行记录”，写明改了什么、跑了哪些命令、结果如何、是否还有剩余风险。
 - git status --short 确认只包含本任务相关改动。
 - 及时提交，提交信息使用中文，建议为：接入操作日志页面组件。
+```
+
+### 第五轮提示词
+
+```text
+你现在接手 /Users/cloudjiang/Projects/personal/Hongshuo-ERP-AI 的第五轮开发任务。请先阅读 docs/AGENT_WORK_PLAN.md，重点执行其中“第五轮开发任务：接入用户管理页面组件”。
+
+目标：继续 Phase 5 结构收口，把 App.tsx 内联的用户管理页面 JSX 接入已有 components/Users/UserManagementPage.tsx，让 App.tsx 只负责用户列表状态、弹窗、增删改回调、toast 与权限入口。不要新增业务功能，不改动后端 API。
+
+当前已知情况：
+1. 第四轮已完成，最新提交为 757be30 接入操作日志页面组件并完成并行任务。
+2. mvn -q test 已通过。
+3. npm run test:run 已通过，15 个测试文件、68 个测试全部通过。
+4. npm run build 已通过，仍有 Vite chunk 超过 500 kB 的既有提示。
+5. npm run lint 通过，0 errors、66 warnings。
+6. components/Users/UserManagementPage.tsx 已存在，并且 components/Users/UserManagementPage.test.tsx 已覆盖列表、角色标签、启用/禁用状态、搜索、新建/编辑/删除回调和空态。
+7. App.tsx 当前仍直接渲染 activeTab === 'users' 下的用户管理页 JSX。
+
+建议范围：
+- App.tsx
+- components/Users/UserManagementPage.tsx
+- components/Users/UserManagementPage.test.tsx
+- docs/AGENT_WORK_PLAN.md
+
+具体要求：
+- 在 App.tsx 中引入并使用 UserManagementPage。
+- 删除 App.tsx 中 activeTab === 'users' 下重复的用户管理内联 JSX。
+- 保留入口条件：!isLoading && activeTab === 'users' && currentUser.id === 'admin'。
+- 保留现有行为：搜索框继续使用 userSearch / setUserSearch；新建调用 openUserModal()；编辑调用 openUserModal(user)；删除调用 handleDeleteUser(user)。
+- 删除用户流程不能回退：禁止删除当前登录用户、删除前 confirm、删除成功刷新 users、失败展示 toast。
+- 角色标签展示和搜索口径保持一致：ROLES[role]?.label ?? role；搜索同时匹配用户名和角色中文标签。
+- 空列表继续显示“暂无用户”。
+- 清理 App.tsx 中本轮迁移后不再需要的用户页专用 import，例如 User、Plus、Settings、Trash2；但先确认这些图标没有被其他页面继续使用。
+- 不要顺手处理 hook deps、any 或其他页面的 lint warning。
+- 如果为类型或回调适配调整 UserManagementPage props，必须同步调整 components/Users/UserManagementPage.test.tsx。
+
+验收命令：
+- npm run test:run
+- npm run build
+- mvn -q test
+- 建议 npm run lint，并记录 warning 数量。
+
+完成要求：
+- 更新 docs/AGENT_WORK_PLAN.md 的“执行记录”，写明改了什么、跑了哪些命令、结果如何、是否还有剩余风险。
+- git status --short 确认只包含本任务相关改动。
+- 及时提交，提交信息使用中文，建议为：接入用户管理页面组件。
 ```
