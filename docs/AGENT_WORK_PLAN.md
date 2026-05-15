@@ -164,12 +164,75 @@
 - 前端测试仍保持绿色。
 - 本文档执行记录中写清楚验证命令、结果和剩余风险。
 
-## 7. 后续候选任务
+## 7. 第三轮开发任务：接入项目管理页面组件
 
-第二轮完成并提交后，再安排以下任务，暂不同时开工：
+### 目标
 
-1. Phase 5 继续切分 `App.tsx`。
-   - 优先抽离项目列表/详情路由编排、库存弹窗编排、财务弹窗编排等高噪声区域。
+继续 Phase 5 结构收口：把 `App.tsx` 内联的项目管理页面 JSX 迁移到已有的 `components/Projects/ProjectManagementPage.tsx`，让 `App.tsx` 只负责状态、权限与回调装配。该任务是结构重构，不新增业务模块，不改动后端 API。
+
+### 当前观察
+
+2026-05-15 复核结果：
+
+- `mvn -q test`：通过。
+- `npm run test:run`：通过，12 个测试文件、54 个测试全部通过。
+- `npm run build`：通过；仍有 Vite chunk 超过 500 kB 的既有提示。
+- `App.tsx` 仍约 3011 行。
+- `components/Projects/ProjectManagementPage.tsx` 已存在，但当前未被 `App.tsx` 使用。
+- `App.tsx` 当前仍直接渲染项目管理页，包含详情页、列表/看板切换、导出、导入、新建、查看、编辑、删除、里程碑刷新等编排。
+
+### 建议文件范围
+
+- `App.tsx`
+- `components/Projects/ProjectManagementPage.tsx`
+- 新增或补充 `components/Projects/ProjectManagementPage.test.tsx`
+- 必要时小范围调整 `utils/export.ts` 或相关测试 mock，但不要扩大到其他业务页。
+- 完成后更新本文件“执行记录”。
+
+### 任务拆解
+
+1. 接入已有项目管理组件。
+   - 在 `App.tsx` 中引入并使用 `ProjectManagementPage`。
+   - 删除 `App.tsx` 中 `activeTab === 'projects'` 下的重复内联项目管理 JSX。
+   - 保留现有行为：详情页关闭/编辑/删除、里程碑刷新、列表/看板切换、导出 Excel、导入 Excel、新建项目、权限显隐。
+   - 注意 `ProjectManagementPage.tsx` 目前有“下载模板”按钮；接入时默认保持当前 `App.tsx` 的用户可见行为，不要无意新增按钮。若决定保留模板下载按钮，必须在执行记录中说明原因并补测试。
+
+2. 清理由接入带来的冗余。
+   - 移除 `App.tsx` 中不再需要的 `ProjectDetail`、`ProjectKanban`、项目页专用图标或工具函数 import。
+   - 保持 `openProjectModal`、`handleDeleteProject`、`selectedProjectId`、`selectedProjectDetail`、`projectViewMode` 等状态/回调仍由 `App.tsx` 管理，避免一次性迁太多。
+
+3. 补测试。
+   - 为 `ProjectManagementPage` 补组件测试，至少覆盖：
+     - 列表模式渲染项目、点击“查看”回调项目 id。
+     - 切换到看板模式调用 `onChangeViewMode('kanban')`。
+     - 权限控制：无创建/编辑/删除权限时不显示对应按钮。
+     - 详情模式下点击返回/编辑/删除会调用正确回调。
+   - 如需 mock `ProjectDetail` 或导出函数，保持测试离线稳定。
+
+4. 回归验证。
+   - 必跑：`npm run test:run`
+   - 必跑：`npm run build`
+   - 必跑：`mvn -q test`
+   - 建议跑：`npm run lint`，记录 warning 数量变化。
+
+5. 提交。
+   - 建议提交信息：`接入项目管理页面组件`
+   - 提交前确认 `git status --short` 只包含本任务相关文件。
+
+### 验收标准
+
+- `App.tsx` 项目管理页不再保留大段重复 JSX，而是通过 `ProjectManagementPage` 组件装配。
+- 项目管理列表/看板/详情/权限/导入导出/新建编辑删除行为不回退。
+- 新增的 `ProjectManagementPage` 测试通过。
+- `npm run test:run`、`npm run build`、`mvn -q test` 通过。
+- 本文档执行记录中写清楚验证命令、结果和剩余风险。
+
+## 8. 后续候选任务
+
+第三轮完成并提交后，再安排以下任务，暂不同时开工：
+
+1. 继续按页面域切分 `App.tsx`。
+   - 优先抽离库存弹窗编排、财务弹窗编排、用户/权限管理等高噪声区域。
    - 每次只迁移一个页面域，迁移前后补或保留测试。
 
 2. 清理 lint warnings。
@@ -184,7 +247,7 @@
    - 统一本地 Java 版本到 17 或至少验证 Java 21/25 下的兼容性。
    - 处理 Maven Central 拉取失败的环境问题后再评价后端测试真实状态。
 
-## 8. 执行记录
+## 9. 执行记录
 
 ### 2026-05-15 总控摸底
 
@@ -225,7 +288,14 @@
   - Checkstyle 仍输出 `DataInitializer.run` 方法 161 行超过 80 行，但当前 `failOnViolation=false`，不阻断 Maven。
   - Maven 在 Java 25 下仍输出 Lombok `sun.misc.Unsafe`、Mockito self-attaching、Tomcat native access 等兼容性 warning；建议后续按项目目标统一本地 Maven JDK 到 Java 17 或 Java 21，以减少未来 JDK 收紧带来的噪音。
 
-## 9. 给开发 agent 的提示词
+### 2026-05-15 总控安排：第三轮任务
+
+- 已复跑 `mvn -q test`，确认后端测试通过。
+- 已复跑 `npm run test:run`，确认前端单测 54 个全部通过。
+- 已复跑 `npm run build`，确认前端构建通过，仍有 chunk 超过 500 kB 的既有提示。
+- 已确认 `components/Projects/ProjectManagementPage.tsx` 已存在但未接入 `App.tsx`，第三轮任务确定为“接入项目管理页面组件”，继续 Phase 5 结构收口。
+
+## 10. 给开发 agent 的提示词
 
 ### 第一轮提示词（已完成）
 
@@ -292,4 +362,44 @@
 - 更新 docs/AGENT_WORK_PLAN.md 的“执行记录”，写明改了什么、跑了哪些命令、结果如何、是否还有剩余后端风险。
 - git status --short 确认只包含本任务相关改动。
 - 及时提交，提交信息使用中文，建议为：修复后端 Maven 编译基线。
+```
+
+### 第三轮提示词
+
+```text
+你现在接手 /Users/cloudjiang/Projects/personal/Hongshuo-ERP-AI 的第三轮开发任务。请先阅读 docs/AGENT_WORK_PLAN.md，重点执行其中“第三轮开发任务：接入项目管理页面组件”。
+
+目标：继续 Phase 5 结构收口，把 App.tsx 内联的项目管理页面 JSX 接入已有 components/Projects/ProjectManagementPage.tsx，让 App.tsx 只负责状态、权限与回调装配。不要新增业务模块，不改动后端 API。
+
+当前已知情况：
+1. mvn -q test 已通过。
+2. npm run test:run 已通过，12 个测试文件、54 个测试全部通过。
+3. npm run build 已通过，仍有 Vite chunk 超过 500 kB 的既有提示。
+4. App.tsx 仍约 3011 行，activeTab === 'projects' 下仍手写项目管理页。
+5. components/Projects/ProjectManagementPage.tsx 已存在，但当前没有被 App.tsx 使用。
+
+建议范围：
+- App.tsx
+- components/Projects/ProjectManagementPage.tsx
+- 新增或补充 components/Projects/ProjectManagementPage.test.tsx
+- 必要时小范围调整测试 mock；不要扩大到其他业务页。
+
+具体要求：
+- 在 App.tsx 中引入并使用 ProjectManagementPage。
+- 删除 App.tsx 中 activeTab === 'projects' 下重复的项目管理内联 JSX。
+- 保留现有行为：详情页关闭/编辑/删除、里程碑刷新、列表/看板切换、导出 Excel、导入 Excel、新建项目、权限显隐。
+- 注意 ProjectManagementPage.tsx 目前有“下载模板”按钮；接入时默认保持当前 App.tsx 的用户可见行为，不要无意新增按钮。若决定保留模板下载按钮，必须在执行记录中说明并补测试。
+- 清理 App.tsx 中不再需要的 ProjectDetail、ProjectKanban、项目页专用图标或导出工具 import。
+- 为 ProjectManagementPage 补组件测试，至少覆盖列表渲染和查看回调、看板切换回调、权限按钮显隐、详情模式返回/编辑/删除回调。
+
+验收命令：
+- npm run test:run
+- npm run build
+- mvn -q test
+- 建议 npm run lint，并记录 warning 数量。
+
+完成要求：
+- 更新 docs/AGENT_WORK_PLAN.md 的“执行记录”，写明改了什么、跑了哪些命令、结果如何、是否还有剩余风险。
+- git status --short 确认只包含本任务相关改动。
+- 及时提交，提交信息使用中文，建议为：接入项目管理页面组件。
 ```
