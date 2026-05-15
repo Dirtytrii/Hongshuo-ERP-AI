@@ -24,6 +24,7 @@ interface ProjectManagementPageProps {
   onDeleteProject: (projectId: number) => void;
   onRefreshMilestones?: () => Promise<void>;
   onImportProjects: () => void;
+  showImportTemplateButton?: boolean;
 }
 
 const ProjectManagementPage: React.FC<ProjectManagementPageProps> = ({
@@ -44,6 +45,7 @@ const ProjectManagementPage: React.FC<ProjectManagementPageProps> = ({
   onDeleteProject,
   onRefreshMilestones,
   onImportProjects,
+  showImportTemplateButton = false,
 }) => {
   if (selectedProjectDetail) {
     return (
@@ -98,7 +100,9 @@ const ProjectManagementPage: React.FC<ProjectManagementPageProps> = ({
               type="button"
               onClick={() => onChangeViewMode('kanban')}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors ${
-                projectViewMode === 'kanban' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                projectViewMode === 'kanban'
+                  ? 'bg-white text-blue-600 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-700'
               }`}
             >
               <LayoutGrid size={14} /> 看板
@@ -115,13 +119,15 @@ const ProjectManagementPage: React.FC<ProjectManagementPageProps> = ({
           </button>
           {canCreateProject && (
             <>
-              <button
-                type="button"
-                onClick={downloadProjectImportTemplate}
-                className="px-4 py-2 border border-slate-200 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-slate-50 transition-colors"
-              >
-                下载模板
-              </button>
+              {showImportTemplateButton && (
+                <button
+                  type="button"
+                  onClick={downloadProjectImportTemplate}
+                  className="px-4 py-2 border border-slate-200 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-slate-50 transition-colors"
+                >
+                  下载模板
+                </button>
+              )}
               <button
                 type="button"
                 onClick={onImportProjects}
@@ -173,12 +179,19 @@ const ProjectManagementPage: React.FC<ProjectManagementPageProps> = ({
                         <span className="font-bold text-slate-700">{project.name}</span>
                       </td>
                       <td className="px-6 py-4 text-slate-500 font-mono text-xs">{project.code}</td>
-                      <td className="px-6 py-4 text-slate-600 font-mono">￥{project.contractAmount.toLocaleString()}</td>
-                      <td className="px-6 py-4 text-green-600 font-mono">￥{project.receivedAmount.toLocaleString()}</td>
+                      <td className="px-6 py-4 text-slate-600 font-mono">
+                        ￥{project.contractAmount.toLocaleString()}
+                      </td>
+                      <td className="px-6 py-4 text-green-600 font-mono">
+                        ￥{project.receivedAmount.toLocaleString()}
+                      </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
                           <div className="flex-1 bg-slate-200 rounded-full h-2 overflow-hidden">
-                            <div className="bg-blue-600 h-full transition-all" style={{ width: `${project.progress}%` }}></div>
+                            <div
+                              className="bg-blue-600 h-full transition-all"
+                              style={{ width: `${project.progress}%` }}
+                            ></div>
                           </div>
                           <span className="text-xs font-bold text-slate-600 w-12">{project.progress}%</span>
                         </div>

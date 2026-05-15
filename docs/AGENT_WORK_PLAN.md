@@ -295,6 +295,19 @@
 - 已复跑 `npm run build`，确认前端构建通过，仍有 chunk 超过 500 kB 的既有提示。
 - 已确认 `components/Projects/ProjectManagementPage.tsx` 已存在但未接入 `App.tsx`，第三轮任务确定为“接入项目管理页面组件”，继续 Phase 5 结构收口。
 
+### 2026-05-15 第三轮开发：接入项目管理页面组件
+
+- 已将 `App.tsx` 中 `activeTab === 'projects'` 下的大段项目管理内联 JSX 替换为 `ProjectManagementPage` 装配；`App.tsx` 继续负责项目状态、权限、详情加载、里程碑刷新、导入触发、弹窗与删除回调。
+- 已清理 `App.tsx` 中项目页不再需要的 `ProjectDetail`、`ProjectKanban`、`exportProjectsToExcel`、`STATUS_COLORS` 以及项目页专用图标 import；`App.tsx` 当前约 2840 行。
+- 已调整 `ProjectManagementPage`：新增 `showImportTemplateButton` 可选开关，默认 `false`；本轮接入不显示“下载模板”，保持旧 `App.tsx` 项目页用户可见行为不变。
+- 已新增 `components/Projects/ProjectManagementPage.test.tsx`，覆盖列表渲染与查看回调、看板切换回调、创建/编辑/删除权限显隐、详情模式返回/编辑/删除回调。
+- 验证结果：
+  - `npm run test:run`：通过，13 个测试文件、58 个测试全部通过。
+  - `npm run build`：通过；仍有 Vite chunk 超过 500 kB 的既有提示。
+  - `mvn -q test`：通过；Surefire 报告仍为 20 个后端测试套件、110 个测试，0 failures、0 errors。
+  - `npm run lint`：通过，0 errors、66 warnings；warning 数量未增加。
+- 剩余风险：详情页删除仍保持旧行为，调用删除后立即关闭详情；若用户取消 confirm 或删除失败，也可能先离开详情页。该行为本轮未改动，后续可单独做交互收口。
+
 ## 10. 给开发 agent 的提示词
 
 ### 第一轮提示词（已完成）

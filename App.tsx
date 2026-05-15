@@ -23,8 +23,6 @@ import {
   Trash2,
   ChevronDown,
   User,
-  Download,
-  Eye,
   BarChart2,
   Truck,
   FileEdit,
@@ -32,11 +30,8 @@ import {
   Receipt,
   HandCoins,
   Smartphone,
-  LayoutGrid,
-  List,
 } from 'lucide-react';
 import {
-  exportProjectsToExcel,
   exportInventoryToExcel,
   exportFinanceToExcel,
   exportAppStateAsBackup,
@@ -61,7 +56,7 @@ import AppHeader from './app/shell/AppHeader';
 import AppSidebar from './app/shell/AppSidebar';
 import MessageCenterPopover from './app/shell/MessageCenterPopover';
 import { buildAlertSummary } from './modules/dashboard/services/alertSummary';
-import { DEFAULT_PERMISSIONS_CONFIG, DEFAULT_ROLES, STATUS_COLORS } from './app/config/appDefaults';
+import { DEFAULT_PERMISSIONS_CONFIG, DEFAULT_ROLES } from './app/config/appDefaults';
 import type { AiMessage, AiSession } from './utils/aiHistory';
 import { loadSessions, appendOrUpdateSession, sessionTitleFromMessages, removeSession } from './utils/aiHistory';
 import {
@@ -109,8 +104,7 @@ function formatSessionTime(ts: number): string {
 }
 
 const Dashboard = lazy(() => import('./components/Dashboard/Dashboard'));
-import ProjectDetail from './components/ProjectDetail/ProjectDetail';
-import ProjectKanban from './components/Projects/ProjectKanban';
+import ProjectManagementPage from './components/Projects/ProjectManagementPage';
 import FinanceReport from './components/Reports/FinanceReport';
 import InventoryReport from './components/Reports/InventoryReport';
 import ProjectReport from './components/Reports/ProjectReport';
@@ -2480,205 +2474,40 @@ const App = () => {
 
           {/* 项目管理页面 */}
           {!isLoading && activeTab === 'projects' && hasPermission(currentUser, 'projects.view') && (
-            <div className="space-y-6">
-              {selectedProjectDetail ? (
-                <ProjectDetail
-                  project={selectedProjectDetail}
-                  financeRecords={financeRecords}
-                  stockLogs={stockLogs}
-                  inventory={inventory}
-                  onClose={() => {
-                    setSelectedProjectId(null);
-                    setSelectedProjectDetail(null);
-                  }}
-                  onEdit={
-                    hasPermission(currentUser, 'project.edit')
-                      ? (p) => {
-                          setSelectedProjectId(null);
-                          setSelectedProjectDetail(null);
-                          openProjectModal(p);
-                        }
-                      : undefined
-                  }
-                  onDelete={
-                    hasPermission(currentUser, 'project.delete')
-                      ? (id) => {
-                          handleDeleteProject(id);
-                          setSelectedProjectId(null);
-                          setSelectedProjectDetail(null);
-                        }
-                      : undefined
-                  }
-                  onMilestoneUpdate={
-                    selectedProjectId
-                      ? async () => {
-                          const ms = await apiService.getMilestones(selectedProjectId).catch(() => []);
-                          setSelectedProjectDetail((prev) =>
-                            prev ? { ...prev, milestones: ms as Project['milestones'] } : null
-                          );
-                        }
-                      : undefined
-                  }
-                  canEditMilestones={hasPermission(currentUser, 'project.edit')}
-                />
-              ) : (
-                <div className="space-y-4">
-                  {/* 工具栏：视图切换 + 操作按钮 */}
-                  <div className="bg-white rounded-3xl border border-slate-100/80 shadow-sm p-4 flex flex-wrap justify-between items-center gap-4">
-                    <div className="flex items-center gap-3">
-                      <h3 className="font-bold flex items-center gap-2 text-slate-700">
-                        <Building2 size={18} /> 项目管理
-                      </h3>
-                      <div className="flex bg-slate-100 rounded-xl p-0.5">
-                        <button
-                          onClick={() => setProjectViewMode('table')}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors ${
-                            projectViewMode === 'table'
-                              ? 'bg-white text-blue-600 shadow-sm'
-                              : 'text-slate-500 hover:text-slate-700'
-                          }`}
-                        >
-                          <List size={14} /> 列表
-                        </button>
-                        <button
-                          onClick={() => setProjectViewMode('kanban')}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors ${
-                            projectViewMode === 'kanban'
-                              ? 'bg-white text-blue-600 shadow-sm'
-                              : 'text-slate-500 hover:text-slate-700'
-                          }`}
-                        >
-                          <LayoutGrid size={14} /> 看板
-                        </button>
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => exportProjectsToExcel(projects)}
-                        className="px-4 py-2 border border-slate-200 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-slate-50 transition-colors"
-                      >
-                        <Download size={16} /> 导出 Excel
-                      </button>
-                      {hasPermission(currentUser, 'project.create') && (
-                        <button
-                          onClick={() => {
-                            setImportMode('project');
-                            setTimeout(() => fileInputRef.current?.click(), 0);
-                          }}
-                          className="px-4 py-2 border border-slate-200 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-slate-50 transition-colors"
-                        >
-                          导入 Excel
-                        </button>
-                      )}
-                      {hasPermission(currentUser, 'project.create') && (
-                        <button
-                          onClick={() => openProjectModal()}
-                          className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-blue-700 transition-colors shadow-lg"
-                        >
-                          <Plus size={16} /> 新建项目
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* 看板视图 */}
-                  {projectViewMode === 'kanban' && (
-                    <ProjectKanban projects={projects} onSelect={(id) => setSelectedProjectId(id)} />
-                  )}
-
-                  {/* 列表视图 */}
-                  {projectViewMode === 'table' && (
-                    <div className="bg-white rounded-3xl border border-slate-100/80 shadow-sm overflow-hidden">
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-left">
-                          <thead className="bg-slate-50 border-b text-slate-400 text-xs uppercase tracking-wider">
-                            <tr>
-                              <th className="px-6 py-4 font-bold">项目名称</th>
-                              <th className="px-6 py-4 font-bold">项目编号</th>
-                              <th className="px-6 py-4 font-bold">合同金额</th>
-                              <th className="px-6 py-4 font-bold">已收款</th>
-                              <th className="px-6 py-4 font-bold">进度</th>
-                              <th className="px-6 py-4 font-bold">状态</th>
-                              <th className="px-6 py-4 font-bold">开始日期</th>
-                              <th className="px-6 py-4 font-bold">操作</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y text-sm">
-                            {projects.length === 0 ? (
-                              <tr>
-                                <td colSpan={8} className="px-6 py-12 text-center text-slate-400">
-                                  暂无项目
-                                </td>
-                              </tr>
-                            ) : (
-                              projects.map((project) => (
-                                <tr key={project.id} className="hover:bg-slate-50/80 transition-colors">
-                                  <td className="px-6 py-4">
-                                    <span className="font-bold text-slate-700">{project.name}</span>
-                                  </td>
-                                  <td className="px-6 py-4 text-slate-500 font-mono text-xs">{project.code}</td>
-                                  <td className="px-6 py-4 text-slate-600 font-mono">
-                                    ￥{project.contractAmount.toLocaleString()}
-                                  </td>
-                                  <td className="px-6 py-4 text-green-600 font-mono">
-                                    ￥{project.receivedAmount.toLocaleString()}
-                                  </td>
-                                  <td className="px-6 py-4">
-                                    <div className="flex items-center gap-2">
-                                      <div className="flex-1 bg-slate-200 rounded-full h-2 overflow-hidden">
-                                        <div
-                                          className="bg-blue-600 h-full transition-all"
-                                          style={{ width: `${project.progress}%` }}
-                                        ></div>
-                                      </div>
-                                      <span className="text-xs font-bold text-slate-600 w-12">{project.progress}%</span>
-                                    </div>
-                                  </td>
-                                  <td className="px-6 py-4">
-                                    <span
-                                      className={`px-2.5 py-1 rounded-full text-xs font-bold ${STATUS_COLORS[project.status] || 'bg-slate-100 text-slate-700'}`}
-                                    >
-                                      {project.status}
-                                    </span>
-                                  </td>
-                                  <td className="px-6 py-4 text-slate-500">{project.startDate}</td>
-                                  <td className="px-6 py-4">
-                                    <div className="flex gap-2">
-                                      <button
-                                        onClick={() => setSelectedProjectId(project.id)}
-                                        className="px-3 py-1 border border-slate-200 rounded-lg text-xs font-bold hover:bg-slate-50 flex items-center gap-1"
-                                      >
-                                        <Eye size={14} /> 查看
-                                      </button>
-                                      {hasPermission(currentUser, 'project.edit') && (
-                                        <button
-                                          onClick={() => openProjectModal(project)}
-                                          className="px-3 py-1 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700"
-                                        >
-                                          编辑
-                                        </button>
-                                      )}
-                                      {hasPermission(currentUser, 'project.delete') && (
-                                        <button
-                                          onClick={() => handleDeleteProject(project.id)}
-                                          className="px-3 py-1 bg-red-600 text-white rounded-lg text-xs font-bold hover:bg-red-700"
-                                        >
-                                          删除
-                                        </button>
-                                      )}
-                                    </div>
-                                  </td>
-                                </tr>
-                              ))
-                            )}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
+            <ProjectManagementPage
+              projects={projects}
+              selectedProjectId={selectedProjectId}
+              selectedProjectDetail={selectedProjectDetail}
+              financeRecords={financeRecords}
+              stockLogs={stockLogs}
+              inventory={inventory}
+              projectViewMode={projectViewMode}
+              canCreateProject={hasPermission(currentUser, 'project.create')}
+              canEditProject={hasPermission(currentUser, 'project.edit')}
+              canDeleteProject={hasPermission(currentUser, 'project.delete')}
+              onChangeViewMode={setProjectViewMode}
+              onSelectProject={setSelectedProjectId}
+              onCloseDetail={() => {
+                setSelectedProjectId(null);
+                setSelectedProjectDetail(null);
+              }}
+              onOpenProjectModal={openProjectModal}
+              onDeleteProject={handleDeleteProject}
+              onRefreshMilestones={
+                selectedProjectId
+                  ? async () => {
+                      const ms = await apiService.getMilestones(selectedProjectId).catch(() => []);
+                      setSelectedProjectDetail((prev) =>
+                        prev ? { ...prev, milestones: ms as Project['milestones'] } : null
+                      );
+                    }
+                  : undefined
+              }
+              onImportProjects={() => {
+                setImportMode('project');
+                setTimeout(() => fileInputRef.current?.click(), 0);
+              }}
+            />
           )}
         </AppPageViewport>
       </AppShell>
