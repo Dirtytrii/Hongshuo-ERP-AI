@@ -313,7 +313,79 @@
    - 统一本地 Java 版本到 17 或至少验证 Java 21/25 下的兼容性。
    - 处理 Maven Central 拉取失败的环境问题后再评价后端测试真实状态。
 
-## 10. 执行记录
+## 10. 批量任务池与并行安排
+
+> 这组任务用于多开发 agent 同时推进。原则：同一时间最多一个 agent 改 `App.tsx`，其余 agent 只做不重叠文件，避免冲突。
+
+### 可立即并行
+
+#### 任务 A：第四轮主线，接入操作日志页面组件
+
+- 状态：可立即开工。
+- 写入范围：`App.tsx`、`components/History/OperationLogPage.tsx`、`components/History/OperationLogPage.test.tsx`、`docs/AGENT_WORK_PLAN.md`。
+- 冲突提醒：此任务会改 `App.tsx`，执行期间不要让其他 agent 同时做用户管理页接入、AI 页拆分或权限页拆分。
+- 验收：`npm run test:run`、`npm run build`、`mvn -q test`，建议 `npm run lint`。
+
+#### 任务 B：拆分 DataInitializer，清理后端 Checkstyle 噪音
+
+- 状态：可与任务 A 并行。
+- 写入范围：`src/main/java/com/hongshuo/erp/config/DataInitializer.java`，必要时补少量后端测试或文档记录。
+- 目标：把 `run` 方法从 161 行拆成多个私有初始化方法，消除 `MethodLength` 报告；不改变种子数据内容、不改业务逻辑、不改生产配置。
+- 验收：`mvn -q test`，并确认 Maven 输出不再出现 `DataInitializer.run` 超 80 行的 Checkstyle 报告；建议顺手跑 `npm run test:run`。
+- 建议提交信息：`拆分数据初始化逻辑`
+
+#### 任务 C：补 UserManagementPage 组件测试
+
+- 状态：可与任务 A、B 并行。
+- 写入范围：新增 `components/Users/UserManagementPage.test.tsx`，必要时小范围调整 `components/Users/UserManagementPage.tsx` 的可测试性。
+- 目标：先为已有 `UserManagementPage` 建好组件测试，为后续接入 `App.tsx` 铺路。
+- 覆盖点：
+  - 渲染用户列表、角色标签、启用/禁用状态。
+  - 搜索用户名和角色标签。
+  - 点击新建、编辑、删除回调。
+  - 空列表显示“暂无用户”。
+- 验收：`npm run test:run`、`npm run build`。
+- 建议提交信息：`补充用户管理页面组件测试`
+
+### 串行排队
+
+#### 任务 D：接入用户管理页面组件
+
+- 依赖：任务 A 完成后再做，避免同改 `App.tsx`。
+- 建议写入范围：`App.tsx`、`components/Users/UserManagementPage.tsx`、`components/Users/UserManagementPage.test.tsx`、`docs/AGENT_WORK_PLAN.md`。
+- 目标：把 `App.tsx` 内联的 `activeTab === 'users'` 用户管理 JSX 接入已有 `UserManagementPage`，保留搜索、新建、编辑、删除、角色标签与启用状态行为。
+- 验收：`npm run test:run`、`npm run build`、`mvn -q test`，建议 `npm run lint`。
+- 建议提交信息：`接入用户管理页面组件`
+
+#### 任务 E：清理 App.tsx 明显未使用 import
+
+- 依赖：任务 A、D 完成后再做，避免反复清理同一文件。
+- 写入范围：`App.tsx`。
+- 目标：只清理 ESLint 明确提示的未使用 import / 常量，如页面拆分后遗留的图标和 `ROLE_OPTIONS`；不要处理 hook deps 或 `any`，避免引入行为变化。
+- 验收：`npm run lint` warning 数量应下降，且 `npm run test:run`、`npm run build` 通过。
+- 建议提交信息：`清理应用入口未使用引用`
+
+#### 任务 F：继续拆库存或财务弹窗编排
+
+- 依赖：任务 A、D、E 后再评估。
+- 建议方向：优先从 `App.tsx` 抽 `StockEntryModal` 或 `FinanceRecordModal`，因为两者仍有大段表单 JSX 和状态联动。
+- 要求：先写小组件测试，再接入；每次只拆一个弹窗。
+
+### 给并行开发 agent 的简短分派
+
+```text
+当前可以同时开 3 个开发 agent：
+
+Agent A：执行 docs/AGENT_WORK_PLAN.md 的“第四轮开发任务：接入操作日志页面组件”。这是唯一允许改 App.tsx 的任务。
+
+Agent B：执行“任务 B：拆分 DataInitializer，清理后端 Checkstyle 噪音”。只改后端 DataInitializer 相关文件，不碰前端和 App.tsx。
+
+Agent C：执行“任务 C：补 UserManagementPage 组件测试”。只补用户管理页面组件测试，不接入 App.tsx。
+
+三者都完成后，再安排任务 D：接入用户管理页面组件。不要让 D 和 A 同时进行。
+```
+
+## 11. 执行记录
 
 ### 2026-05-15 总控摸底
 
@@ -381,7 +453,13 @@
 - 已复跑 `npm run lint`，仍为 0 errors、66 warnings。
 - 已确认 `components/History/OperationLogPage.tsx` 已存在但未接入 `App.tsx`，第四轮任务确定为“接入操作日志页面组件”。
 
-## 11. 给开发 agent 的提示词
+### 2026-05-15 总控安排：批量任务池
+
+- 已新增多 agent 任务池：A 操作日志页接入、B 拆分 `DataInitializer`、C 补 `UserManagementPage` 组件测试可并行。
+- 已明确串行队列：D 用户管理页接入、E 清理 `App.tsx` 未使用 import、F 继续拆库存或财务弹窗。
+- 并行边界：同一时间只允许任务 A/D/E/F 中一个触碰 `App.tsx`；任务 B/C 不触碰 `App.tsx`，可并行执行。
+
+## 12. 给开发 agent 的提示词
 
 ### 第一轮提示词（已完成）
 
