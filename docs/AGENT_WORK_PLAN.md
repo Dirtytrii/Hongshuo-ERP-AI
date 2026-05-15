@@ -106,9 +106,67 @@
 - AI 决策室现有 DeepSeek 默认行为仍可用。
 - 本文档执行记录中写清楚验证结果与剩余风险。
 
-## 6. 第二轮候选任务
+## 6. 第二轮开发任务：恢复后端 Maven 基线
 
-第一轮完成并提交后，再安排以下任务，暂不同时开工：
+### 目标
+
+让 `mvn -q test` 至少通过编译并进入测试执行阶段，优先恢复后端质量门禁。该任务不要推进业务功能，也不要为绕开 Lombok 问题而批量手写 getter/setter。
+
+### 当前失败形态
+
+2026-05-15 复跑结果：
+
+- `npm run test:run`：通过，12 个测试文件、54 个测试全部通过。
+- `mvn -q test`：失败，已不是 Maven Central TLS 问题，而是后端编译/检查问题。
+
+关键错误归类：
+
+- Lombok 注解疑似未生效：
+  - `ContractController` 的 `final ContractService contractService` 未由 `@RequiredArgsConstructor` 生成构造器。
+  - `Contract`、`ChangeOrder`、`ProjectDocument`、`PaymentPlanItem`、`Project` 等模型上的 `@Data` 未生成 getter/setter。
+  - `DingTalkIntegrationService`、`WorkflowNotifyService` 的 `@Slf4j` 未生成 `log` 字段。
+- 本机 Maven 当前使用 Java 25.0.2，项目目标 Java 版本为 17；现有 Lombok 版本/注解处理配置可能与当前 JDK 不兼容。
+- Checkstyle 同时报告 `DataInitializer.run` 方法 161 行超过 80 行；当前 `failOnViolation=false`，优先级低于编译失败，但如果开发 agent 使其阻断，应一并拆分初始化逻辑。
+
+### 建议文件范围
+
+- `pom.xml`
+- 必要时 `checkstyle.xml`
+- 必要时少量 Java 文件用于验证真实编译错误，但不要批量手写 Lombok 应生成的方法。
+- 完成后更新本文件“执行记录”。
+
+### 任务拆解
+
+1. 先确认 Lombok 根因。
+   - 复跑 `mvn -q test`，保留核心错误。
+   - 检查 Maven 使用的 JDK 与 Lombok 版本。
+   - 优先考虑在 `pom.xml` 中固定兼容当前 JDK 的 Lombok 版本，并配置 `maven-compiler-plugin` 的 `release=17` 与 annotation processor paths。
+
+2. 修复后端编译基线。
+   - 目标是让 Lombok 注解处理稳定生效，恢复 `@Data`、`@RequiredArgsConstructor`、`@Slf4j` 等生成能力。
+   - 不要把所有模型改成手写 getter/setter，这会扩大维护成本。
+   - 如果 Maven 仍跑在 Java 25，也要确保项目按 Java 17 目标编译。
+
+3. 回归验证。
+   - 必跑：`mvn -q test`
+   - 必跑：`npm run test:run`
+   - 建议跑：`npm run build`
+   - 若 Maven 编译通过后出现真实后端测试失败，再按失败用例小范围修复。
+
+4. 提交。
+   - 建议提交信息：`修复后端 Maven 编译基线`
+   - 提交前确认 `git status --short` 只包含本任务相关文件。
+
+### 验收标准
+
+- `mvn -q test` 不再因 Lombok getter/setter、构造器或 `log` 字段缺失而编译失败。
+- 如果 `mvn -q test` 仍失败，必须在执行记录中证明已进入更后面的真实测试失败，并列出下一步阻塞。
+- 前端测试仍保持绿色。
+- 本文档执行记录中写清楚验证命令、结果和剩余风险。
+
+## 7. 后续候选任务
+
+第二轮完成并提交后，再安排以下任务，暂不同时开工：
 
 1. Phase 5 继续切分 `App.tsx`。
    - 优先抽离项目列表/详情路由编排、库存弹窗编排、财务弹窗编排等高噪声区域。
@@ -126,7 +184,7 @@
    - 统一本地 Java 版本到 17 或至少验证 Java 21/25 下的兼容性。
    - 处理 Maven Central 拉取失败的环境问题后再评价后端测试真实状态。
 
-## 7. 执行记录
+## 8. 执行记录
 
 ### 2026-05-15 总控摸底
 
@@ -147,7 +205,15 @@
   - `mvn -q test`：已按要求重试两次，均未再卡在 Maven Central TLS；当前失败为后端编译/检查问题，包括 `DataInitializer.run` 方法长度、`ContractController` final 字段构造器初始化、多个 model getter/setter 符号缺失以及 `log` 字段缺失等，属于后端基线遗留风险，本轮未修复。
 - 剩余风险：前端测试基线已恢复；后端 Maven 基线当前不是环境网络阻塞，而是代码编译失败，需要后续单独拆任务处理。
 
-## 8. 给开发 agent 的首轮提示词
+### 2026-05-15 总控安排：第二轮任务
+
+- 已复跑 `npm run test:run`，确认前端单测 54 个全部通过。
+- 已复跑 `mvn -q test`，确认当前阻塞为后端编译失败，错误集中在 Lombok 注解未生成构造器、getter/setter 与 `log` 字段。
+- 第二轮开发任务确定为“恢复后端 Maven 基线”，优先修 `pom.xml` / Lombok / compiler plugin 配置，暂缓继续拆 `App.tsx`。
+
+## 9. 给开发 agent 的提示词
+
+### 第一轮提示词（已完成）
 
 ```text
 你现在接手 /Users/cloudjiang/Projects/personal/Hongshuo-ERP-AI 的第一轮开发任务。请先阅读 docs/AGENT_WORK_PLAN.md，重点执行其中“第一轮开发任务：恢复前端测试基线”。
@@ -175,4 +241,41 @@
 - 更新 docs/AGENT_WORK_PLAN.md 的“执行记录”，写明改了什么、跑了哪些命令、结果如何、是否还有风险。
 - git status --short 确认只包含本任务相关改动。
 - 及时提交，提交信息使用中文，建议为：修复前端测试基线与 AI 接口配置。
+```
+
+### 第二轮提示词
+
+```text
+你现在接手 /Users/cloudjiang/Projects/personal/Hongshuo-ERP-AI 的第二轮开发任务。请先阅读 docs/AGENT_WORK_PLAN.md，重点执行其中“第二轮开发任务：恢复后端 Maven 基线”。
+
+目标：让 mvn -q test 至少通过编译并进入测试执行阶段，优先恢复后端质量门禁。不要新增业务功能，不要推进 App.tsx 拆分，不要为了绕开问题批量手写 Lombok 本应生成的 getter/setter。
+
+当前已知情况：
+1. npm run test:run 已通过，12 个测试文件、54 个测试全部通过。
+2. mvn -q test 当前失败，核心错误集中在 Lombok 注解疑似未生效：
+   - ContractController 的 @RequiredArgsConstructor 没生成构造器，final contractService 未初始化。
+   - Contract、ChangeOrder、ProjectDocument、PaymentPlanItem、Project 等 @Data 没生成 getter/setter。
+   - DingTalkIntegrationService、WorkflowNotifyService 的 @Slf4j 没生成 log 字段。
+3. 本机 Maven 当前使用 Java 25.0.2，项目 pom.xml 目标 java.version 为 17；优先怀疑 Lombok 版本或 maven-compiler-plugin 注解处理配置与当前 JDK 不兼容。
+4. Checkstyle 还报告 DataInitializer.run 方法 161 行超过 80 行，但当前 failOnViolation=false；除非它阻断构建，否则先不要扩大范围。
+
+建议范围：
+- pom.xml
+- 必要时 checkstyle.xml
+- 必要时少量 Java 文件用于处理编译通过后暴露出的真实错误；不要批量手写 getter/setter。
+
+建议做法：
+- 在 pom.xml 固定兼容当前 JDK 的 Lombok 版本。
+- 配置 maven-compiler-plugin，明确 release=17，并配置 annotationProcessorPaths 使用同一 Lombok 版本。
+- 复跑 mvn -q test；如果 Lombok 问题消失但出现真实测试失败，再小范围修复失败用例对应代码。
+
+验收命令：
+- mvn -q test
+- npm run test:run
+- npm run build
+
+完成要求：
+- 更新 docs/AGENT_WORK_PLAN.md 的“执行记录”，写明改了什么、跑了哪些命令、结果如何、是否还有剩余后端风险。
+- git status --short 确认只包含本任务相关改动。
+- 及时提交，提交信息使用中文，建议为：修复后端 Maven 编译基线。
 ```
