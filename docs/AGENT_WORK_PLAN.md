@@ -321,14 +321,14 @@
 
 #### 任务 A：第四轮主线，接入操作日志页面组件
 
-- 状态：可立即开工。
+- 状态：已完成。
 - 写入范围：`App.tsx`、`components/History/OperationLogPage.tsx`、`components/History/OperationLogPage.test.tsx`、`docs/AGENT_WORK_PLAN.md`。
 - 冲突提醒：此任务会改 `App.tsx`，执行期间不要让其他 agent 同时做用户管理页接入、AI 页拆分或权限页拆分。
 - 验收：`npm run test:run`、`npm run build`、`mvn -q test`，建议 `npm run lint`。
 
 #### 任务 B：拆分 DataInitializer，清理后端 Checkstyle 噪音
 
-- 状态：可与任务 A 并行。
+- 状态：已完成。
 - 写入范围：`src/main/java/com/hongshuo/erp/config/DataInitializer.java`，必要时补少量后端测试或文档记录。
 - 目标：把 `run` 方法从 161 行拆成多个私有初始化方法，消除 `MethodLength` 报告；不改变种子数据内容、不改业务逻辑、不改生产配置。
 - 验收：`mvn -q test`，并确认 Maven 输出不再出现 `DataInitializer.run` 超 80 行的 Checkstyle 报告；建议顺手跑 `npm run test:run`。
@@ -336,7 +336,7 @@
 
 #### 任务 C：补 UserManagementPage 组件测试
 
-- 状态：可与任务 A、B 并行。
+- 状态：已完成。
 - 写入范围：新增 `components/Users/UserManagementPage.test.tsx`，必要时小范围调整 `components/Users/UserManagementPage.tsx` 的可测试性。
 - 目标：先为已有 `UserManagementPage` 建好组件测试，为后续接入 `App.tsx` 铺路。
 - 覆盖点：
@@ -351,7 +351,7 @@
 
 #### 任务 D：接入用户管理页面组件
 
-- 依赖：任务 A 完成后再做，避免同改 `App.tsx`。
+- 依赖：任务 A 已完成，可排队开工；执行时仍避免与其他 `App.tsx` 任务并行。
 - 建议写入范围：`App.tsx`、`components/Users/UserManagementPage.tsx`、`components/Users/UserManagementPage.test.tsx`、`docs/AGENT_WORK_PLAN.md`。
 - 目标：把 `App.tsx` 内联的 `activeTab === 'users'` 用户管理 JSX 接入已有 `UserManagementPage`，保留搜索、新建、编辑、删除、角色标签与启用状态行为。
 - 验收：`npm run test:run`、`npm run build`、`mvn -q test`，建议 `npm run lint`。
@@ -458,6 +458,22 @@ Agent C：执行“任务 C：补 UserManagementPage 组件测试”。只补用
 - 已新增多 agent 任务池：A 操作日志页接入、B 拆分 `DataInitializer`、C 补 `UserManagementPage` 组件测试可并行。
 - 已明确串行队列：D 用户管理页接入、E 清理 `App.tsx` 未使用 import、F 继续拆库存或财务弹窗。
 - 并行边界：同一时间只允许任务 A/D/E/F 中一个触碰 `App.tsx`；任务 B/C 不触碰 `App.tsx`，可并行执行。
+
+### 2026-05-15 第四轮开发：接入操作日志页面组件与并行任务池
+
+- 已将 `App.tsx` 中 `activeTab === 'history'` 下的大段操作日志内联 JSX 替换为 `OperationLogPage` 装配；`App.tsx` 继续负责筛选状态、权限判断、删除确认、日志刷新与 toast。
+- 已抽出 `handleDeleteLog(log: SystemLog)`，保留旧删除流程：先 `confirm`，再调用 `apiService.deleteLog(Number(log.id))`，随后刷新 `systemLogs`；存在筛选条件时按当前筛选重新加载 `historyFilteredLogs`，否则置空回到全量列表。
+- 已清理 `App.tsx` 中本轮不再需要的 `History` 图标 import，未顺手改其他页面。
+- 已新增 `components/History/OperationLogPage.test.tsx`，覆盖时间倒序、操作人/操作类型筛选回调、`canDelete=false` 隐藏删除入口、`canDelete=true` 删除回调和空态。
+- 并行任务 B 已完成：`DataInitializer.run` 已拆成重置、种子数据入口、项目、里程碑、库存、财务、库存日志、系统日志等私有方法；种子数据内容、创建顺序和生产配置保持不变，`mvn -q test` 未再出现 `DataInitializer.run` 方法长度报告。
+- 并行任务 C 已完成：新增 `components/Users/UserManagementPage.test.tsx`，覆盖用户列表、角色标签、启用/禁用状态、搜索回调、用户名/角色标签过滤、新建/编辑/删除回调和空列表。
+- 验证结果：
+  - `npm run test:run -- components/History/OperationLogPage.test.tsx components/Users/UserManagementPage.test.tsx`：通过，2 个测试文件、10 个测试全部通过。
+  - `npm run test:run`：通过，15 个测试文件、68 个测试全部通过。
+  - `npm run build`：通过；仍有 Vite chunk 超过 500 kB 的既有提示。
+  - `mvn -q test`：通过。
+  - `npm run lint`：通过，0 errors、66 warnings；warning 数量未增加，仍为既有 `App.tsx` 未使用 import、`any`、hook deps 等问题。
+- 剩余风险：本轮未处理既有 lint warnings 和 Vite 大 chunk 提示；任务 D“接入用户管理页面组件”已具备前置组件测试，可作为下一轮串行任务开工。
 
 ## 12. 给开发 agent 的提示词
 

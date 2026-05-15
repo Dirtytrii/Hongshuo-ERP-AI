@@ -55,7 +55,7 @@ public class DataInitializer implements CommandLineRunner {
     @Override
     public void run(String... args) {
         boolean hasData = projectRepository.count() > 0;
-        
+
         // 如果配置为不重置，且已有数据，则跳过初始化
         if (!resetOnStartup && hasData) {
             System.out.println("数据库已有数据，跳过初始化（app.data.reset-on-startup=false）");
@@ -63,25 +63,44 @@ public class DataInitializer implements CommandLineRunner {
             return;
         }
 
-        // 如果配置为重置，清空所有数据
-        if (resetOnStartup && hasData) {
-            System.out.println("检测到 app.data.reset-on-startup=true，清空现有数据...");
-            systemLogRepository.deleteAll();
-            stockLogRepository.deleteAll();
-            financeRecordRepository.deleteAll();
-            milestoneRepository.deleteAll();
-            projectRepository.deleteAll();
-            inventoryItemRepository.deleteAll();
-            roleRepository.deleteAll();
-            userRepository.deleteAll();
-            System.out.println("数据清空完成");
-        }
+        resetExistingDataIfNeeded(hasData);
 
         System.out.println("开始初始化数据库...");
 
         // 0. 初始化内置角色（如果不存在）
         initDefaultRoles();
+        initializeSeedData();
 
+        initTestUsers();
+        System.out.println("数据库初始化完成！");
+    }
+
+    private void resetExistingDataIfNeeded(boolean hasData) {
+        // 如果配置为重置，清空所有数据
+        if (!resetOnStartup || !hasData) {
+            return;
+        }
+
+        System.out.println("检测到 app.data.reset-on-startup=true，清空现有数据...");
+        systemLogRepository.deleteAll();
+        stockLogRepository.deleteAll();
+        financeRecordRepository.deleteAll();
+        milestoneRepository.deleteAll();
+        projectRepository.deleteAll();
+        inventoryItemRepository.deleteAll();
+        roleRepository.deleteAll();
+        userRepository.deleteAll();
+        System.out.println("数据清空完成");
+    }
+
+    private void initializeSeedData() {
+        Project[] projects = initializeProjects();
+        initializeMilestones(projects);
+        initializeInventoryAndRelatedData(projects);
+        initializeSystemLogs();
+    }
+
+    private Project[] initializeProjects() {
         // 1. 初始化项目（进度先置 0，在里程碑创建后按「已完成/总数」统一重算）
         Project project1 = createProject("宏硕·云端大厦", "HS-2024-001", "pm",
             new BigDecimal("5000000.00"), new BigDecimal("2000000.00"),
@@ -103,6 +122,14 @@ public class DataInitializer implements CommandLineRunner {
             new BigDecimal("300000.00"), "验收中", 0,
             LocalDate.of(2023, 6, 1), LocalDate.of(2024, 5, 31));
         project3 = projectRepository.save(project3);
+
+        return new Project[] { project1, project2, project3 };
+    }
+
+    private void initializeMilestones(Project[] projects) {
+        Project project1 = projects[0];
+        Project project2 = projects[1];
+        Project project3 = projects[2];
 
         // 2. 初始化里程碑
         createMilestone(project1, "基础施工完成", LocalDate.of(2024, 3, 15), 
@@ -130,7 +157,15 @@ public class DataInitializer implements CommandLineRunner {
         updateProjectProgress(project1);
         updateProjectProgress(project2);
         updateProjectProgress(project3);
+    }
 
+    private void initializeInventoryAndRelatedData(Project[] projects) {
+        InventoryItem[] items = initializeInventoryItems();
+        initializeFinanceRecords(projects);
+        initializeStockLogs(projects, items);
+    }
+
+    private InventoryItem[] initializeInventoryItems() {
         // 3. 初始化库存物料
         InventoryItem item1 = createInventoryItem("42.5级硅酸盐水泥", "50kg/袋", "袋", 
             new BigDecimal("28.00"), 1500, 200);
@@ -152,6 +187,14 @@ public class DataInitializer implements CommandLineRunner {
             new BigDecimal("1200.00"), 45, 10);
         InventoryItem item10 = createInventoryItem("电线电缆", "BV2.5mm²", "米", 
             new BigDecimal("8.50"), 5000, 1000);
+
+        return new InventoryItem[] { item1, item2, item3, item4, item5, item6, item7, item8, item9, item10 };
+    }
+
+    private void initializeFinanceRecords(Project[] projects) {
+        Project project1 = projects[0];
+        Project project2 = projects[1];
+        Project project3 = projects[2];
 
         // 4. 初始化财务记录
         createFinanceRecord(FinanceRecord.FinanceType.income, "项目收款", 
@@ -175,6 +218,15 @@ public class DataInitializer implements CommandLineRunner {
         createFinanceRecord(FinanceRecord.FinanceType.income, "项目收款", 
             new BigDecimal("1000000.00"), project3.getId(), "approved",
             LocalDate.of(2024, 5, 1), "王总 (Admin)", "宏硕·商业中心尾款");
+    }
+
+    private void initializeStockLogs(Project[] projects, InventoryItem[] items) {
+        Project project1 = projects[0];
+        Project project2 = projects[1];
+        InventoryItem item1 = items[0];
+        InventoryItem item2 = items[1];
+        InventoryItem item3 = items[2];
+        InventoryItem item4 = items[3];
 
         // 5. 初始化库存操作日志
         createStockLog(StockLog.StockType.in, item1.getId(), 2000, 
@@ -201,7 +253,9 @@ public class DataInitializer implements CommandLineRunner {
         createStockLog(StockLog.StockType.out, item4.getId(), 80, 
             new BigDecimal("320.00"), project1.getId(), "active",
             LocalDate.of(2024, 3, 20), "李工 (PM)", "项目1使用");
+    }
 
+    private void initializeSystemLogs() {
         // 6. 初始化系统日志
         createSystemLog("2024-01-10 09:00:00", "王总 (Admin)", "系统初始化", "系统首次启动，初始化数据");
         createSystemLog("2024-01-15 10:30:00", "王总 (Admin)", "项目收款", "宏硕·云端大厦首期款 200万元");
@@ -210,9 +264,6 @@ public class DataInitializer implements CommandLineRunner {
         createSystemLog("2024-02-15 09:45:00", "李工 (PM)", "物料出库", "项目1出库螺纹钢15吨");
         createSystemLog("2024-03-01 16:00:00", "小张 (Clerk)", "物料入库", "螺纹钢Φ16入库40吨");
         createSystemLog("2024-04-12 13:30:00", "小张 (Clerk)", "申请出库", "项目2申请出库螺纹钢12吨（待审核）");
-
-        initTestUsers();
-        System.out.println("数据库初始化完成！");
     }
 
     /** 初始化默认角色：admin/pm/finance/clerk */
@@ -372,4 +423,3 @@ public class DataInitializer implements CommandLineRunner {
         saveRole(code, name, description, builtIn);
     }
 }
-
