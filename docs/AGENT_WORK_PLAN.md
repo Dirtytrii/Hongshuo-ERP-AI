@@ -211,6 +211,20 @@
 - 已复跑 `mvn -q test`，确认当前阻塞为后端编译失败，错误集中在 Lombok 注解未生成构造器、getter/setter 与 `log` 字段。
 - 第二轮开发任务确定为“恢复后端 Maven 基线”，优先修 `pom.xml` / Lombok / compiler plugin 配置，暂缓继续拆 `App.tsx`。
 
+### 2026-05-15 第二轮开发：恢复后端 Maven 基线
+
+- 已在 `pom.xml` 固定并显式配置 Maven 后端质量门禁所需版本：
+  - `lombok.version=1.18.46`，并将 Lombok 声明为 `provided`。
+  - `maven-compiler-plugin` 明确 `release=17`，并通过 `annotationProcessorPaths` 使用同一 Lombok 版本，恢复 `@Data`、`@RequiredArgsConstructor`、`@Slf4j` 等注解处理。
+  - 覆盖 `mockito.version=5.23.0` 与 `byte-buddy.version=1.18.8`，解决 Maven 当前运行在 Java 25.0.2 时旧 Byte Buddy 不支持 Java 25 class file 版本导致的 Mockito inline mock 失败。
+- 验证结果：
+  - `mvn -q test`：通过；Surefire 报告显示 20 个后端测试套件、110 个测试，0 failures、0 errors。
+  - `npm run test:run`：通过，12 个测试文件、54 个测试全部通过。
+  - `npm run build`：通过；仍有 Vite chunk 超过 500 kB 的既有提示。
+- 剩余风险：
+  - Checkstyle 仍输出 `DataInitializer.run` 方法 161 行超过 80 行，但当前 `failOnViolation=false`，不阻断 Maven。
+  - Maven 在 Java 25 下仍输出 Lombok `sun.misc.Unsafe`、Mockito self-attaching、Tomcat native access 等兼容性 warning；建议后续按项目目标统一本地 Maven JDK 到 Java 17 或 Java 21，以减少未来 JDK 收紧带来的噪音。
+
 ## 9. 给开发 agent 的提示词
 
 ### 第一轮提示词（已完成）
