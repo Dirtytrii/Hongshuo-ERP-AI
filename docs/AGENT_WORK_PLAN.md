@@ -227,12 +227,78 @@
 - `npm run test:run`、`npm run build`、`mvn -q test` 通过。
 - 本文档执行记录中写清楚验证命令、结果和剩余风险。
 
-## 8. 后续候选任务
+## 8. 第四轮开发任务：接入操作日志页面组件
 
-第三轮完成并提交后，再安排以下任务，暂不同时开工：
+### 目标
+
+继续 Phase 5 结构收口：把 `App.tsx` 内联的操作日志页面 JSX 接入已有的 `components/History/OperationLogPage.tsx`，让 `App.tsx` 只负责日志筛选状态、数据刷新、删除回调与权限装配。该任务不新增业务功能，不改动后端 API。
+
+### 当前观察
+
+2026-05-15 复核结果：
+
+- 第三轮已完成，`App.tsx` 当前约 2840 行。
+- `mvn -q test`、`npm run test:run`、`npm run build` 均已通过。
+- `npm run lint` 仍通过但有 66 个 warnings，主要是既有 `App.tsx` 未使用 import、`any` 与 hook deps。
+- `components/History/OperationLogPage.tsx` 已存在，但当前未被 `App.tsx` 使用。
+- `App.tsx` 当前仍直接渲染 `activeTab === 'history'` 下的操作日志页，包含筛选控件、表格、空态、按权限显示删除按钮，以及删除后按当前筛选条件刷新列表。
+
+### 建议文件范围
+
+- `App.tsx`
+- `components/History/OperationLogPage.tsx`
+- 新增 `components/History/OperationLogPage.test.tsx`
+- 完成后更新本文件“执行记录”。
+
+### 任务拆解
+
+1. 接入已有操作日志组件。
+   - 在 `App.tsx` 中引入并使用 `OperationLogPage`。
+   - 删除 `App.tsx` 中 `activeTab === 'history'` 下的重复内联操作日志 JSX。
+   - 保留现有行为：操作人筛选、操作类型筛选、默认按时间倒序、无数据空态、`log.delete` 权限控制删除列和删除按钮。
+
+2. 收口删除逻辑。
+   - 将 `App.tsx` 内联删除日志流程抽成 `handleDeleteLog(log: SystemLog)`，传给 `OperationLogPage`。
+   - 保留旧行为：删除前 `confirm`，删除成功后刷新 `systemLogs`；若当前存在筛选条件，则按当前筛选条件刷新 `historyFilteredLogs`，否则置空使用全量列表；失败时展示 toast。
+   - 不要改变后端接口调用顺序，除非同时补测试说明原因。
+
+3. 清理由接入带来的冗余。
+   - 移除 `App.tsx` 中不再需要的 `History` 图标 import。
+   - 只清理与本任务直接相关的 import，不顺手改 AI、用户、权限等其他区域。
+
+4. 补测试。
+   - 为 `OperationLogPage` 补组件测试，至少覆盖：
+     - 按时间倒序渲染日志。
+     - 操作人筛选和操作类型筛选会调用对应回调。
+     - `canDelete=false` 时不显示删除列/删除按钮。
+     - `canDelete=true` 时点击删除按钮调用 `onDeleteLog`。
+     - 空数据时显示“暂无操作日志”。
+   - 如需 mock `SearchableSelect`，保持测试语义清晰，不依赖真实下拉交互细节。
+
+5. 回归验证。
+   - 必跑：`npm run test:run`
+   - 必跑：`npm run build`
+   - 必跑：`mvn -q test`
+   - 建议跑：`npm run lint`，记录 warning 数量变化。
+
+6. 提交。
+   - 建议提交信息：`接入操作日志页面组件`
+   - 提交前确认 `git status --short` 只包含本任务相关文件。
+
+### 验收标准
+
+- `App.tsx` 操作日志页不再保留大段重复 JSX，而是通过 `OperationLogPage` 组件装配。
+- 操作日志筛选、排序、删除权限、删除刷新行为不回退。
+- 新增的 `OperationLogPage` 测试通过。
+- `npm run test:run`、`npm run build`、`mvn -q test` 通过。
+- 本文档执行记录中写清楚验证命令、结果和剩余风险。
+
+## 9. 后续候选任务
+
+第四轮完成并提交后，再安排以下任务，暂不同时开工：
 
 1. 继续按页面域切分 `App.tsx`。
-   - 优先抽离库存弹窗编排、财务弹窗编排、用户/权限管理等高噪声区域。
+   - 优先抽离用户管理页面、库存弹窗编排、财务弹窗编排、权限管理等高噪声区域。
    - 每次只迁移一个页面域，迁移前后补或保留测试。
 
 2. 清理 lint warnings。
@@ -247,7 +313,7 @@
    - 统一本地 Java 版本到 17 或至少验证 Java 21/25 下的兼容性。
    - 处理 Maven Central 拉取失败的环境问题后再评价后端测试真实状态。
 
-## 9. 执行记录
+## 10. 执行记录
 
 ### 2026-05-15 总控摸底
 
@@ -308,7 +374,14 @@
   - `npm run lint`：通过，0 errors、66 warnings；warning 数量未增加。
 - 剩余风险：详情页删除仍保持旧行为，调用删除后立即关闭详情；若用户取消 confirm 或删除失败，也可能先离开详情页。该行为本轮未改动，后续可单独做交互收口。
 
-## 10. 给开发 agent 的提示词
+### 2026-05-15 总控安排：第四轮任务
+
+- 已确认第三轮提交 `7ebeac1 接入项目管理页面组件` 已落地，`App.tsx` 当前约 2840 行。
+- 已复核 `mvn -q test`、`npm run test:run`、`npm run build` 通过。
+- 已复跑 `npm run lint`，仍为 0 errors、66 warnings。
+- 已确认 `components/History/OperationLogPage.tsx` 已存在但未接入 `App.tsx`，第四轮任务确定为“接入操作日志页面组件”。
+
+## 11. 给开发 agent 的提示词
 
 ### 第一轮提示词（已完成）
 
@@ -415,4 +488,45 @@
 - 更新 docs/AGENT_WORK_PLAN.md 的“执行记录”，写明改了什么、跑了哪些命令、结果如何、是否还有剩余风险。
 - git status --short 确认只包含本任务相关改动。
 - 及时提交，提交信息使用中文，建议为：接入项目管理页面组件。
+```
+
+### 第四轮提示词
+
+```text
+你现在接手 /Users/cloudjiang/Projects/personal/Hongshuo-ERP-AI 的第四轮开发任务。请先阅读 docs/AGENT_WORK_PLAN.md，重点执行其中“第四轮开发任务：接入操作日志页面组件”。
+
+目标：继续 Phase 5 结构收口，把 App.tsx 内联的操作日志页面 JSX 接入已有 components/History/OperationLogPage.tsx，让 App.tsx 只负责日志筛选状态、数据刷新、删除回调与权限装配。不要新增业务功能，不改动后端 API。
+
+当前已知情况：
+1. 第三轮已完成，App.tsx 当前约 2840 行。
+2. mvn -q test 已通过。
+3. npm run test:run 已通过，13 个测试文件、58 个测试全部通过。
+4. npm run build 已通过，仍有 Vite chunk 超过 500 kB 的既有提示。
+5. npm run lint 通过，0 errors、66 warnings。
+6. components/History/OperationLogPage.tsx 已存在，但当前没有被 App.tsx 使用。
+
+建议范围：
+- App.tsx
+- components/History/OperationLogPage.tsx
+- 新增 components/History/OperationLogPage.test.tsx
+
+具体要求：
+- 在 App.tsx 中引入并使用 OperationLogPage。
+- 删除 App.tsx 中 activeTab === 'history' 下重复的操作日志内联 JSX。
+- 保留现有行为：操作人筛选、操作类型筛选、默认按时间倒序、无数据空态、log.delete 权限控制删除列和删除按钮。
+- 将 App.tsx 内联删除日志流程抽成 handleDeleteLog(log: SystemLog)，传给 OperationLogPage。
+- 保留旧删除行为：删除前 confirm，删除成功后刷新 systemLogs；若当前存在筛选条件，则按当前筛选条件刷新 historyFilteredLogs，否则置空使用全量列表；失败时展示 toast。
+- 移除 App.tsx 中不再需要的 History 图标 import；不要顺手改其他页面。
+- 为 OperationLogPage 补组件测试，至少覆盖时间倒序渲染、筛选回调、canDelete=false 隐藏删除入口、canDelete=true 删除回调、空态。
+
+验收命令：
+- npm run test:run
+- npm run build
+- mvn -q test
+- 建议 npm run lint，并记录 warning 数量。
+
+完成要求：
+- 更新 docs/AGENT_WORK_PLAN.md 的“执行记录”，写明改了什么、跑了哪些命令、结果如何、是否还有剩余风险。
+- git status --short 确认只包含本任务相关改动。
+- 及时提交，提交信息使用中文，建议为：接入操作日志页面组件。
 ```
