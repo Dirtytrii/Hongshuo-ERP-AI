@@ -23,6 +23,7 @@
 ## 3. 面向研发与重构
 
 - [开发说明](./DEVELOPMENT.md)
+- [Agent 协作工作计划](./AGENT_WORK_PLAN.md)
 - [业务开发计划](./DEVELOPMENT_PLAN_BUSINESS.md)
 - [二期开发计划](./二期开发计划.md)
 - [架构重构方案](./ARCHITECTURE_REDESIGN.md)
