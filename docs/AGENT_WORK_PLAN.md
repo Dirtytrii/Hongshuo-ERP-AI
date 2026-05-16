@@ -403,12 +403,82 @@
 - 本文档执行记录中写清楚删除了哪些引用、lint warning 数量变化、验证命令和剩余风险。
 - 及时提交，提交信息使用中文；建议提交信息：`清理应用入口未使用引用`。
 
-## 11. 后续候选任务
+## 11. 第七轮开发任务：抽出库存出入库弹窗组件
 
-第六轮完成并提交后，再安排以下任务，暂不同时开工：
+### 目标
+
+继续 Phase 5 结构收口：把 `App.tsx` 中 `isStockModalOpen` 下的库存入库/出库弹窗 JSX 抽成 `components/Inventory/StockMovementModal.tsx`。该任务不改变库存业务流程，不改后端 API，只迁移弹窗展示和表单输入边界，让 `App.tsx` 继续负责弹窗开关、库存提交、数据刷新、toast 与权限入口。
+
+### 当前依据
+
+2026-05-16 复核结果：
+
+- 第六轮已完成并提交 `ca9da26 清理应用入口未使用引用`。
+- `App.tsx` 当前仍直接渲染 `isStockModalOpen` 下的库存出入库弹窗。
+- 弹窗依赖状态包括：`stockModalType`、`selectedItemId`、`stockAmount`、`targetProjectId`、`stockSupplierId`、`inventory`、`projects`、`suppliers`。
+- 提交流程集中在 `handleStockSubmit`：校验数量和物料、调用 `apiService.createStockLog`、`reloadCoreData`、按入库/出库和管理员身份展示 toast、关闭弹窗并重置数量与供应商。
+- 当前没有现成 `StockMovementModal` 组件，需要本轮新建组件和测试。
+
+### 建议写入范围
+
+- `App.tsx`
+- `components/Inventory/StockMovementModal.tsx`
+- `components/Inventory/StockMovementModal.test.tsx`
+- `docs/AGENT_WORK_PLAN.md`
+
+### 具体要求
+
+1. 新建库存出入库弹窗组件。
+   - 组件命名建议：`StockMovementModal`。
+   - 组件负责渲染遮罩、标题、物料选择、出库项目选择、入库供应商选择、数量输入、取消和确认按钮。
+   - 继续复用 `components/ui/SearchableSelect`，不要改 `SearchableSelect` 本身。
+
+2. `App.tsx` 接入组件。
+   - 删除 `App.tsx` 中 `isStockModalOpen` 下的大段内联弹窗 JSX。
+   - 保留 `isStockModalOpen && <StockMovementModal ... />` 的装配。
+   - `App.tsx` 继续持有 `stockModalType`、`selectedItemId`、`stockAmount`、`targetProjectId`、`stockSupplierId` 等状态。
+   - `App.tsx` 继续持有并调用 `handleStockSubmit`，不要把 API 调用移动进组件。
+
+3. 保留现有行为。
+   - 入库标题仍为“物料入库登记”，绿色头部，确认按钮为“确认入库”。
+   - 出库标题仍为“物料出库申请”，蓝色头部，确认按钮为“确认出库”。
+   - 物料选项仍显示 `${name} (${spec})`。
+   - 出库时显示“关联项目”，入库时显示“供应商（可选）”。
+   - 数量标签仍显示当前物料单位。
+   - 关闭按钮和取消按钮仍只关闭弹窗，不重置其他状态。
+   - 确认按钮仍调用 `handleStockSubmit`。
+
+4. 测试要求。
+   - 新增 `components/Inventory/StockMovementModal.test.tsx`。
+   - 至少覆盖：入库模式标题/供应商/确认入库、出库模式标题/项目/确认出库、物料选择回调、数量输入回调、取消和关闭回调。
+   - 如果 `SearchableSelect` 在测试里交互复杂，可以用可观察文本和关键回调做最小有效覆盖，但不要只做快照。
+
+5. 清理 import。
+   - `App.tsx` 中如果 `Plus`、`ArrowRightLeft` 不再被其他区域使用，应删除。
+   - `X`、`Package`、`Wallet` 等图标仍可能被其他弹窗使用，删除前必须确认。
+
+### 验收命令
+
+- `npm run test:run -- components/Inventory/StockMovementModal.test.tsx`
+- `npm run test:run`
+- `npm run build`
+- 建议 `npm run lint`，记录 warning 数量。
+
+### 完成标准
+
+- `App.tsx` 不再保留库存出入库弹窗的大段 JSX。
+- 库存入库/出库弹窗用户可见文案、条件字段、按钮行为不回退。
+- 新组件测试覆盖关键渲染与回调。
+- 前端测试与构建通过。
+- 本文档执行记录中写清楚验证命令、结果和剩余风险。
+- 及时提交，提交信息使用中文；建议提交信息：`抽出库存出入库弹窗组件`。
+
+## 12. 后续候选任务
+
+第七轮完成并提交后，再安排以下任务，暂不同时开工：
 
 1. 继续按页面域切分 `App.tsx`。
-   - 优先抽离库存弹窗编排、财务弹窗编排、权限管理等高噪声区域。
+   - 优先抽离财务弹窗编排、权限管理等高噪声区域。
    - 每次只迁移一个页面域，迁移前后补或保留测试。
 
 2. 清理 lint warnings。
@@ -423,7 +493,7 @@
    - 统一本地 Java 版本到 17 或至少验证 Java 21/25 下的兼容性。
    - 处理 Maven Central 拉取失败的环境问题后再评价后端测试真实状态。
 
-## 12. 批量任务池与并行安排
+## 13. 批量任务池与并行安排
 
 > 这组任务用于多开发 agent 同时推进。原则：同一时间最多一个 agent 改 `App.tsx`，其余 agent 只做不重叠文件，避免冲突。
 
@@ -477,8 +547,8 @@
 
 #### 任务 F：继续拆库存或财务弹窗编排
 
-- 依赖：任务 A、D、E 已完成，后续可评估；执行时仍避免与其他 `App.tsx` 任务并行。
-- 建议方向：优先从 `App.tsx` 抽 `StockEntryModal` 或 `FinanceRecordModal`，因为两者仍有大段表单 JSX 和状态联动。
+- 状态：下一轮主线，任务 A/D/E 已完成，可立即开工；执行时仍避免与其他 `App.tsx` 任务并行。
+- 建议方向：优先从 `App.tsx` 抽 `StockMovementModal`，因为库存出入库弹窗范围小于财务弹窗，状态和回调边界更清楚。
 - 要求：先写小组件测试，再接入；每次只拆一个弹窗。
 
 ### 给并行开发 agent 的简短分派
@@ -486,12 +556,12 @@
 ```text
 下一轮只开 1 个会改 App.tsx 的开发 agent：
 
-Agent E：执行 docs/AGENT_WORK_PLAN.md 的“第六轮开发任务：清理 App.tsx 明显未使用引用”。
+Agent F：执行 docs/AGENT_WORK_PLAN.md 的“第七轮开发任务：抽出库存出入库弹窗组件”。
 
-执行期间不要并行安排任务 F 或任何其他会触碰 App.tsx 的任务。
+执行期间不要并行安排财务弹窗、权限弹窗或任何其他会触碰 App.tsx 的任务。
 ```
 
-## 13. 执行记录
+## 14. 执行记录
 
 ### 2026-05-15 总控摸底
 
@@ -620,7 +690,14 @@ Agent E：执行 docs/AGENT_WORK_PLAN.md 的“第六轮开发任务：清理 Ap
   - `npm run build`：通过；仍有 Vite chunk 超过 500 kB 的既有提示。
 - 剩余风险：仍有 50 个既有 lint warnings，主要为 `any`、hook deps、JSX 文本转义、未使用异常变量以及其他文件中的类型清理项；本轮按范围未处理。
 
-## 14. 给开发 agent 的提示词
+### 2026-05-16 总控安排：第七轮任务
+
+- 已确认第六轮提交 `ca9da26 清理应用入口未使用引用` 已落地，当前分支领先远端 13 个提交。
+- 已复核 `App.tsx` 中 `isStockModalOpen` 下仍保留库存入库/出库弹窗内联 JSX。
+- 已确认当前没有现成 `StockMovementModal` 组件，第七轮任务确定为“抽出库存出入库弹窗组件”。
+- 本轮仍按串行执行：只允许该开发 agent 触碰 `App.tsx`；不要同时推进财务弹窗、权限弹窗或其他页面抽离。
+
+## 15. 给开发 agent 的提示词
 
 ### 第一轮提示词（已完成）
 
@@ -871,4 +948,57 @@ Agent E：执行 docs/AGENT_WORK_PLAN.md 的“第六轮开发任务：清理 Ap
 - 更新 docs/AGENT_WORK_PLAN.md 的“执行记录”，写明删除了哪些引用、lint warning 数量变化、验证命令结果和剩余风险。
 - git status --short 确认只包含本任务相关改动。
 - 及时提交，提交信息使用中文，建议为：清理应用入口未使用引用。
+```
+
+### 第七轮提示词
+
+```text
+你现在接手 /Users/cloudjiang/Projects/personal/Hongshuo-ERP-AI 的第七轮开发任务。请先阅读 docs/AGENT_WORK_PLAN.md，重点执行其中“第七轮开发任务：抽出库存出入库弹窗组件”。
+
+目标：继续 Phase 5 结构收口，把 App.tsx 中 isStockModalOpen 下的库存入库/出库弹窗 JSX 抽成 components/Inventory/StockMovementModal.tsx。不要改变库存业务流程，不改后端 API，只迁移弹窗展示和表单输入边界；App.tsx 继续负责弹窗开关、库存提交、数据刷新、toast 与权限入口。
+
+当前已知情况：
+1. 第六轮已完成，最新提交为 ca9da26 清理应用入口未使用引用。
+2. npm run lint 已通过，0 errors、50 warnings。
+3. npm run test:run 已通过，15 个测试文件、69 个测试全部通过。
+4. npm run build 已通过，仍有 Vite chunk 超过 500 kB 的既有提示。
+5. App.tsx 当前仍直接渲染 isStockModalOpen 下的库存出入库弹窗。
+6. 当前没有现成 StockMovementModal 组件，需要新建组件和测试。
+
+建议范围：
+- App.tsx
+- components/Inventory/StockMovementModal.tsx
+- components/Inventory/StockMovementModal.test.tsx
+- docs/AGENT_WORK_PLAN.md
+
+具体要求：
+- 新建 StockMovementModal 组件，负责渲染遮罩、标题、物料选择、出库项目选择、入库供应商选择、数量输入、取消和确认按钮。
+- 继续复用 components/ui/SearchableSelect，不要改 SearchableSelect 本身。
+- 在 App.tsx 中引入并使用 StockMovementModal。
+- 删除 App.tsx 中 isStockModalOpen 下重复的库存出入库弹窗内联 JSX。
+- App.tsx 继续持有 stockModalType、selectedItemId、stockAmount、targetProjectId、stockSupplierId 等状态。
+- App.tsx 继续持有并调用 handleStockSubmit，不要把 apiService.createStockLog 或 reloadCoreData 移动进组件。
+- 保留现有行为：入库标题“物料入库登记”、绿色头部、“确认入库”；出库标题“物料出库申请”、蓝色头部、“确认出库”。
+- 物料选项仍显示 `${name} (${spec})`。
+- 出库时显示“关联项目”，入库时显示“供应商（可选）”。
+- 数量标签仍显示当前物料单位。
+- 关闭按钮和取消按钮仍只关闭弹窗，不重置其他状态。
+- 确认按钮仍调用 handleStockSubmit。
+- App.tsx 中如果 Plus、ArrowRightLeft 不再被其他区域使用，应删除；X、Package、Wallet 等图标仍可能被其他弹窗使用，删除前必须确认。
+
+测试要求：
+- 新增 components/Inventory/StockMovementModal.test.tsx。
+- 至少覆盖：入库模式标题/供应商/确认入库、出库模式标题/项目/确认出库、物料选择回调、数量输入回调、取消和关闭回调。
+- 如果 SearchableSelect 在测试里交互复杂，可以用可观察文本和关键回调做最小有效覆盖，但不要只做快照。
+
+验收命令：
+- npm run test:run -- components/Inventory/StockMovementModal.test.tsx
+- npm run test:run
+- npm run build
+- 建议 npm run lint，并记录 warning 数量。
+
+完成要求：
+- 更新 docs/AGENT_WORK_PLAN.md 的“执行记录”，写明改了什么、跑了哪些命令、结果如何、是否还有剩余风险。
+- git status --short 确认只包含本任务相关改动。
+- 及时提交，提交信息使用中文，建议为：抽出库存出入库弹窗组件。
 ```
