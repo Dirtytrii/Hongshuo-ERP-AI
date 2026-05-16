@@ -21,7 +21,6 @@ import {
   Settings,
   Trash2,
   ChevronDown,
-  User,
   BarChart2,
   Truck,
   FileEdit,
@@ -87,6 +86,7 @@ import FinanceManagementPage from './components/Finance/FinanceManagementPage';
 import InventoryManagementPage from './components/Inventory/InventoryManagementPage';
 import InventoryWarehousePage from './components/Inventory/InventoryWarehousePage';
 import OperationLogPage from './components/History/OperationLogPage';
+import UserManagementPage from './components/Users/UserManagementPage';
 
 function formatSessionTime(ts: number): string {
   const d = new Date(ts);
@@ -2270,95 +2270,16 @@ const App = () => {
 
           {/* 用户管理页面（仅管理员） */}
           {!isLoading && activeTab === 'users' && currentUser.id === 'admin' && (
-            <div className="space-y-6">
-              <div className="bg-white rounded-3xl border border-slate-100/80 shadow-sm overflow-hidden">
-                <div className="p-6 border-b flex flex-wrap justify-between items-center gap-4">
-                  <h3 className="font-bold flex items-center gap-2 text-slate-700">
-                    <User size={18} /> 用户管理
-                  </h3>
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="text"
-                      value={userSearch}
-                      onChange={(e) => setUserSearch(e.target.value)}
-                      placeholder="搜索用户名或角色..."
-                      className="px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => openUserModal()}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-blue-700"
-                    >
-                      <Plus size={16} /> 新建用户
-                    </button>
-                  </div>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left">
-                    <thead className="bg-slate-50 border-b text-slate-400 text-xs uppercase tracking-wider">
-                      <tr>
-                        <th className="px-6 py-4 font-bold">用户名</th>
-                        <th className="px-6 py-4 font-bold">角色</th>
-                        <th className="px-6 py-4 font-bold">状态</th>
-                        <th className="px-6 py-4 font-bold w-32">操作</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y text-sm">
-                      {(() => {
-                        const keyword = userSearch.trim().toLowerCase();
-                        const filtered = !keyword
-                          ? users
-                          : users.filter((u) => {
-                              const roleInfo = roleLabelMap[u.role] || ROLES[u.role];
-                              const roleLabel = roleInfo?.label ?? u.role;
-                              return (
-                                u.username.toLowerCase().includes(keyword) || roleLabel.toLowerCase().includes(keyword)
-                              );
-                            });
-                        if (filtered.length === 0) {
-                          return (
-                            <tr>
-                              <td colSpan={4} className="px-6 py-12 text-center text-slate-400">
-                                暂无用户
-                              </td>
-                            </tr>
-                          );
-                        }
-                        return filtered.map((u) => (
-                          <tr key={u.id} className="hover:bg-slate-50">
-                            <td className="px-6 py-4 font-medium text-slate-700">{u.username}</td>
-                            <td className="px-6 py-4 text-slate-600">{ROLES[u.role]?.label ?? u.role}</td>
-                            <td className="px-6 py-4">
-                              <span className={u.enabled ? 'text-green-600' : 'text-slate-400'}>
-                                {u.enabled ? '启用' : '禁用'}
-                              </span>
-                            </td>
-                            <td className="px-6 py-4 flex items-center gap-2">
-                              <button
-                                type="button"
-                                onClick={() => openUserModal(u)}
-                                className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg"
-                                title="编辑"
-                              >
-                                <Settings size={16} />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleDeleteUser(u)}
-                                className="p-1.5 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg"
-                                title="删除"
-                              >
-                                <Trash2 size={16} />
-                              </button>
-                            </td>
-                          </tr>
-                        ));
-                      })()}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
+            <UserManagementPage
+              users={users}
+              search={userSearch}
+              getRoleLabel={(role) => ROLES[role]?.label ?? role}
+              getSearchRoleLabel={(role) => (roleLabelMap[role] || ROLES[role])?.label ?? role}
+              onSearchChange={setUserSearch}
+              onCreateUser={() => openUserModal()}
+              onEditUser={openUserModal}
+              onDeleteUser={handleDeleteUser}
+            />
           )}
 
           {/* 角色管理页面（仅管理员） */}

@@ -85,6 +85,22 @@ describe('UserManagementPage', () => {
     expect(screen.queryByText('lisi')).not.toBeInTheDocument();
   });
 
+  it('可使用独立搜索角色标签过滤列表', () => {
+    render(
+      <UserManagementPage
+        {...buildProps({
+          search: '自定义审批',
+          getRoleLabel: (role) => role,
+          getSearchRoleLabel: (role) => (role === 'finance' ? '自定义审批角色' : role),
+        })}
+      />
+    );
+
+    expect(screen.getByText('wangwu')).toBeInTheDocument();
+    expect(screen.getByText('finance')).toBeInTheDocument();
+    expect(screen.queryByText('zhangsan')).not.toBeInTheDocument();
+  });
+
   it('点击新建、编辑、删除时调用对应回调', () => {
     const onCreateUser = vi.fn();
     const onEditUser = vi.fn();

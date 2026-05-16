@@ -12,6 +12,7 @@ interface UserManagementPageProps {
   users: AuthUserRow[];
   search: string;
   getRoleLabel: (role: string) => string;
+  getSearchRoleLabel?: (role: string) => string;
   onSearchChange: (value: string) => void;
   onCreateUser: () => void;
   onEditUser: (user: AuthUserRow) => void;
@@ -22,6 +23,7 @@ const UserManagementPage: React.FC<UserManagementPageProps> = ({
   users,
   search,
   getRoleLabel,
+  getSearchRoleLabel,
   onSearchChange,
   onCreateUser,
   onEditUser,
@@ -31,7 +33,7 @@ const UserManagementPage: React.FC<UserManagementPageProps> = ({
   const filtered = !keyword
     ? users
     : users.filter((user) => {
-        const roleLabel = getRoleLabel(user.role);
+        const roleLabel = getSearchRoleLabel?.(user.role) ?? getRoleLabel(user.role);
         return user.username.toLowerCase().includes(keyword) || roleLabel.toLowerCase().includes(keyword);
       });
 

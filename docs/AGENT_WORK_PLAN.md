@@ -412,7 +412,7 @@
 
 #### 任务 D：接入用户管理页面组件
 
-- 状态：下一轮主线，任务 A/B/C 已完成，可立即开工；执行时仍避免与其他 `App.tsx` 任务并行。
+- 状态：已完成。
 - 建议写入范围：`App.tsx`、`components/Users/UserManagementPage.tsx`、`components/Users/UserManagementPage.test.tsx`、`docs/AGENT_WORK_PLAN.md`。
 - 目标：把 `App.tsx` 内联的 `activeTab === 'users'` 用户管理 JSX 接入已有 `UserManagementPage`，保留搜索、新建、编辑、删除、角色标签与启用状态行为。
 - 验收：`npm run test:run`、`npm run build`、`mvn -q test`，建议 `npm run lint`。
@@ -420,7 +420,7 @@
 
 #### 任务 E：清理 App.tsx 明显未使用 import
 
-- 依赖：任务 A、D 完成后再做，避免反复清理同一文件。
+- 依赖：任务 A、D 已完成，可排队开工；执行时仍避免与其他 `App.tsx` 任务并行。
 - 写入范围：`App.tsx`。
 - 目标：只清理 ESLint 明确提示的未使用 import / 常量，如页面拆分后遗留的图标和 `ROLE_OPTIONS`；不要处理 hook deps 或 `any`，避免引入行为变化。
 - 验收：`npm run lint` warning 数量应下降，且 `npm run test:run`、`npm run build` 通过。
@@ -538,6 +538,20 @@ Agent D：执行 docs/AGENT_WORK_PLAN.md 的“第五轮开发任务：接入用
 - 已确认 `components/Users/UserManagementPage.tsx` 与 `components/Users/UserManagementPage.test.tsx` 均已存在，用户管理组件具备接入前置测试。
 - 已复核 `App.tsx` 中 `activeTab === 'users'` 仍保留内联用户管理页 JSX，第五轮任务确定为“接入用户管理页面组件”。
 - 本轮仍按串行执行：只允许该开发 agent 触碰 `App.tsx`；不要同时推进清理 import 或库存/财务弹窗拆分。
+
+### 2026-05-16 第五轮开发：接入用户管理页面组件
+
+- 已将 `App.tsx` 中 `activeTab === 'users'` 下的大段用户管理内联 JSX 替换为 `UserManagementPage` 装配；入口条件仍为 `!isLoading && activeTab === 'users' && currentUser.id === 'admin'`。
+- `App.tsx` 继续负责 `users`、`userSearch`、弹窗打开、删除确认、删除当前用户保护、删除后刷新用户列表和 toast；`UserManagementPage` 只负责列表渲染、搜索输入和按钮回调。
+- 已移除 `App.tsx` 中本轮不再需要的 `User` 图标 import，未处理其他既有 lint warning。
+- 为保持旧行为，`UserManagementPage` 新增可选 `getSearchRoleLabel`：页面展示仍按 `ROLES[role]?.label ?? role`，搜索仍可按 `roleLabelMap` 中的角色中文标签匹配；已补对应组件测试。
+- 验证结果：
+  - `npm run test:run -- components/Users/UserManagementPage.test.tsx`：通过，1 个测试文件、6 个测试全部通过。
+  - `npm run test:run`：通过，15 个测试文件、69 个测试全部通过。
+  - `npm run build`：通过；仍有 Vite chunk 超过 500 kB 的既有提示。
+  - `mvn -q test`：通过。
+  - `npm run lint`：通过，0 errors、66 warnings；warning 数量未增加，仍为既有 `App.tsx` 未使用 import、`any`、hook deps 等问题。
+- 剩余风险：本轮未处理既有 lint warnings、Vite 大 chunk 提示和 Maven 在 Java 25 下的运行期 warning；任务 E“清理 App.tsx 明显未使用 import”可作为下一轮串行任务。
 
 ## 13. 给开发 agent 的提示词
 
