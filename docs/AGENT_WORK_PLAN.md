@@ -547,7 +547,7 @@
 
 #### 任务 F：继续拆库存或财务弹窗编排
 
-- 状态：下一轮主线，任务 A/D/E 已完成，可立即开工；执行时仍避免与其他 `App.tsx` 任务并行。
+- 状态：库存出入库弹窗已完成；财务弹窗后续另行评估。
 - 建议方向：优先从 `App.tsx` 抽 `StockMovementModal`，因为库存出入库弹窗范围小于财务弹窗，状态和回调边界更清楚。
 - 要求：先写小组件测试，再接入；每次只拆一个弹窗。
 
@@ -696,6 +696,19 @@ Agent F：执行 docs/AGENT_WORK_PLAN.md 的“第七轮开发任务：抽出库
 - 已复核 `App.tsx` 中 `isStockModalOpen` 下仍保留库存入库/出库弹窗内联 JSX。
 - 已确认当前没有现成 `StockMovementModal` 组件，第七轮任务确定为“抽出库存出入库弹窗组件”。
 - 本轮仍按串行执行：只允许该开发 agent 触碰 `App.tsx`；不要同时推进财务弹窗、权限弹窗或其他页面抽离。
+
+### 2026-05-16 第七轮开发：抽出库存出入库弹窗组件
+
+- 已新增 `components/Inventory/StockMovementModal.tsx`，负责库存入库/出库弹窗的遮罩、标题、物料选择、出库项目选择、入库供应商选择、数量输入、取消和确认按钮。
+- 已将 `App.tsx` 中 `isStockModalOpen` 下的大段内联 JSX 替换为 `StockMovementModal` 装配；`App.tsx` 继续负责 `stockModalType`、`selectedItemId`、`stockAmount`、`targetProjectId`、`stockSupplierId` 状态，以及 `handleStockSubmit`、刷新、toast 和弹窗开关。
+- 已清理 `App.tsx` 中迁移后不再使用的 `Plus`、`ArrowRightLeft` 图标 import；`X`、`Package`、`Wallet` 等仍被其他区域使用，未删除。
+- 已新增 `components/Inventory/StockMovementModal.test.tsx`，覆盖入库模式标题/供应商/确认入库、出库模式标题/项目/确认出库、物料选择回调、数量输入回调、取消和关闭回调。
+- 验证结果：
+  - `npm run test:run -- components/Inventory/StockMovementModal.test.tsx`：通过，1 个测试文件、4 个测试全部通过。
+  - `npm run test:run`：通过，16 个测试文件、73 个测试全部通过。
+  - `npm run build`：通过；仍有 Vite chunk 超过 500 kB 的既有提示。
+  - `npm run lint`：通过，0 errors、50 warnings；warning 数量未增加，仍为既有 `any`、hook deps、JSX 文本转义等问题。
+- 剩余风险：库存提交业务流程未迁入组件，本轮未改动后端 API；后续若继续 Phase 5 结构收口，可再评估财务弹窗或权限弹窗拆分。
 
 ## 15. 给开发 agent 的提示词
 

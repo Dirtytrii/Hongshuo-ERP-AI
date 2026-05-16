@@ -2,9 +2,7 @@ import React, { useState, useEffect, useMemo, Suspense, lazy } from 'react';
 import {
   Wallet,
   Package,
-  Plus,
   Clock,
-  ArrowRightLeft,
   X,
   Check,
   Building2,
@@ -70,6 +68,7 @@ import ApprovalCenter from './components/ApprovalCenter/ApprovalCenter';
 import FinanceManagementPage from './components/Finance/FinanceManagementPage';
 import InventoryManagementPage from './components/Inventory/InventoryManagementPage';
 import InventoryWarehousePage from './components/Inventory/InventoryWarehousePage';
+import StockMovementModal from './components/Inventory/StockMovementModal';
 import OperationLogPage from './components/History/OperationLogPage';
 import UserManagementPage from './components/Users/UserManagementPage';
 
@@ -1156,89 +1155,22 @@ const App = () => {
       />
 
       {isStockModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
-            <div
-              className={`p-6 flex items-center justify-between text-white ${stockModalType === 'in' ? 'bg-green-600' : 'bg-blue-600'}`}
-            >
-              <h3 className="text-lg font-bold flex items-center gap-2">
-                {stockModalType === 'in' ? <Plus size={20} /> : <ArrowRightLeft size={20} />}
-                物料{stockModalType === 'in' ? '入库登记' : '出库申请'}
-              </h3>
-              <button onClick={() => setIsStockModalOpen(false)} className="hover:rotate-90 transition-transform">
-                <X size={20} />
-              </button>
-            </div>
-            <div className="p-8 space-y-5">
-              <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase mb-2">选择物料</label>
-                <SearchableSelect
-                  options={inventory.map((i) => ({ value: i.id, label: `${i.name} (${i.spec})` }))}
-                  value={selectedItemId}
-                  onChange={(v) => setSelectedItemId(Number(v))}
-                  placeholder="请选择或输入检索物料..."
-                  maxHeight="240px"
-                />
-              </div>
-
-              {stockModalType === 'out' && (
-                <div>
-                  <label className="block text-xs font-bold text-slate-400 uppercase mb-2">关联项目</label>
-                  <SearchableSelect
-                    options={projects.map((p) => ({ value: p.id, label: p.name }))}
-                    value={targetProjectId}
-                    onChange={(v) => setTargetProjectId(Number(v))}
-                    placeholder="请选择或输入检索项目..."
-                    maxHeight="240px"
-                  />
-                </div>
-              )}
-              {stockModalType === 'in' && (
-                <div>
-                  <label className="block text-xs font-bold text-slate-400 uppercase mb-2">供应商（可选）</label>
-                  <SearchableSelect
-                    options={[
-                      { value: '', label: '不关联供应商' },
-                      ...suppliers.map((s) => ({ value: s.id, label: s.name })),
-                    ]}
-                    value={stockSupplierId ?? ''}
-                    onChange={(v) => setStockSupplierId(v === '' ? null : Number(v))}
-                    placeholder="请选择或检索供应商..."
-                    maxHeight="240px"
-                  />
-                </div>
-              )}
-
-              <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase mb-2">
-                  操作数量 ({inventory.find((i) => i.id === selectedItemId)?.unit})
-                </label>
-                <input
-                  type="number"
-                  className="w-full bg-slate-50 border rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="请输入数量..."
-                  value={stockAmount || ''}
-                  onChange={(e) => setStockAmount(Number(e.target.value))}
-                />
-              </div>
-
-              <div className="pt-4 flex gap-3">
-                <button
-                  onClick={() => setIsStockModalOpen(false)}
-                  className="flex-1 px-4 py-3 rounded-xl border font-bold hover:bg-slate-50 transition-colors"
-                >
-                  取消
-                </button>
-                <button
-                  onClick={handleStockSubmit}
-                  className={`flex-1 px-4 py-3 rounded-xl text-white font-bold shadow-lg transition-transform active:scale-95 ${stockModalType === 'in' ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-700'}`}
-                >
-                  确认{stockModalType === 'in' ? '入库' : '出库'}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <StockMovementModal
+          type={stockModalType}
+          inventory={inventory}
+          projects={projects}
+          suppliers={suppliers}
+          selectedItemId={selectedItemId}
+          stockAmount={stockAmount}
+          targetProjectId={targetProjectId}
+          stockSupplierId={stockSupplierId}
+          onSelectedItemIdChange={setSelectedItemId}
+          onStockAmountChange={setStockAmount}
+          onTargetProjectIdChange={setTargetProjectId}
+          onStockSupplierIdChange={setStockSupplierId}
+          onClose={() => setIsStockModalOpen(false)}
+          onSubmit={handleStockSubmit}
+        />
       )}
 
       {/* 财务细项弹窗（仪表盘卡片点击） */}
