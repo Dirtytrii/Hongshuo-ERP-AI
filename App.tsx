@@ -1,33 +1,18 @@
 import React, { useState, useEffect, useMemo, Suspense, lazy } from 'react';
 import {
-  LayoutDashboard,
   Wallet,
   Package,
   Plus,
   Clock,
-  TrendingUp,
-  AlertTriangle,
-  ChevronRight,
   ArrowRightLeft,
   X,
   Check,
-  CheckSquare,
   Building2,
   BrainCircuit,
   Sparkles,
   Send,
-  Search,
-  Filter,
   Settings,
   Trash2,
-  ChevronDown,
-  BarChart2,
-  Truck,
-  FileEdit,
-  FileText,
-  Receipt,
-  HandCoins,
-  Smartphone,
 } from 'lucide-react';
 import {
   exportInventoryToExcel,
@@ -110,7 +95,6 @@ import InventoryReport from './components/Reports/InventoryReport';
 import ProjectReport from './components/Reports/ProjectReport';
 
 const ROLES: Record<string, Role> = DEFAULT_ROLES;
-const ROLE_OPTIONS = Object.values(ROLES);
 
 // 权限配置状态（从后端加载）
 const permissionsConfig: Record<string, string[]> = DEFAULT_PERMISSIONS_CONFIG;

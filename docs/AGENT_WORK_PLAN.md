@@ -469,7 +469,7 @@
 
 #### 任务 E：清理 App.tsx 明显未使用 import
 
-- 状态：下一轮主线，任务 A、D 已完成，可立即开工；执行时仍避免与其他 `App.tsx` 任务并行。
+- 状态：已完成。
 - 写入范围：`App.tsx`。
 - 目标：只清理 ESLint 明确提示的未使用 import / 常量，如页面拆分后遗留的图标和 `ROLE_OPTIONS`；不要处理 hook deps 或 `any`，避免引入行为变化。
 - 验收：`npm run lint` warning 数量应下降，且 `npm run test:run`、`npm run build` 通过。
@@ -477,7 +477,7 @@
 
 #### 任务 F：继续拆库存或财务弹窗编排
 
-- 依赖：任务 A、D、E 后再评估。
+- 依赖：任务 A、D、E 已完成，后续可评估；执行时仍避免与其他 `App.tsx` 任务并行。
 - 建议方向：优先从 `App.tsx` 抽 `StockEntryModal` 或 `FinanceRecordModal`，因为两者仍有大段表单 JSX 和状态联动。
 - 要求：先写小组件测试，再接入；每次只拆一个弹窗。
 
@@ -608,6 +608,17 @@ Agent E：执行 docs/AGENT_WORK_PLAN.md 的“第六轮开发任务：清理 Ap
 - 已复跑 `npm run lint`，确认当前仍为 0 errors、66 warnings。
 - 已定位第六轮可安全处理的 `App.tsx` 未使用引用：15 个 lucide 图标 import 和 `ROLE_OPTIONS` 常量。
 - 第六轮任务确定为“清理 App.tsx 明显未使用引用”；本轮只做 lint 卫生清理，不处理 `any`、hook deps、文本转义或其他文件 warning。
+
+### 2026-05-16 第六轮开发：清理 App.tsx 明显未使用引用
+
+- 已从 `App.tsx` 的 `lucide-react` import 中移除 15 个 ESLint 明确报告未使用的图标：`LayoutDashboard`、`TrendingUp`、`AlertTriangle`、`ChevronRight`、`CheckSquare`、`Search`、`Filter`、`ChevronDown`、`BarChart2`、`Truck`、`FileEdit`、`FileText`、`Receipt`、`HandCoins`、`Smartphone`。
+- 已删除未使用常量 `ROLE_OPTIONS`。
+- 未处理 `any`、hook deps、JSX 文本转义或其他文件的 lint warning，未迁移页面或改动业务逻辑。
+- 验证结果：
+  - `npm run lint`：通过，0 errors、50 warnings；warning 数量从 66 降到 50。
+  - `npm run test:run`：通过，15 个测试文件、69 个测试全部通过。
+  - `npm run build`：通过；仍有 Vite chunk 超过 500 kB 的既有提示。
+- 剩余风险：仍有 50 个既有 lint warnings，主要为 `any`、hook deps、JSX 文本转义、未使用异常变量以及其他文件中的类型清理项；本轮按范围未处理。
 
 ## 14. 给开发 agent 的提示词
 
