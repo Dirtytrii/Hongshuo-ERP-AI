@@ -354,16 +354,65 @@
 - 本文档执行记录中写清楚验证命令、结果和剩余风险。
 - 及时提交，提交信息使用中文；建议提交信息：`接入用户管理页面组件`。
 
-## 10. 后续候选任务
+## 10. 第六轮开发任务：清理 App.tsx 明显未使用引用
 
-第五轮完成并提交后，再安排以下任务，暂不同时开工：
+### 目标
+
+继续 Phase 5 结构收口后的卫生清理：只删除 `App.tsx` 中 ESLint 明确报告的未使用 lucide 图标 import 和未使用常量 `ROLE_OPTIONS`。该任务不迁移页面、不改业务逻辑、不处理 `any`、hook deps 或 JSX 文本转义。
+
+### 当前依据
+
+2026-05-16 复跑 `npm run lint` 结果：通过，0 errors、66 warnings，其中 `App.tsx` 有 16 个可安全收敛的未使用引用：
+
+- 未使用 lucide 图标 import：`LayoutDashboard`、`TrendingUp`、`AlertTriangle`、`ChevronRight`、`CheckSquare`、`Search`、`Filter`、`ChevronDown`、`BarChart2`、`Truck`、`FileEdit`、`FileText`、`Receipt`、`HandCoins`、`Smartphone`。
+- 未使用常量：`ROLE_OPTIONS`。
+
+### 建议写入范围
+
+- `App.tsx`
+- `docs/AGENT_WORK_PLAN.md`
+
+### 具体要求
+
+1. 删除明确未使用的引用。
+   - 从 `App.tsx` 的 `lucide-react` import 中移除上述 15 个未使用图标。
+   - 删除 `const ROLE_OPTIONS = Object.values(ROLES);`。
+
+2. 不扩大范围。
+   - 不处理 `any` warning。
+   - 不处理 `react-hooks/exhaustive-deps` warning。
+   - 不处理 `react/no-unescaped-entities` warning。
+   - 不修改 `services/apiService.ts`、`utils/import.ts`、`components/Users/RoleManagement.tsx` 等其他文件的 lint warning。
+   - 不做页面抽离、功能调整或样式重构。
+
+3. 验证 warning 数量。
+   - 预期 `npm run lint` 从 66 warnings 降到约 50 warnings。
+   - 如果 warning 数量未按预期下降，先复核是否有图标仍被使用，不能为了追数改其他类别 warning。
+
+### 验收命令
+
+- `npm run lint`
+- `npm run test:run`
+- `npm run build`
+
+### 完成标准
+
+- `App.tsx` 不再报告上述未使用 import / 常量。
+- `npm run lint` 仍为 0 errors，warning 数量下降。
+- 前端测试与构建通过。
+- 本文档执行记录中写清楚删除了哪些引用、lint warning 数量变化、验证命令和剩余风险。
+- 及时提交，提交信息使用中文；建议提交信息：`清理应用入口未使用引用`。
+
+## 11. 后续候选任务
+
+第六轮完成并提交后，再安排以下任务，暂不同时开工：
 
 1. 继续按页面域切分 `App.tsx`。
    - 优先抽离库存弹窗编排、财务弹窗编排、权限管理等高噪声区域。
    - 每次只迁移一个页面域，迁移前后补或保留测试。
 
 2. 清理 lint warnings。
-   - 先清理 `App.tsx` 未使用 imports 与明显 `any`。
+   - 继续按小批次清理明显 `any` 或未使用变量。
    - hook deps 需要谨慎处理，避免引入重复加载或无限循环。
 
 3. 性能与包体优化。
@@ -374,7 +423,7 @@
    - 统一本地 Java 版本到 17 或至少验证 Java 21/25 下的兼容性。
    - 处理 Maven Central 拉取失败的环境问题后再评价后端测试真实状态。
 
-## 11. 批量任务池与并行安排
+## 12. 批量任务池与并行安排
 
 > 这组任务用于多开发 agent 同时推进。原则：同一时间最多一个 agent 改 `App.tsx`，其余 agent 只做不重叠文件，避免冲突。
 
@@ -420,7 +469,7 @@
 
 #### 任务 E：清理 App.tsx 明显未使用 import
 
-- 依赖：任务 A、D 已完成，可排队开工；执行时仍避免与其他 `App.tsx` 任务并行。
+- 状态：下一轮主线，任务 A、D 已完成，可立即开工；执行时仍避免与其他 `App.tsx` 任务并行。
 - 写入范围：`App.tsx`。
 - 目标：只清理 ESLint 明确提示的未使用 import / 常量，如页面拆分后遗留的图标和 `ROLE_OPTIONS`；不要处理 hook deps 或 `any`，避免引入行为变化。
 - 验收：`npm run lint` warning 数量应下降，且 `npm run test:run`、`npm run build` 通过。
@@ -437,12 +486,12 @@
 ```text
 下一轮只开 1 个会改 App.tsx 的开发 agent：
 
-Agent D：执行 docs/AGENT_WORK_PLAN.md 的“第五轮开发任务：接入用户管理页面组件”。
+Agent E：执行 docs/AGENT_WORK_PLAN.md 的“第六轮开发任务：清理 App.tsx 明显未使用引用”。
 
-执行期间不要并行安排任务 E/F 或任何其他会触碰 App.tsx 的任务。
+执行期间不要并行安排任务 F 或任何其他会触碰 App.tsx 的任务。
 ```
 
-## 12. 执行记录
+## 13. 执行记录
 
 ### 2026-05-15 总控摸底
 
@@ -553,7 +602,14 @@ Agent D：执行 docs/AGENT_WORK_PLAN.md 的“第五轮开发任务：接入用
   - `npm run lint`：通过，0 errors、66 warnings；warning 数量未增加，仍为既有 `App.tsx` 未使用 import、`any`、hook deps 等问题。
 - 剩余风险：本轮未处理既有 lint warnings、Vite 大 chunk 提示和 Maven 在 Java 25 下的运行期 warning；任务 E“清理 App.tsx 明显未使用 import”可作为下一轮串行任务。
 
-## 13. 给开发 agent 的提示词
+### 2026-05-16 总控安排：第六轮任务
+
+- 已确认第五轮提交 `6b97e5b 接入用户管理页面组件` 已落地，当前分支领先远端 11 个提交。
+- 已复跑 `npm run lint`，确认当前仍为 0 errors、66 warnings。
+- 已定位第六轮可安全处理的 `App.tsx` 未使用引用：15 个 lucide 图标 import 和 `ROLE_OPTIONS` 常量。
+- 第六轮任务确定为“清理 App.tsx 明显未使用引用”；本轮只做 lint 卫生清理，不处理 `any`、hook deps、文本转义或其他文件 warning。
+
+## 14. 给开发 agent 的提示词
 
 ### 第一轮提示词（已完成）
 
@@ -747,4 +803,61 @@ Agent D：执行 docs/AGENT_WORK_PLAN.md 的“第五轮开发任务：接入用
 - 更新 docs/AGENT_WORK_PLAN.md 的“执行记录”，写明改了什么、跑了哪些命令、结果如何、是否还有剩余风险。
 - git status --short 确认只包含本任务相关改动。
 - 及时提交，提交信息使用中文，建议为：接入用户管理页面组件。
+```
+
+### 第六轮提示词
+
+```text
+你现在接手 /Users/cloudjiang/Projects/personal/Hongshuo-ERP-AI 的第六轮开发任务。请先阅读 docs/AGENT_WORK_PLAN.md，重点执行其中“第六轮开发任务：清理 App.tsx 明显未使用引用”。
+
+目标：只清理 App.tsx 中 ESLint 明确报告的未使用 lucide 图标 import 和未使用常量 ROLE_OPTIONS。不要迁移页面，不改业务逻辑，不处理 any、hook deps、JSX 文本转义或其他文件的 lint warning。
+
+当前已知情况：
+1. 第五轮已完成，最新提交为 6b97e5b 接入用户管理页面组件。
+2. npm run lint 当前通过，0 errors、66 warnings。
+3. App.tsx 当前有 16 个可安全删除的未使用引用：
+   - LayoutDashboard
+   - TrendingUp
+   - AlertTriangle
+   - ChevronRight
+   - CheckSquare
+   - Search
+   - Filter
+   - ChevronDown
+   - BarChart2
+   - Truck
+   - FileEdit
+   - FileText
+   - Receipt
+   - HandCoins
+   - Smartphone
+   - ROLE_OPTIONS
+
+建议范围：
+- App.tsx
+- docs/AGENT_WORK_PLAN.md
+
+具体要求：
+- 从 App.tsx 的 lucide-react import 中移除上述 15 个未使用图标。
+- 删除 const ROLE_OPTIONS = Object.values(ROLES);。
+- 不要处理 App.tsx 中的 any warning。
+- 不要处理 react-hooks/exhaustive-deps warning。
+- 不要处理 react/no-unescaped-entities warning。
+- 不要修改 services/apiService.ts、utils/import.ts、components/Users/RoleManagement.tsx 等其他文件。
+- 不要顺手做库存/财务弹窗拆分或其他页面抽离。
+
+验收命令：
+- npm run lint
+- npm run test:run
+- npm run build
+
+预期结果：
+- npm run lint 仍为 0 errors。
+- warning 数量应从 66 降到约 50。
+- 如果 warning 数量没有下降到预期附近，先复核是否误留了未使用引用；不要为了追 warning 数量扩大处理范围。
+
+完成要求：
+- 更新 docs/AGENT_WORK_PLAN.md 的“执行记录”，写明删除了哪些引用、lint warning 数量变化、验证命令结果和剩余风险。
+- git status --short 确认只包含本任务相关改动。
+- 及时提交，提交信息使用中文，建议为：清理应用入口未使用引用。
 ```
