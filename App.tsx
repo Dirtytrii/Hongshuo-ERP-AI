@@ -1,17 +1,5 @@
 import React, { useState, useEffect, useMemo, Suspense, lazy } from 'react';
-import {
-  Wallet,
-  Package,
-  Clock,
-  X,
-  Check,
-  Building2,
-  BrainCircuit,
-  Sparkles,
-  Send,
-  Settings,
-  Trash2,
-} from 'lucide-react';
+import { Package, Clock, X, Check, Building2, BrainCircuit, Sparkles, Send, Settings, Trash2 } from 'lucide-react';
 import {
   exportInventoryToExcel,
   exportFinanceToExcel,
@@ -66,6 +54,7 @@ import DepartmentManagement from './components/Departments/DepartmentManagement'
 import IntegrationCenter from './components/Integration/IntegrationCenter';
 import ApprovalCenter from './components/ApprovalCenter/ApprovalCenter';
 import FinanceManagementPage from './components/Finance/FinanceManagementPage';
+import FinanceRecordModal from './components/Finance/FinanceRecordModal';
 import InventoryManagementPage from './components/Inventory/InventoryManagementPage';
 import InventoryWarehousePage from './components/Inventory/InventoryWarehousePage';
 import StockMovementModal from './components/Inventory/StockMovementModal';
@@ -1512,151 +1501,17 @@ const App = () => {
 
       {/* Finance Modal */}
       {isFinanceModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
-            <div className="p-6 flex items-center justify-between text-white bg-green-600">
-              <h3 className="text-lg font-bold flex items-center gap-2">
-                <Wallet size={20} />
-                新增财务记录
-              </h3>
-              <button onClick={() => setIsFinanceModalOpen(false)} className="hover:rotate-90 transition-transform">
-                <X size={20} />
-              </button>
-            </div>
-            <div className="p-8 space-y-5">
-              <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase mb-2">类型</label>
-                <SearchableSelect
-                  options={[
-                    { value: 'income', label: '收入' },
-                    { value: 'expense', label: '支出' },
-                  ]}
-                  value={financeForm.type}
-                  onChange={(v) => {
-                    const newType = v as 'income' | 'expense';
-                    setFinanceForm({
-                      ...financeForm,
-                      type: newType,
-                      category: newType === 'income' ? '项目收款' : '材料采购',
-                    });
-                  }}
-                  placeholder="请选择类型..."
-                  inputClassName="focus:ring-green-500 focus:border-green-500"
-                  maxHeight="180px"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase mb-2">类别</label>
-                <SearchableSelect
-                  options={
-                    financeForm.type === 'income'
-                      ? [{ value: '项目收款', label: '项目收款' }]
-                      : financeCategories.map((c) => ({ value: c.code, label: c.label }))
-                  }
-                  value={financeForm.category}
-                  onChange={(v) => setFinanceForm({ ...financeForm, category: String(v) })}
-                  placeholder={financeForm.type === 'income' ? '项目收款' : '请选择类别...'}
-                  inputClassName="focus:ring-green-500 focus:border-green-500"
-                  maxHeight="200px"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase mb-2">金额</label>
-                <input
-                  type="number"
-                  className="w-full bg-slate-50 border rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-green-500"
-                  value={financeForm.amount}
-                  onChange={(e) => setFinanceForm({ ...financeForm, amount: Number(e.target.value) })}
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase mb-2">关联项目（可选）</label>
-                <SearchableSelect
-                  options={[
-                    { value: '', label: '不关联项目' },
-                    ...projects.map((p) => ({ value: p.id, label: p.name })),
-                  ]}
-                  value={financeForm.projectId ?? ''}
-                  onChange={(v) =>
-                    setFinanceForm({ ...financeForm, projectId: v === '' ? null : Number(v), paymentPlanItemId: null })
-                  }
-                  placeholder="请选择或检索项目..."
-                  inputClassName="focus:ring-green-500 focus:border-green-500"
-                  maxHeight="240px"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase mb-2">关联部门（可选）</label>
-                <SearchableSelect
-                  options={[
-                    { value: '', label: '不关联部门' },
-                    ...departments.map((d) => ({ value: d.id, label: `${d.name}(${d.code})` })),
-                  ]}
-                  value={financeForm.departmentId ?? ''}
-                  onChange={(v) => setFinanceForm({ ...financeForm, departmentId: v === '' ? null : Number(v) })}
-                  placeholder="请选择或检索部门..."
-                  inputClassName="focus:ring-green-500 focus:border-green-500"
-                  maxHeight="240px"
-                />
-              </div>
-              {financeForm.type === 'income' && financeForm.projectId != null && (
-                <div>
-                  <label className="block text-xs font-bold text-slate-400 uppercase mb-2">
-                    计入回款计划节点（可选）
-                  </label>
-                  <SearchableSelect
-                    options={[
-                      { value: '', label: '不计入节点' },
-                      ...paymentPlanOptionsForFinance.map((p) => ({ value: p.id, label: p.name })),
-                    ]}
-                    value={financeForm.paymentPlanItemId ?? ''}
-                    onChange={(v) => setFinanceForm({ ...financeForm, paymentPlanItemId: v === '' ? null : Number(v) })}
-                    placeholder="请选择回款节点..."
-                    inputClassName="focus:ring-green-500 focus:border-green-500"
-                    maxHeight="240px"
-                  />
-                </div>
-              )}
-              <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase mb-2">供应商（可选）</label>
-                <SearchableSelect
-                  options={[
-                    { value: '', label: '不关联供应商' },
-                    ...suppliers.map((s) => ({ value: s.id, label: s.name })),
-                  ]}
-                  value={financeForm.supplierId ?? ''}
-                  onChange={(v) => setFinanceForm({ ...financeForm, supplierId: v === '' ? null : Number(v) })}
-                  placeholder="请选择或检索供应商..."
-                  inputClassName="focus:ring-green-500 focus:border-green-500"
-                  maxHeight="240px"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase mb-2">备注</label>
-                <textarea
-                  className="w-full bg-slate-50 border rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-green-500"
-                  rows={3}
-                  value={financeForm.desc}
-                  onChange={(e) => setFinanceForm({ ...financeForm, desc: e.target.value })}
-                />
-              </div>
-              <div className="pt-4 flex gap-3">
-                <button
-                  onClick={() => setIsFinanceModalOpen(false)}
-                  className="flex-1 px-4 py-3 rounded-xl border font-bold hover:bg-slate-50 transition-colors"
-                >
-                  取消
-                </button>
-                <button
-                  onClick={handleSaveFinance}
-                  className="flex-1 px-4 py-3 rounded-xl bg-green-600 text-white font-bold shadow-lg hover:bg-green-700 transition-transform active:scale-95"
-                >
-                  创建
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <FinanceRecordModal
+          financeForm={financeForm}
+          financeCategories={financeCategories}
+          paymentPlanOptionsForFinance={paymentPlanOptionsForFinance}
+          projects={projects}
+          departments={departments}
+          suppliers={suppliers}
+          onFinanceFormChange={setFinanceForm}
+          onClose={() => setIsFinanceModalOpen(false)}
+          onSubmit={handleSaveFinance}
+        />
       )}
 
       <AppShell

@@ -473,12 +473,84 @@
 - 本文档执行记录中写清楚验证命令、结果和剩余风险。
 - 及时提交，提交信息使用中文；建议提交信息：`抽出库存出入库弹窗组件`。
 
-## 12. 后续候选任务
+## 12. 第八轮开发任务：抽出财务记录弹窗组件
 
-第七轮完成并提交后，再安排以下任务，暂不同时开工：
+### 目标
+
+继续 Phase 5 结构收口：把 `App.tsx` 中 `isFinanceModalOpen` 下的新增财务记录弹窗 JSX 抽成 `components/Finance/FinanceRecordModal.tsx`。该任务不改变财务创建业务流程，不改后端 API，只迁移弹窗展示和表单输入边界，让 `App.tsx` 继续负责弹窗开关、表单状态、分类/回款节点加载、提交、数据刷新和 toast。
+
+### 当前依据
+
+2026-05-16 复核结果：
+
+- 第七轮已完成并提交 `ed236cd 抽出库存出入库弹窗组件`。
+- `App.tsx` 当前仍直接渲染 `isFinanceModalOpen` 下的“新增财务记录”弹窗。
+- 财务弹窗依赖状态包括：`financeForm`、`financeCategories`、`paymentPlanOptionsForFinance`、`projects`、`departments`、`suppliers`。
+- `App.tsx` 已有 `openFinanceModal`、`handleSaveFinance`，并通过 effect 在弹窗打开时加载财务分类、在收入且选择项目时加载回款计划节点。
+- 当前没有现成 `FinanceRecordModal` 组件，需要本轮新建组件和测试。
+
+### 建议写入范围
+
+- `App.tsx`
+- `components/Finance/FinanceRecordModal.tsx`
+- `components/Finance/FinanceRecordModal.test.tsx`
+- `docs/AGENT_WORK_PLAN.md`
+
+### 具体要求
+
+1. 新建财务记录弹窗组件。
+   - 组件命名建议：`FinanceRecordModal`。
+   - 组件负责渲染遮罩、标题、类型、类别、金额、关联项目、关联部门、回款计划节点、供应商、备注、取消和创建按钮。
+   - 继续复用 `components/ui/SearchableSelect`，不要改 `SearchableSelect` 本身。
+
+2. `App.tsx` 接入组件。
+   - 删除 `App.tsx` 中 `isFinanceModalOpen` 下的大段内联弹窗 JSX。
+   - 保留 `isFinanceModalOpen && <FinanceRecordModal ... />` 的装配。
+   - `App.tsx` 继续持有 `financeForm` 和 `setFinanceForm`，继续持有 `handleSaveFinance`。
+   - 不要把 `apiService.createFinanceRecord`、`reloadCoreData`、`getFinanceCategories`、`getPaymentPlansByProject` 移动进组件。
+
+3. 保留现有行为。
+   - 标题仍为“新增财务记录”，绿色头部。
+   - 类型选项仍为“收入 / 支出”。
+   - 类型切换时仍同步设置默认类别：收入为“项目收款”，支出为“材料采购”。
+   - 收入类别选项仍固定为“项目收款”；支出类别仍来自 `financeCategories`。
+   - 关联项目选择为空时 `projectId` 为 `null`，且切换项目时清空 `paymentPlanItemId`。
+   - 关联部门、回款计划节点、供应商选择为空时分别写回 `null`。
+   - 仅当 `financeForm.type === 'income' && financeForm.projectId != null` 时显示“计入回款计划节点（可选）”。
+   - 取消和关闭按钮仍只关闭弹窗。
+   - 创建按钮仍调用 `handleSaveFinance`。
+
+4. 测试要求。
+   - 新增 `components/Finance/FinanceRecordModal.test.tsx`。
+   - 至少覆盖：默认支出模式标题/类别/创建，切换收入时类别回调，收入且有关联项目时显示回款计划节点，项目选择会清空回款节点，供应商/部门空值回写 `null`，取消和关闭回调。
+   - 如果 `SearchableSelect` 交互复杂，可以用可观察文本和关键回调做最小有效覆盖，但不要只做快照。
+
+5. 清理 import。
+   - `App.tsx` 中如果 `Wallet` 不再被其他区域使用，应删除。
+   - `X` 仍可能被其他弹窗使用，删除前必须确认。
+
+### 验收命令
+
+- `npm run test:run -- components/Finance/FinanceRecordModal.test.tsx`
+- `npm run test:run`
+- `npm run build`
+- 建议 `npm run lint`，记录 warning 数量。
+
+### 完成标准
+
+- `App.tsx` 不再保留新增财务记录弹窗的大段 JSX。
+- 财务记录弹窗用户可见文案、条件字段、字段写回和创建按钮行为不回退。
+- 新组件测试覆盖关键渲染与回调。
+- 前端测试与构建通过。
+- 本文档执行记录中写清楚验证命令、结果和剩余风险。
+- 及时提交，提交信息使用中文；建议提交信息：`抽出财务记录弹窗组件`。
+
+## 13. 后续候选任务
+
+第八轮完成并提交后，再安排以下任务，暂不同时开工：
 
 1. 继续按页面域切分 `App.tsx`。
-   - 优先抽离财务弹窗编排、权限管理等高噪声区域。
+   - 优先抽离权限管理弹窗、物料管理弹窗、项目编辑弹窗等高噪声区域。
    - 每次只迁移一个页面域，迁移前后补或保留测试。
 
 2. 清理 lint warnings。
@@ -493,7 +565,7 @@
    - 统一本地 Java 版本到 17 或至少验证 Java 21/25 下的兼容性。
    - 处理 Maven Central 拉取失败的环境问题后再评价后端测试真实状态。
 
-## 13. 批量任务池与并行安排
+## 14. 批量任务池与并行安排
 
 > 这组任务用于多开发 agent 同时推进。原则：同一时间最多一个 agent 改 `App.tsx`，其余 agent 只做不重叠文件，避免冲突。
 
@@ -547,8 +619,8 @@
 
 #### 任务 F：继续拆库存或财务弹窗编排
 
-- 状态：库存出入库弹窗已完成；财务弹窗后续另行评估。
-- 建议方向：优先从 `App.tsx` 抽 `StockMovementModal`，因为库存出入库弹窗范围小于财务弹窗，状态和回调边界更清楚。
+- 状态：库存出入库弹窗与财务记录弹窗均已完成。
+- 建议方向：从 `App.tsx` 抽 `FinanceRecordModal`，保持 `App.tsx` 负责财务表单状态、分类加载、回款节点加载和提交。
 - 要求：先写小组件测试，再接入；每次只拆一个弹窗。
 
 ### 给并行开发 agent 的简短分派
@@ -556,12 +628,12 @@
 ```text
 下一轮只开 1 个会改 App.tsx 的开发 agent：
 
-Agent F：执行 docs/AGENT_WORK_PLAN.md 的“第七轮开发任务：抽出库存出入库弹窗组件”。
+Agent G：执行 docs/AGENT_WORK_PLAN.md 的“第八轮开发任务：抽出财务记录弹窗组件”。
 
-执行期间不要并行安排财务弹窗、权限弹窗或任何其他会触碰 App.tsx 的任务。
+执行期间不要并行安排权限弹窗、物料弹窗或任何其他会触碰 App.tsx 的任务。
 ```
 
-## 14. 执行记录
+## 15. 执行记录
 
 ### 2026-05-15 总控摸底
 
@@ -710,7 +782,27 @@ Agent F：执行 docs/AGENT_WORK_PLAN.md 的“第七轮开发任务：抽出库
   - `npm run lint`：通过，0 errors、50 warnings；warning 数量未增加，仍为既有 `any`、hook deps、JSX 文本转义等问题。
 - 剩余风险：库存提交业务流程未迁入组件，本轮未改动后端 API；后续若继续 Phase 5 结构收口，可再评估财务弹窗或权限弹窗拆分。
 
-## 15. 给开发 agent 的提示词
+### 2026-05-17 总控安排：第八轮任务
+
+- 已确认第七轮提交 `ed236cd 抽出库存出入库弹窗组件` 已落地，当前分支领先远端 1 个提交。
+- 已复核 `App.tsx` 中 `isFinanceModalOpen` 下仍保留新增财务记录弹窗内联 JSX。
+- 已确认当前没有现成 `FinanceRecordModal` 组件，第八轮任务确定为“抽出财务记录弹窗组件”。
+- 本轮仍按串行执行：只允许该开发 agent 触碰 `App.tsx`；不要同时推进权限弹窗、物料弹窗或其他页面抽离。
+
+### 2026-05-17 第八轮开发：抽出财务记录弹窗组件
+
+- 已新增 `components/Finance/FinanceRecordModal.tsx`，负责新增财务记录弹窗的遮罩、标题、类型、类别、金额、关联项目、关联部门、回款计划节点、供应商、备注、取消和创建按钮。
+- 已将 `App.tsx` 中 `isFinanceModalOpen` 下的大段内联 JSX 替换为 `FinanceRecordModal` 装配；`App.tsx` 继续负责 `financeForm` / `setFinanceForm`、分类加载、回款节点加载、`handleSaveFinance`、刷新、toast 和弹窗开关。
+- 已清理 `App.tsx` 中迁移后不再使用的 `Wallet` 图标 import；`X` 仍被其他弹窗使用，未删除。
+- 已新增 `components/Finance/FinanceRecordModal.test.tsx`，覆盖默认支出模式标题/类别/创建、切换收入默认类别、收入关联项目显示回款节点、项目切换清空回款节点、供应商/部门空值写回 `null`、取消和关闭回调。
+- 验证结果：
+  - `npm run test:run -- components/Finance/FinanceRecordModal.test.tsx`：通过，1 个测试文件、6 个测试全部通过。
+  - `npm run test:run`：通过，17 个测试文件、79 个测试全部通过。
+  - `npm run build`：通过；仍有 Vite chunk 超过 500 kB 的既有提示。
+  - `npm run lint`：通过，0 errors、50 warnings；warning 数量未增加，仍为既有 `any`、hook deps、JSX 文本转义等问题。
+- 剩余风险：财务提交业务流程未迁入组件，本轮未改动后端 API；后续可继续评估权限弹窗、物料弹窗或项目编辑弹窗拆分。
+
+## 16. 给开发 agent 的提示词
 
 ### 第一轮提示词（已完成）
 
@@ -1014,4 +1106,60 @@ Agent F：执行 docs/AGENT_WORK_PLAN.md 的“第七轮开发任务：抽出库
 - 更新 docs/AGENT_WORK_PLAN.md 的“执行记录”，写明改了什么、跑了哪些命令、结果如何、是否还有剩余风险。
 - git status --short 确认只包含本任务相关改动。
 - 及时提交，提交信息使用中文，建议为：抽出库存出入库弹窗组件。
+```
+
+### 第八轮提示词
+
+```text
+你现在接手 /Users/cloudjiang/Projects/personal/Hongshuo-ERP-AI 的第八轮开发任务。请先阅读 docs/AGENT_WORK_PLAN.md，重点执行其中“第八轮开发任务：抽出财务记录弹窗组件”。
+
+目标：继续 Phase 5 结构收口，把 App.tsx 中 isFinanceModalOpen 下的新增财务记录弹窗 JSX 抽成 components/Finance/FinanceRecordModal.tsx。不要改变财务创建业务流程，不改后端 API；App.tsx 继续负责弹窗开关、financeForm 状态、分类/回款节点加载、提交、数据刷新和 toast。
+
+当前已知情况：
+1. 第七轮已完成，最新提交为 ed236cd 抽出库存出入库弹窗组件。
+2. npm run lint 已通过，0 errors、50 warnings。
+3. npm run test:run 已通过，16 个测试文件、73 个测试全部通过。
+4. npm run build 已通过，仍有 Vite chunk 超过 500 kB 的既有提示。
+5. App.tsx 当前仍直接渲染 isFinanceModalOpen 下的“新增财务记录”弹窗。
+6. 当前没有现成 FinanceRecordModal 组件，需要新建组件和测试。
+
+建议范围：
+- App.tsx
+- components/Finance/FinanceRecordModal.tsx
+- components/Finance/FinanceRecordModal.test.tsx
+- docs/AGENT_WORK_PLAN.md
+
+具体要求：
+- 新建 FinanceRecordModal 组件，负责渲染遮罩、标题、类型、类别、金额、关联项目、关联部门、回款计划节点、供应商、备注、取消和创建按钮。
+- 继续复用 components/ui/SearchableSelect，不要改 SearchableSelect 本身。
+- 在 App.tsx 中引入并使用 FinanceRecordModal。
+- 删除 App.tsx 中 isFinanceModalOpen 下重复的新增财务记录弹窗内联 JSX。
+- App.tsx 继续持有 financeForm / setFinanceForm，继续持有 handleSaveFinance。
+- 不要把 apiService.createFinanceRecord、reloadCoreData、getFinanceCategories、getPaymentPlansByProject 移动进组件。
+- 标题仍为“新增财务记录”，绿色头部。
+- 类型选项仍为“收入 / 支出”。
+- 类型切换时仍同步设置默认类别：收入为“项目收款”，支出为“材料采购”。
+- 收入类别选项仍固定为“项目收款”；支出类别仍来自 financeCategories。
+- 关联项目选择为空时 projectId 为 null，且切换项目时清空 paymentPlanItemId。
+- 关联部门、回款计划节点、供应商选择为空时分别写回 null。
+- 仅当 financeForm.type === 'income' && financeForm.projectId != null 时显示“计入回款计划节点（可选）”。
+- 取消和关闭按钮仍只关闭弹窗。
+- 创建按钮仍调用 handleSaveFinance。
+- App.tsx 中如果 Wallet 不再被其他区域使用，应删除；X 仍可能被其他弹窗使用，删除前必须确认。
+
+测试要求：
+- 新增 components/Finance/FinanceRecordModal.test.tsx。
+- 至少覆盖：默认支出模式标题/类别/创建，切换收入时类别回调，收入且有关联项目时显示回款计划节点，项目选择会清空回款节点，供应商/部门空值回写 null，取消和关闭回调。
+- 如果 SearchableSelect 交互复杂，可以用可观察文本和关键回调做最小有效覆盖，但不要只做快照。
+
+验收命令：
+- npm run test:run -- components/Finance/FinanceRecordModal.test.tsx
+- npm run test:run
+- npm run build
+- 建议 npm run lint，并记录 warning 数量。
+
+完成要求：
+- 更新 docs/AGENT_WORK_PLAN.md 的“执行记录”，写明改了什么、跑了哪些命令、结果如何、是否还有剩余风险。
+- git status --short 确认只包含本任务相关改动。
+- 及时提交，提交信息使用中文，建议为：抽出财务记录弹窗组件。
 ```
