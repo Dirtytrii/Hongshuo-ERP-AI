@@ -545,12 +545,141 @@
 - 本文档执行记录中写清楚验证命令、结果和剩余风险。
 - 及时提交，提交信息使用中文；建议提交信息：`抽出财务记录弹窗组件`。
 
-## 13. 后续候选任务
+## 13. 第九轮批量任务池：权限弹窗主线 + 并行前置清理
 
-第八轮完成并提交后，再安排以下任务，暂不同时开工：
+### 目标
+
+第九轮开始多 agent 推进，但继续遵守“同一时间最多一个 agent 改 `App.tsx`”的边界。本轮安排 3 个可并行任务：
+
+- Agent H：主线任务，抽出权限管理弹窗组件，会触碰 `App.tsx`。
+- Agent I：前置任务，新建物料管理弹窗组件和测试，不接入 `App.tsx`。
+- Agent J：清理低风险 lint warning，只改 `utils/import.ts`。
+
+### 当前依据
+
+2026-05-17 复核结果：
+
+- 第八轮已完成并提交 `dc5fb89 抽出财务记录弹窗组件`。
+- `npm run lint` 仍通过，0 errors、50 warnings。
+- `App.tsx` 当前仍直接渲染 `isPermissionsModalOpen` 下的权限管理弹窗。
+- `App.tsx` 当前仍直接渲染 `isInventoryModalOpen` 下的物料管理弹窗。
+- `utils/import.ts` 当前有 5 个低风险未使用变量 warning：`e`、`_oldId`、`_m`、`_oldId`、`e`。
+
+### Agent H：抽出权限管理弹窗组件
+
+#### 建议写入范围
+
+- `App.tsx`
+- `components/Settings/PermissionsConfigModal.tsx`
+- `components/Settings/PermissionsConfigModal.test.tsx`
+- `docs/AGENT_WORK_PLAN.md`
+
+#### 具体要求
+
+1. 新建 `PermissionsConfigModal`。
+   - 组件负责渲染遮罩、标题“权限管理”、说明文案、页面访问权限、功能操作权限、系统配置、取消按钮和保存按钮。
+   - 组件接收 `permissionsConfig`、`permissions`、`roleLabelMap`、`configForm`、权限变更回调、配置表单变更回调、关闭回调、保存回调。
+
+2. `App.tsx` 接入组件。
+   - 删除 `App.tsx` 中 `isPermissionsModalOpen` 下的大段权限管理内联 JSX。
+   - 保留 `isPermissionsModalOpen && <PermissionsConfigModal ... />` 的装配。
+   - `App.tsx` 继续负责 `permissions`、`configForm` 状态，以及 `handlePermissionChange`、`handleSavePermissions`、`handleSaveConfig`。
+   - 保存按钮仍需要依次调用 `handleSavePermissions()` 和 `handleSaveConfig()`。
+
+3. 保留现有行为。
+   - 页面级权限仍按 `permission.endsWith('.view')` 分组。
+   - 功能权限仍按非 `.view` 分组。
+   - 权限中文标签保持现有映射。
+   - 勾选框仍以 `(permissions[permission] || []).includes(role.id)` 判定。
+   - 取消仍关闭弹窗并 `setConfigForm(config)` 重置表单。
+   - 保存仍显示“保存所有配置”。
+
+4. 测试要求。
+   - 新增 `components/Settings/PermissionsConfigModal.test.tsx`。
+   - 至少覆盖：页面权限分组、功能权限分组、角色勾选状态、勾选回调、配置输入回调、取消回调、保存回调。
+
+#### 验收命令
+
+- `npm run test:run -- components/Settings/PermissionsConfigModal.test.tsx`
+- `npm run test:run`
+- `npm run build`
+- 建议 `npm run lint`，记录 warning 数量。
+
+#### 完成标准
+
+- `App.tsx` 不再保留权限管理弹窗的大段 JSX。
+- 权限分组、勾选、配置输入、取消和保存行为不回退。
+- 新组件测试覆盖关键渲染与回调。
+- 及时提交，提交信息建议：`抽出权限管理弹窗组件`。
+
+### Agent I：新建物料管理弹窗组件测试前置
+
+#### 建议写入范围
+
+- `components/Inventory/InventoryItemModal.tsx`
+- `components/Inventory/InventoryItemModal.test.tsx`
+- `docs/AGENT_WORK_PLAN.md`
+
+#### 具体要求
+
+- 只新建组件和测试，不接入 `App.tsx`，避免和 Agent H 冲突。
+- 组件从当前 `App.tsx` 的 `isInventoryModalOpen` 内联物料管理弹窗抽象而来。
+- 组件负责渲染标题“新建物料/编辑物料”、物料名称、规格参数、单位、参考单价、初始库存数量、低库存预警阈值、取消和保存按钮。
+- 组件接收 `inventoryForm`、`editingInventoryItem`、`onInventoryFormChange`、`onClose`、`onSubmit`。
+- 测试至少覆盖：新建/编辑标题、字段显示与输入回调、阈值单位联动、取消回调、保存回调。
+
+#### 验收命令
+
+- `npm run test:run -- components/Inventory/InventoryItemModal.test.tsx`
+- `npm run test:run`
+- `npm run build`
+
+#### 完成标准
+
+- 新组件和测试可独立通过。
+- 不修改 `App.tsx`。
+- 及时提交，提交信息建议：`补充物料管理弹窗组件`
+
+### Agent J：清理 utils/import.ts 低风险未使用变量
+
+#### 建议写入范围
+
+- `utils/import.ts`
+- `docs/AGENT_WORK_PLAN.md`
+
+#### 具体要求
+
+- 只处理 `utils/import.ts` 中 ESLint 明确报告的未使用变量 warning。
+- 当前目标为：第 26 行 `e`、第 56 行 `_oldId`、第 56 行 `_m`、第 62 行 `_oldId`、第 116 行 `e`。
+- 对 catch 参数如果未使用，优先改成无参数 `catch {}`。
+- 对解构出的未使用字段，优先调整解构或删除无用绑定，不改变导入解析语义。
+- 不处理 `App.tsx`、`apiService.ts`、`RoleManagement.tsx` 的 warning。
+
+#### 验收命令
+
+- `npm run lint`
+- `npm run test:run`
+- `npm run build`
+
+#### 完成标准
+
+- `utils/import.ts` 不再报告上述 5 个未使用变量 warning。
+- `npm run lint` 仍为 0 errors，warning 数量预期从 50 降到约 45。
+- 及时提交，提交信息建议：`清理导入工具未使用变量`
+
+### 并行边界
+
+- Agent H 是本轮唯一允许修改 `App.tsx` 的任务。
+- Agent I 不接入 `App.tsx`，只做组件和测试前置。
+- Agent J 只改 `utils/import.ts`。
+- 三个任务都完成后，再安排 Agent K 接入 `InventoryItemModal`。
+
+## 14. 后续候选任务
+
+第九轮批量任务完成并提交后，再安排以下任务，暂不同时开工：
 
 1. 继续按页面域切分 `App.tsx`。
-   - 优先抽离权限管理弹窗、物料管理弹窗、项目编辑弹窗等高噪声区域。
+   - 优先接入 `InventoryItemModal`，再评估项目编辑弹窗、驳回备注弹窗等高噪声区域。
    - 每次只迁移一个页面域，迁移前后补或保留测试。
 
 2. 清理 lint warnings。
@@ -565,7 +694,7 @@
    - 统一本地 Java 版本到 17 或至少验证 Java 21/25 下的兼容性。
    - 处理 Maven Central 拉取失败的环境问题后再评价后端测试真实状态。
 
-## 14. 批量任务池与并行安排
+## 15. 批量任务池与并行安排
 
 > 这组任务用于多开发 agent 同时推进。原则：同一时间最多一个 agent 改 `App.tsx`，其余 agent 只做不重叠文件，避免冲突。
 
@@ -623,17 +752,45 @@
 - 建议方向：从 `App.tsx` 抽 `FinanceRecordModal`，保持 `App.tsx` 负责财务表单状态、分类加载、回款节点加载和提交。
 - 要求：先写小组件测试，再接入；每次只拆一个弹窗。
 
+#### 任务 H：抽出权限管理弹窗组件
+
+- 状态：第九轮主线，可立即开工；这是本轮唯一允许改 `App.tsx` 的任务。
+- 建议写入范围：`App.tsx`、`components/Settings/PermissionsConfigModal.tsx`、`components/Settings/PermissionsConfigModal.test.tsx`、`docs/AGENT_WORK_PLAN.md`。
+- 目标：把 `App.tsx` 内联的 `isPermissionsModalOpen` 权限管理弹窗抽出为组件，保留权限分组、角色勾选、系统配置、取消重置和保存行为。
+- 验收：`npm run test:run -- components/Settings/PermissionsConfigModal.test.tsx`、`npm run test:run`、`npm run build`，建议 `npm run lint`。
+- 建议提交信息：`抽出权限管理弹窗组件`
+
+#### 任务 I：新建物料管理弹窗组件测试前置
+
+- 状态：第九轮并行任务，可立即开工；不允许修改 `App.tsx`。
+- 建议写入范围：`components/Inventory/InventoryItemModal.tsx`、`components/Inventory/InventoryItemModal.test.tsx`、`docs/AGENT_WORK_PLAN.md`。
+- 目标：先把物料管理弹窗组件和测试准备好，给后续接入 `App.tsx` 铺路。
+- 验收：`npm run test:run -- components/Inventory/InventoryItemModal.test.tsx`、`npm run test:run`、`npm run build`。
+- 建议提交信息：`补充物料管理弹窗组件`
+
+#### 任务 J：清理 utils/import.ts 低风险未使用变量
+
+- 状态：第九轮并行任务，可立即开工；只允许修改 `utils/import.ts` 和计划文档。
+- 建议写入范围：`utils/import.ts`、`docs/AGENT_WORK_PLAN.md`。
+- 目标：清理 `utils/import.ts` 中 5 个 ESLint 未使用变量 warning，不碰 `App.tsx`、`apiService.ts`、`RoleManagement.tsx`。
+- 验收：`npm run lint` warning 数量预期从 50 降到约 45，且 `npm run test:run`、`npm run build` 通过。
+- 建议提交信息：`清理导入工具未使用变量`
+
 ### 给并行开发 agent 的简短分派
 
 ```text
-下一轮只开 1 个会改 App.tsx 的开发 agent：
+当前可以同时开 3 个开发 agent：
 
-Agent G：执行 docs/AGENT_WORK_PLAN.md 的“第八轮开发任务：抽出财务记录弹窗组件”。
+Agent H：执行 docs/AGENT_WORK_PLAN.md 的“第九轮批量任务池：权限弹窗主线 + 并行前置清理”里的“Agent H：抽出权限管理弹窗组件”。这是本轮唯一允许改 App.tsx 的任务。
 
-执行期间不要并行安排权限弹窗、物料弹窗或任何其他会触碰 App.tsx 的任务。
+Agent I：执行同一章节里的“Agent I：新建物料管理弹窗组件测试前置”。只新建组件和测试，不接入 App.tsx。
+
+Agent J：执行同一章节里的“Agent J：清理 utils/import.ts 低风险未使用变量”。只改 utils/import.ts 和计划文档。
+
+三者完成后，再安排 Agent K 接入 InventoryItemModal。不要让 K 和 H 同时进行。
 ```
 
-## 15. 执行记录
+## 16. 执行记录
 
 ### 2026-05-15 总控摸底
 
@@ -802,7 +959,16 @@ Agent G：执行 docs/AGENT_WORK_PLAN.md 的“第八轮开发任务：抽出财
   - `npm run lint`：通过，0 errors、50 warnings；warning 数量未增加，仍为既有 `any`、hook deps、JSX 文本转义等问题。
 - 剩余风险：财务提交业务流程未迁入组件，本轮未改动后端 API；后续可继续评估权限弹窗、物料弹窗或项目编辑弹窗拆分。
 
-## 16. 给开发 agent 的提示词
+### 2026-05-18 总控安排：第九轮批量任务池
+
+- 已确认第八轮提交 `dc5fb89 抽出财务记录弹窗组件` 已落地，当前分支领先远端 2 个提交。
+- 已复核 `App.tsx` 中 `isPermissionsModalOpen` 下仍保留权限管理弹窗内联 JSX，适合作为第九轮唯一触碰 `App.tsx` 的主线任务。
+- 已复核 `App.tsx` 中 `isInventoryModalOpen` 下仍保留物料管理弹窗内联 JSX；本轮只安排组件和测试前置，不接入 `App.tsx`，避免冲突。
+- 已复跑 `npm run lint`，确认当前仍为 0 errors、50 warnings；`utils/import.ts` 有 5 个低风险未使用变量 warning，可独立并行清理。
+- 第九轮安排 3 个开发 agent 并行：Agent H 抽权限管理弹窗、Agent I 新建物料管理弹窗组件测试前置、Agent J 清理 `utils/import.ts` 未使用变量。
+- 并行边界：Agent H 是唯一允许修改 `App.tsx` 的任务；Agent I 不接入 `App.tsx`；Agent J 只改 `utils/import.ts`。
+
+## 17. 给开发 agent 的提示词
 
 ### 第一轮提示词（已完成）
 
@@ -1162,4 +1328,81 @@ Agent G：执行 docs/AGENT_WORK_PLAN.md 的“第八轮开发任务：抽出财
 - 更新 docs/AGENT_WORK_PLAN.md 的“执行记录”，写明改了什么、跑了哪些命令、结果如何、是否还有剩余风险。
 - git status --short 确认只包含本任务相关改动。
 - 及时提交，提交信息使用中文，建议为：抽出财务记录弹窗组件。
+```
+
+### 第九轮批量提示词
+
+```text
+你现在接手 /Users/cloudjiang/Projects/personal/Hongshuo-ERP-AI 的第九轮批量任务。请先阅读 docs/AGENT_WORK_PLAN.md，重点执行其中“第九轮批量任务池：权限弹窗主线 + 并行前置清理”。
+
+本轮可以同时开 3 个开发 agent，但必须遵守边界：
+- Agent H 是唯一允许修改 App.tsx 的任务。
+- Agent I 不接入 App.tsx，只新建物料管理弹窗组件和测试。
+- Agent J 只改 utils/import.ts 和 docs/AGENT_WORK_PLAN.md。
+- 三者完成后，再安排 Agent K 接入 InventoryItemModal。不要让 K 和 H 同时进行。
+
+Agent H：抽出权限管理弹窗组件
+目标：把 App.tsx 中 isPermissionsModalOpen 下的权限管理弹窗 JSX 抽成 components/Settings/PermissionsConfigModal.tsx。App.tsx 继续负责 permissions、configForm、handlePermissionChange、handleSavePermissions、handleSaveConfig。
+建议范围：
+- App.tsx
+- components/Settings/PermissionsConfigModal.tsx
+- components/Settings/PermissionsConfigModal.test.tsx
+- docs/AGENT_WORK_PLAN.md
+保留行为：
+- 页面级权限仍按 permission.endsWith('.view') 分组。
+- 功能权限仍按非 .view 分组。
+- 权限中文标签保持现有映射。
+- 勾选框仍以 (permissions[permission] || []).includes(role.id) 判定。
+- 取消仍关闭弹窗并 setConfigForm(config) 重置表单。
+- 保存按钮仍显示“保存所有配置”，并依次调用 handleSavePermissions() 和 handleSaveConfig()。
+验收：
+- npm run test:run -- components/Settings/PermissionsConfigModal.test.tsx
+- npm run test:run
+- npm run build
+- 建议 npm run lint
+提交信息建议：抽出权限管理弹窗组件
+
+Agent I：新建物料管理弹窗组件测试前置
+目标：新建 components/Inventory/InventoryItemModal.tsx 和 components/Inventory/InventoryItemModal.test.tsx，但不要接入 App.tsx。
+建议范围：
+- components/Inventory/InventoryItemModal.tsx
+- components/Inventory/InventoryItemModal.test.tsx
+- docs/AGENT_WORK_PLAN.md
+组件要求：
+- 从当前 App.tsx 的 isInventoryModalOpen 内联物料管理弹窗抽象而来。
+- 渲染标题“新建物料/编辑物料”、物料名称、规格参数、单位、参考单价、初始库存数量、低库存预警阈值、取消和保存按钮。
+- 接收 inventoryForm、editingInventoryItem、onInventoryFormChange、onClose、onSubmit。
+测试至少覆盖：
+- 新建/编辑标题。
+- 字段显示与输入回调。
+- 阈值单位联动。
+- 取消回调。
+- 保存回调。
+验收：
+- npm run test:run -- components/Inventory/InventoryItemModal.test.tsx
+- npm run test:run
+- npm run build
+提交信息建议：补充物料管理弹窗组件
+
+Agent J：清理 utils/import.ts 低风险未使用变量
+目标：只处理 utils/import.ts 中 ESLint 明确报告的未使用变量 warning，不处理其他文件。
+建议范围：
+- utils/import.ts
+- docs/AGENT_WORK_PLAN.md
+当前目标：
+- 第 26 行 e
+- 第 56 行 _oldId
+- 第 56 行 _m
+- 第 62 行 _oldId
+- 第 116 行 e
+要求：
+- catch 参数如果未使用，优先改成无参数 catch {}。
+- 对解构出的未使用字段，优先调整解构或删除无用绑定，不改变导入解析语义。
+- 不处理 App.tsx、apiService.ts、RoleManagement.tsx 的 warning。
+验收：
+- npm run lint
+- npm run test:run
+- npm run build
+预期：npm run lint 仍为 0 errors，warning 数量从 50 降到约 45。
+提交信息建议：清理导入工具未使用变量
 ```
