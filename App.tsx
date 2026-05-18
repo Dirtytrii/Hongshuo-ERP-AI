@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, Suspense, lazy } from 'react';
-import { Package, Clock, X, Check, Building2, BrainCircuit, Sparkles, Send, Trash2 } from 'lucide-react';
+import { Clock, X, Check, Building2, BrainCircuit, Sparkles, Send, Trash2 } from 'lucide-react';
 import {
   exportInventoryToExcel,
   exportFinanceToExcel,
@@ -55,6 +55,7 @@ import IntegrationCenter from './components/Integration/IntegrationCenter';
 import ApprovalCenter from './components/ApprovalCenter/ApprovalCenter';
 import FinanceManagementPage from './components/Finance/FinanceManagementPage';
 import FinanceRecordModal from './components/Finance/FinanceRecordModal';
+import InventoryItemModal from './components/Inventory/InventoryItemModal';
 import InventoryManagementPage from './components/Inventory/InventoryManagementPage';
 import InventoryWarehousePage from './components/Inventory/InventoryWarehousePage';
 import StockMovementModal from './components/Inventory/StockMovementModal';
@@ -2186,102 +2187,13 @@ const App = () => {
 
       {/* 物料管理模态框 */}
       {isInventoryModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl w-full max-w-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
-            <div className="p-6 flex items-center justify-between text-white bg-purple-600">
-              <h3 className="text-lg font-bold flex items-center gap-2">
-                <Package size={20} />
-                {editingInventoryItem ? '编辑物料' : '新建物料'}
-              </h3>
-              <button onClick={() => setIsInventoryModalOpen(false)} className="hover:rotate-90 transition-transform">
-                <X size={20} />
-              </button>
-            </div>
-            <div className="p-6 space-y-5">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-400 uppercase mb-2">物料名称 *</label>
-                  <input
-                    type="text"
-                    className="w-full bg-slate-50 border rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-purple-500"
-                    value={inventoryForm.name}
-                    onChange={(e) => setInventoryForm({ ...inventoryForm, name: e.target.value })}
-                    placeholder="如：42.5级硅酸盐水泥"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-400 uppercase mb-2">规格参数 *</label>
-                  <input
-                    type="text"
-                    className="w-full bg-slate-50 border rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-purple-500"
-                    value={inventoryForm.spec}
-                    onChange={(e) => setInventoryForm({ ...inventoryForm, spec: e.target.value })}
-                    placeholder="如：Φ12"
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-400 uppercase mb-2">单位 *</label>
-                  <input
-                    type="text"
-                    className="w-full bg-slate-50 border rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-purple-500"
-                    value={inventoryForm.unit}
-                    onChange={(e) => setInventoryForm({ ...inventoryForm, unit: e.target.value })}
-                    placeholder="如：袋、吨、立方米"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-400 uppercase mb-2">参考单价（元）</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    className="w-full bg-slate-50 border rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-purple-500"
-                    value={inventoryForm.price}
-                    onChange={(e) => setInventoryForm({ ...inventoryForm, price: Number(e.target.value) })}
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-400 uppercase mb-2">初始库存数量</label>
-                  <input
-                    type="number"
-                    className="w-full bg-slate-50 border rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-purple-500"
-                    value={inventoryForm.quantity}
-                    onChange={(e) => setInventoryForm({ ...inventoryForm, quantity: Number(e.target.value) })}
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase mb-2">低库存预警阈值 *</label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="number"
-                    className="flex-1 bg-slate-50 border rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-purple-500"
-                    value={inventoryForm.threshold}
-                    onChange={(e) => setInventoryForm({ ...inventoryForm, threshold: Number(e.target.value) })}
-                    placeholder="当库存低于此值时显示预警"
-                  />
-                  <span className="text-sm text-slate-500">{inventoryForm.unit || '单位'}</span>
-                </div>
-                <p className="text-xs text-slate-400 mt-1">当物料数量低于此阈值时，系统会显示低库存警告</p>
-              </div>
-            </div>
-            <div className="p-6 border-t flex gap-3">
-              <button
-                onClick={() => setIsInventoryModalOpen(false)}
-                className="flex-1 px-4 py-3 rounded-xl border font-bold hover:bg-slate-50 transition-colors"
-              >
-                取消
-              </button>
-              <button
-                onClick={handleSaveInventoryItem}
-                className="flex-1 px-4 py-3 rounded-xl bg-purple-600 text-white font-bold shadow-lg hover:bg-purple-700 transition-transform active:scale-95"
-              >
-                {editingInventoryItem ? '更新' : '创建'}
-              </button>
-            </div>
-          </div>
-        </div>
+        <InventoryItemModal
+          inventoryForm={inventoryForm}
+          editingInventoryItem={editingInventoryItem}
+          onInventoryFormChange={setInventoryForm}
+          onClose={() => setIsInventoryModalOpen(false)}
+          onSubmit={handleSaveInventoryItem}
+        />
       )}
     </>
   );
