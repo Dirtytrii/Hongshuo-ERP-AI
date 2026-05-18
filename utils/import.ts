@@ -23,7 +23,7 @@ export function parseBackupFile(file: File): Promise<BackupData> {
           financeRecords: Array.isArray(data.financeRecords) ? data.financeRecords : [],
           stockLogs: Array.isArray(data.stockLogs) ? data.stockLogs : [],
         });
-      } catch (e) {
+      } catch {
         reject(new Error('无效的备份文件格式'));
       }
     };
@@ -53,15 +53,15 @@ export async function restoreFromBackup(
 
   try {
     for (const p of data.projects) {
-      const { id: _oldId, milestones: _m, ...rest } = p as Project & { milestones?: unknown[] };
+      const { id: oldProjectId, ...rest } = p as Project & { milestones?: unknown[] };
       const createdProject = (await api.createProject({ ...rest, milestones: [] })) as { id: number };
-      projectIdMap.set(p.id, createdProject.id);
+      projectIdMap.set(oldProjectId, createdProject.id);
       created.projects++;
     }
     for (const i of data.inventory) {
-      const { id: _oldId, ...rest } = i;
+      const { id: oldItemId, ...rest } = i;
       const createdItem = (await api.createInventoryItem(rest)) as { id: number };
-      itemIdMap.set(i.id, createdItem.id);
+      itemIdMap.set(oldItemId, createdItem.id);
       created.inventory++;
     }
     for (const r of data.financeRecords) {
@@ -113,7 +113,7 @@ function readExcelFile(file: File): Promise<XLSX.WorkBook> {
       try {
         const wb = XLSX.read(r.result, { type: 'array' });
         resolve(wb);
-      } catch (e) {
+      } catch {
         reject(new Error('Excel 解析失败'));
       }
     };
@@ -159,9 +159,7 @@ export async function parseInventoryExcel(file: File): Promise<Array<Partial<Inv
 }
 
 /** 解析财务 Excel */
-export async function parseFinanceExcel(
-  file: File
-): Promise<
+export async function parseFinanceExcel(file: File): Promise<
   Array<
     Partial<FinanceRecord> & {
       type: 'income' | 'expense';
