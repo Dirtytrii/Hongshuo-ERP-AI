@@ -52,9 +52,9 @@ const AppHeader: React.FC<AppHeaderProps> = ({
         </div>
       </div>
 
-      <div className="flex w-full md:w-auto items-center gap-2 md:gap-3 overflow-x-auto pb-1 md:pb-0 md:overflow-visible shrink-0">
+      <div className="flex w-full flex-wrap items-center gap-2 md:w-auto md:flex-nowrap md:gap-3 shrink-0">
         <div
-          className={`px-3 py-1.5 rounded-full flex items-center gap-2 border whitespace-nowrap ${
+          className={`shrink-0 px-3 py-1.5 rounded-full flex items-center gap-2 border whitespace-nowrap ${
             isBackendConnected ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'
           }`}
         >
@@ -64,12 +64,13 @@ const AppHeader: React.FC<AppHeaderProps> = ({
           </span>
         </div>
 
-        <div className="relative">
+        <div className="relative shrink-0">
           <button
             type="button"
             onClick={onToggleMessageCenter}
             className="relative p-2 rounded-xl border border-slate-200 hover:bg-slate-50 transition-colors"
             title="消息通知"
+            aria-label="消息通知"
           >
             <Bell size={18} className="text-slate-600" />
             {messageCenterCount > 0 && (
@@ -86,7 +87,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
             <button
               type="button"
               onClick={onBackup}
-              className="px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-bold hover:bg-slate-50 flex items-center gap-2 whitespace-nowrap"
+              className="shrink-0 px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-bold hover:bg-slate-50 flex items-center gap-2 whitespace-nowrap"
               title="导出当前数据为 JSON 备份"
             >
               <DatabaseBackup size={14} /> 备份
@@ -94,7 +95,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
             <button
               type="button"
               onClick={onRestore}
-              className="px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-bold hover:bg-slate-50 flex items-center gap-2 whitespace-nowrap"
+              className="shrink-0 px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-bold hover:bg-slate-50 flex items-center gap-2 whitespace-nowrap"
               title="从 JSON 备份恢复"
             >
               <RotateCcw size={14} /> 恢复
@@ -102,7 +103,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
             <button
               type="button"
               onClick={onResetData}
-              className="px-3 py-1.5 bg-red-600 text-white rounded-lg text-xs font-bold hover:bg-red-700 transition-colors flex items-center gap-2 whitespace-nowrap"
+              className="shrink-0 px-3 py-1.5 bg-red-600 text-white rounded-lg text-xs font-bold hover:bg-red-700 transition-colors flex items-center gap-2 whitespace-nowrap"
               title="重置所有数据（测试用）"
             >
               <Trash2 size={14} /> 重置数据
@@ -110,7 +111,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
           </>
         )}
 
-        <div className="flex items-center gap-2 md:gap-3 pl-1">
+        <div className="ml-auto flex items-center gap-2 md:ml-0 md:gap-3 md:pl-1">
           <div className="text-right shrink-0">
             <p className="text-sm text-slate-700">{authUsername}</p>
             <p className="text-xs text-slate-500">{roleLabel}</p>
