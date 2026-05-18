@@ -48,7 +48,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
         </button>
         <div className="min-w-0">
           <h2 className="text-lg font-bold text-slate-800 truncate">{title}</h2>
-          <p className="text-xs text-slate-500 truncate">按统一页面骨架与领域模块持续收口</p>
+          <p className="text-xs text-slate-500 truncate">项目 · 物料 · 财务一体化</p>
         </div>
       </div>
 

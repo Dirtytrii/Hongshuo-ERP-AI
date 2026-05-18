@@ -37,7 +37,7 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
           {isOpen && (
             <div className="min-w-0">
               <p className="font-bold text-base tracking-tight text-slate-800">宏硕建设 ERP</p>
-              <p className="text-xs text-slate-500">Phase 5 架构收口中</p>
+              <p className="text-xs text-slate-500">项目 · 物料 · 财务一体化</p>
             </div>
           )}
         </div>
