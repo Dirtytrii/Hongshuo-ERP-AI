@@ -1417,3 +1417,10 @@ Agent J：清理 utils/import.ts 低风险未使用变量
 预期：npm run lint 仍为 0 errors，warning 数量从 50 降到约 45。
 提交信息建议：清理导入工具未使用变量
 ```
+
+### Agent I 执行记录（第九轮）
+
+- 已新增 `components/Inventory/InventoryItemModal.tsx`，从现有物料管理内联弹窗抽象出受控组件，覆盖新建/编辑标题、物料名称、规格参数、单位、参考单价、初始库存数量、低库存预警阈值、取消和提交按钮。
+- 已新增 `components/Inventory/InventoryItemModal.test.tsx`，覆盖新建/编辑标题、字段显示与输入回调、阈值单位联动、取消/关闭回调、保存提交回调。
+- 本轮未接入 `App.tsx`，后续 Agent K 可直接用该组件替换 `isInventoryModalOpen` 下的内联 JSX。
+- 验证通过：`npm run test:run -- components/Inventory/InventoryItemModal.test.tsx`、`npm run test:run`、`npm run build`。
