@@ -17,6 +17,12 @@ const costTypeLabel: Record<string, string> = {
   other: '其他',
 };
 
+const financeStatusMeta: Record<string, { label: string; className: string }> = {
+  approved: { label: '已审批', className: 'bg-green-50 text-green-700 ring-green-100' },
+  pending: { label: '待审批', className: 'bg-orange-50 text-orange-700 ring-orange-100' },
+  rejected: { label: '已拒绝', className: 'bg-red-50 text-red-700 ring-red-100' },
+};
+
 const FinanceReport: React.FC<FinanceReportProps> = ({ financeRecords, dateFrom, dateTo, projectId }) => {
   const filtered = useMemo(() => {
     let list = financeRecords.filter((r) => r.status === 'approved');
@@ -77,7 +83,7 @@ const FinanceReport: React.FC<FinanceReportProps> = ({ financeRecords, dateFrom,
         <div>
           <h4 className="text-sm font-bold text-slate-600 mb-2">按项目汇总</h4>
           <div className="overflow-x-auto border rounded-xl">
-            <table className="w-full text-sm text-left">
+            <table className="w-full min-w-[640px] text-sm text-left">
               <thead className="bg-slate-50 border-b">
                 <tr>
                   <th className="py-2 px-3 font-bold text-slate-600">项目ID</th>
@@ -142,7 +148,7 @@ const FinanceReport: React.FC<FinanceReportProps> = ({ financeRecords, dateFrom,
           </button>
         </div>
         <div className="overflow-x-auto border rounded-xl max-h-64 overflow-y-auto">
-          <table className="w-full text-sm text-left">
+          <table className="w-full min-w-[760px] text-sm text-left">
             <thead className="bg-slate-50 border-b sticky top-0">
               <tr>
                 <th className="py-2 px-3 font-bold text-slate-600">日期</th>
@@ -163,18 +169,31 @@ const FinanceReport: React.FC<FinanceReportProps> = ({ financeRecords, dateFrom,
               ) : (
                 [...filtered]
                   .sort((a, b) => b.date.localeCompare(a.date))
-                  .map((r) => (
-                    <tr key={r.id}>
-                      <td className="py-2 px-3">{r.date}</td>
-                      <td className="py-2 px-3">{r.type === 'income' ? '收入' : '支出'}</td>
-                      <td className="py-2 px-3">{r.category || '-'}</td>
-                      <td className={`py-2 px-3 ${r.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
-                        ￥{r.amount.toLocaleString()}
-                      </td>
-                      <td className="py-2 px-3">{r.projectId ?? '-'}</td>
-                      <td className="py-2 px-3">{r.status}</td>
-                    </tr>
-                  ))
+                  .map((r) => {
+                    const statusMeta = financeStatusMeta[r.status] ?? {
+                      label: r.status,
+                      className: 'bg-slate-50 text-slate-600 ring-slate-100',
+                    };
+
+                    return (
+                      <tr key={r.id}>
+                        <td className="py-2 px-3">{r.date}</td>
+                        <td className="py-2 px-3">{r.type === 'income' ? '收入' : '支出'}</td>
+                        <td className="py-2 px-3">{r.category || '-'}</td>
+                        <td className={`py-2 px-3 ${r.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
+                          ￥{r.amount.toLocaleString()}
+                        </td>
+                        <td className="py-2 px-3">{r.projectId ?? '-'}</td>
+                        <td className="py-2 px-3">
+                          <span
+                            className={`inline-flex whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-bold ring-1 ${statusMeta.className}`}
+                          >
+                            {statusMeta.label}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })
               )}
             </tbody>
           </table>

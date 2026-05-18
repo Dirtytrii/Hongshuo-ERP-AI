@@ -37,7 +37,7 @@ const InventoryManagementPage: React.FC<InventoryManagementPageProps> = ({
           <h3 className="font-bold flex items-center gap-2 text-slate-700">
             <Package size={18} /> 物料管理
           </h3>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <button
               type="button"
               onClick={onExport}
@@ -73,7 +73,7 @@ const InventoryManagementPage: React.FC<InventoryManagementPageProps> = ({
           </div>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-left">
+          <table className="w-full min-w-[960px] text-left">
             <thead className="bg-slate-50 border-b text-slate-400 text-xs uppercase tracking-wider">
               <tr>
                 <th className="px-6 py-4 font-bold">物料名称</th>

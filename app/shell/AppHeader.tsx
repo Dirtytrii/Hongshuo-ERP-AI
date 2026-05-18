@@ -35,25 +35,26 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   messageCenter,
 }) => {
   return (
-    <header className="h-16 bg-white border-b border-slate-200/70 px-6 lg:px-8 flex items-center justify-between shadow-sm z-10 rounded-b-2xl gap-4">
-      <div className="flex items-center gap-4 min-w-0">
+    <header className="bg-white border-b border-slate-200/70 px-3 py-3 sm:px-4 md:h-16 md:px-6 md:py-0 lg:px-8 flex flex-col md:flex-row md:items-center justify-between shadow-sm z-10 rounded-b-2xl gap-3 md:gap-4">
+      <div className="flex w-full md:w-auto items-center gap-3 md:gap-4 min-w-0">
         <button
           type="button"
           onClick={onToggleSidebar}
           className="p-2 rounded-xl border border-slate-200 text-slate-500 hover:bg-slate-50 transition-colors"
           title={isSidebarOpen ? '收起侧栏' : '展开侧栏'}
+          aria-label={isSidebarOpen ? '收起侧栏' : '展开侧栏'}
         >
           {isSidebarOpen ? <ChevronLeft size={18} /> : <ChevronRight size={18} />}
         </button>
         <div className="min-w-0">
           <h2 className="text-lg font-bold text-slate-800 truncate">{title}</h2>
-          <p className="text-xs text-slate-500">按统一页面骨架与领域模块持续收口</p>
+          <p className="text-xs text-slate-500 truncate">按统一页面骨架与领域模块持续收口</p>
         </div>
       </div>
 
-      <div className="flex items-center gap-3 shrink-0">
+      <div className="flex w-full md:w-auto items-center gap-2 md:gap-3 overflow-x-auto pb-1 md:pb-0 md:overflow-visible shrink-0">
         <div
-          className={`px-3 py-1.5 rounded-full flex items-center gap-2 border ${
+          className={`px-3 py-1.5 rounded-full flex items-center gap-2 border whitespace-nowrap ${
             isBackendConnected ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'
           }`}
         >
@@ -85,7 +86,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
             <button
               type="button"
               onClick={onBackup}
-              className="px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-bold hover:bg-slate-50 flex items-center gap-2"
+              className="px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-bold hover:bg-slate-50 flex items-center gap-2 whitespace-nowrap"
               title="导出当前数据为 JSON 备份"
             >
               <DatabaseBackup size={14} /> 备份
@@ -93,7 +94,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
             <button
               type="button"
               onClick={onRestore}
-              className="px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-bold hover:bg-slate-50 flex items-center gap-2"
+              className="px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-bold hover:bg-slate-50 flex items-center gap-2 whitespace-nowrap"
               title="从 JSON 备份恢复"
             >
               <RotateCcw size={14} /> 恢复
@@ -101,7 +102,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
             <button
               type="button"
               onClick={onResetData}
-              className="px-3 py-1.5 bg-red-600 text-white rounded-lg text-xs font-bold hover:bg-red-700 transition-colors flex items-center gap-2"
+              className="px-3 py-1.5 bg-red-600 text-white rounded-lg text-xs font-bold hover:bg-red-700 transition-colors flex items-center gap-2 whitespace-nowrap"
               title="重置所有数据（测试用）"
             >
               <Trash2 size={14} /> 重置数据
@@ -109,15 +110,15 @@ const AppHeader: React.FC<AppHeaderProps> = ({
           </>
         )}
 
-        <div className="flex items-center gap-3 pl-1">
-          <div className="text-right">
+        <div className="flex items-center gap-2 md:gap-3 pl-1">
+          <div className="text-right shrink-0">
             <p className="text-sm text-slate-700">{authUsername}</p>
             <p className="text-xs text-slate-500">{roleLabel}</p>
           </div>
           <button
             type="button"
             onClick={onLogout}
-            className="px-3 py-1.5 text-sm border border-slate-200 rounded-lg hover:bg-slate-100 text-slate-600 flex items-center gap-2"
+            className="px-3 py-1.5 text-sm border border-slate-200 rounded-lg hover:bg-slate-100 text-slate-600 flex items-center gap-2 whitespace-nowrap"
           >
             <LogOut size={14} /> 退出
           </button>

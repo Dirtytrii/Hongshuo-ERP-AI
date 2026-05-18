@@ -6,11 +6,15 @@ import PermissionsConfigModal, { type PermissionsConfigForm } from './Permission
 
 const permissionsConfig: Record<string, string[]> = {
   'projects.view': ['admin'],
+  'reports.view': ['admin'],
+  'users.view': ['admin'],
   'inventory.create': ['admin', 'clerk'],
 };
 
 const permissions: Record<string, string[]> = {
   'projects.view': ['admin'],
+  'reports.view': ['admin'],
+  'users.view': ['admin'],
   'inventory.create': ['clerk'],
 };
 
@@ -52,6 +56,10 @@ describe('PermissionsConfigModal', () => {
     expect(screen.getByText('权限管理')).toBeInTheDocument();
     expect(screen.getByText('页面访问权限')).toBeInTheDocument();
     expect(screen.getByText('项目管理页面')).toBeInTheDocument();
+    expect(screen.getByText('报表页面')).toBeInTheDocument();
+    expect(screen.getByText('用户管理页面')).toBeInTheDocument();
+    expect(screen.queryByText('reports.view')).not.toBeInTheDocument();
+    expect(screen.queryByText('users.view')).not.toBeInTheDocument();
     expect(screen.getByText('功能操作权限')).toBeInTheDocument();
     expect(screen.getByText('创建物料')).toBeInTheDocument();
   });

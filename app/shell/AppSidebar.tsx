@@ -25,7 +25,9 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
 
   return (
     <aside
-      className={`${isOpen ? 'w-72' : 'w-24'} bg-white border-r border-slate-200/70 transition-all duration-300 flex flex-col rounded-r-2xl overflow-hidden`}
+      className={`fixed inset-y-0 left-0 z-40 w-72 bg-white border-r border-slate-200/70 transition-all duration-300 flex flex-col rounded-r-2xl overflow-hidden md:relative md:z-auto ${
+        isOpen ? 'translate-x-0 md:w-72' : '-translate-x-full md:translate-x-0 md:w-24'
+      }`}
     >
       <div className="p-5 flex items-center justify-between gap-3 border-b border-slate-100">
         <div className="flex items-center gap-3 min-w-0">
@@ -44,6 +46,7 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
           onClick={onToggle}
           className="p-2 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 transition-colors"
           title={isOpen ? '收起侧栏' : '展开侧栏'}
+          aria-label={isOpen ? '收起侧栏' : '展开侧栏'}
         >
           {isOpen ? <ChevronLeft size={16} /> : <ChevronRight size={16} />}
         </button>

@@ -64,7 +64,7 @@ const ProjectReport: React.FC<ProjectReportProps> = ({ projects, dateFrom, dateT
         </button>
       </div>
       <div className="overflow-x-auto">
-        <table className="w-full text-left text-sm">
+        <table className="w-full min-w-[1120px] text-left text-sm">
           <thead>
             <tr className="border-b border-slate-200 text-slate-500 uppercase tracking-wider text-xs">
               <th className="py-3 px-2 font-bold">项目名称</th>

@@ -77,7 +77,7 @@ const Login: React.FC<LoginProps> = ({ onSuccess }) => {
             {loading ? '登录中...' : '登录'}
           </button>
         </form>
-        <p className="text-xs text-slate-400 text-center mt-6">默认管理员：admin / admin</p>
+        <p className="text-xs text-slate-400 text-center mt-6">默认管理员：admin / 123456</p>
       </div>
     </div>
   );

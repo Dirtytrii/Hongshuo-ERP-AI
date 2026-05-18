@@ -73,6 +73,13 @@ describe('FinanceReport', () => {
     expect(screen.getByText('暂无记录')).toBeInTheDocument();
   });
 
+  it('明细状态显示中文徽标，不暴露英文枚举值', () => {
+    render(<FinanceReport financeRecords={baseRecords} />);
+
+    expect(screen.getAllByText('已审批')).toHaveLength(2);
+    expect(screen.queryByText('approved')).not.toBeInTheDocument();
+  });
+
   it('点击“导出 Excel”时，调用导出函数并传入当前筛选结果', () => {
     exportMock.mockReset();
     render(<FinanceReport financeRecords={baseRecords} />);

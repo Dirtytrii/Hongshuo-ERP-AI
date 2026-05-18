@@ -91,6 +91,15 @@ const permissionsConfig: Record<string, string[]> = DEFAULT_PERMISSIONS_CONFIG;
 
 type AuthUser = { id: number; username: string; role: string; enabled: boolean };
 
+const isDesktopSidebarViewport = () =>
+  typeof window === 'undefined' ? true : window.matchMedia('(min-width: 768px)').matches;
+
+const FINANCE_STATUS_META: Record<string, { label: string; className: string }> = {
+  approved: { label: '已审批', className: 'bg-green-50 text-green-700 ring-green-100' },
+  pending: { label: '待审批', className: 'bg-orange-50 text-orange-700 ring-orange-100' },
+  rejected: { label: '已拒绝', className: 'bg-red-50 text-red-700 ring-red-100' },
+};
+
 const App = () => {
   const [authUser, setAuthUser] = useState<AuthUser | null>(getStoredUser());
   const [roleDefs, setRoleDefs] = useState<RoleDefinition[]>([]);
@@ -111,7 +120,7 @@ const App = () => {
 
   const [activeTab, setActiveTab] = useState<string>(DEFAULT_TAB);
   const [tabInitializedFromUrl, setTabInitializedFromUrl] = useState(false);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(() => isDesktopSidebarViewport());
 
   // Data States
   const [projects, setProjects] = useState<Project[]>([]);
@@ -253,6 +262,12 @@ const App = () => {
 
   const navigateToTab = (tabId: string) => {
     setActiveTab(tabId);
+  };
+
+  const closeSidebarOnMobile = () => {
+    if (!isDesktopSidebarViewport()) {
+      setIsSidebarOpen(false);
+    }
   };
 
   const alerts = useMemo(() => {
@@ -1217,31 +1232,32 @@ const App = () => {
                         </tr>
                       );
                     }
-                    return sorted.map((r) => (
-                      <tr key={r.id} className="hover:bg-slate-50">
-                        <td className="px-4 py-3 text-slate-600">{new Date(r.date).toLocaleDateString('zh-CN')}</td>
-                        <td className="px-4 py-3">
-                          <span className={r.type === 'income' ? 'text-green-600' : 'text-red-600'}>
-                            {r.type === 'income' ? '收入' : '支出'}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-slate-700">{r.category}</td>
-                        <td className="px-4 py-3 font-medium">{r.amount.toLocaleString()}</td>
-                        <td className="px-4 py-3">
-                          <span
-                            className={
-                              r.status === 'approved'
-                                ? 'text-green-600'
-                                : r.status === 'rejected'
-                                  ? 'text-red-600'
-                                  : 'text-orange-600'
-                            }
-                          >
-                            {r.status === 'approved' ? '已审批' : r.status === 'rejected' ? '已拒绝' : '待审批'}
-                          </span>
-                        </td>
-                      </tr>
-                    ));
+                    return sorted.map((r) => {
+                      const statusMeta = FINANCE_STATUS_META[r.status] ?? {
+                        label: r.status,
+                        className: 'bg-slate-50 text-slate-600 ring-slate-100',
+                      };
+
+                      return (
+                        <tr key={r.id} className="hover:bg-slate-50">
+                          <td className="px-4 py-3 text-slate-600">{new Date(r.date).toLocaleDateString('zh-CN')}</td>
+                          <td className="px-4 py-3">
+                            <span className={r.type === 'income' ? 'text-green-600' : 'text-red-600'}>
+                              {r.type === 'income' ? '收入' : '支出'}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-slate-700">{r.category}</td>
+                          <td className="px-4 py-3 font-medium">{r.amount.toLocaleString()}</td>
+                          <td className="px-4 py-3">
+                            <span
+                              className={`inline-flex whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-bold ring-1 ${statusMeta.className}`}
+                            >
+                              {statusMeta.label}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    });
                   })()}
                 </tbody>
               </table>
@@ -1517,6 +1533,8 @@ const App = () => {
       )}
 
       <AppShell
+        isSidebarOpen={isSidebarOpen}
+        onCloseSidebar={() => setIsSidebarOpen(false)}
         sidebar={
           <AppSidebar
             activeTab={activeTab}
@@ -1524,8 +1542,14 @@ const App = () => {
             hasPermission={(permission) => hasPermission(currentUser, permission)}
             isOpen={isSidebarOpen}
             onToggle={() => setIsSidebarOpen((v) => !v)}
-            onSelectTab={(tabId) => navigateToTab(tabId)}
-            onOpenPermissions={() => setIsPermissionsModalOpen(true)}
+            onSelectTab={(tabId) => {
+              navigateToTab(tabId);
+              closeSidebarOnMobile();
+            }}
+            onOpenPermissions={() => {
+              setIsPermissionsModalOpen(true);
+              closeSidebarOnMobile();
+            }}
           />
         }
         header={

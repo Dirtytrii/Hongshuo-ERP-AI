@@ -30,8 +30,10 @@ const PAGE_PERMISSION_LABELS: Record<string, string> = {
   'approval-center.view': '审批中心页面',
   'integration.view': '集成中心页面',
   'finance.view': '财务收支页面',
+  'reports.view': '报表页面',
   'history.view': '操作日志页面',
   'ai.view': 'AI 决策室页面',
+  'users.view': '用户管理页面',
 };
 
 const ACTION_PERMISSION_LABELS: Record<string, string> = {

@@ -89,7 +89,7 @@ const InventoryWarehousePage: React.FC<InventoryWarehousePageProps> = ({
                     <div className="flex-1">
                       <p className="text-sm font-bold text-slate-700">物料出库 - {item?.name || '未知物料'}</p>
                       <p className="text-xs text-slate-400 mt-1">
-                        {log.date} 路 申请人 {log.creator} 路 关联项目: {project?.name || '未指定'}
+                        {log.date} · 申请人 {log.creator} · 关联项目: {project?.name || '未指定'}
                       </p>
                       <p className="text-sm font-bold text-blue-600 mt-2">
                         数量: {log.qty} {item?.unit || ''}
@@ -141,7 +141,7 @@ const InventoryWarehousePage: React.FC<InventoryWarehousePageProps> = ({
                         <span className="ml-2 text-xs text-amber-600">原单 #{log.reversalOfId}</span>
                       </p>
                       <p className="text-xs text-slate-400 mt-1">
-                        {log.date} 路 申请人 {log.creator} 路 关联项目: {project?.name || '未指定'}
+                        {log.date} · 申请人 {log.creator} · 关联项目: {project?.name || '未指定'}
                       </p>
                       <p className="text-sm font-bold text-amber-600 mt-2">
                         冲销数量: {Math.abs(log.qty)} {item?.unit || ''}
@@ -199,7 +199,7 @@ const InventoryWarehousePage: React.FC<InventoryWarehousePageProps> = ({
           </div>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-left">
+          <table className="w-full min-w-[860px] text-left">
             <thead className="bg-slate-50 border-b text-slate-400 text-xs uppercase tracking-wider">
               <tr>
                 <th className="px-6 py-4 font-bold">物料名称</th>
@@ -323,9 +323,9 @@ const InventoryWarehousePage: React.FC<InventoryWarehousePageProps> = ({
                           {statusBadge}
                         </div>
                         <p className="text-xs text-slate-400">
-                          {log.date} 路 操作人 {log.creator}
-                          {log.approver && ` 路 审批人 ${log.approver}`}
-                          {log.reversalOfId && ` 路 原单 #${log.reversalOfId}`}
+                          {log.date} · 操作人 {log.creator}
+                          {log.approver && ` · 审批人 ${log.approver}`}
+                          {log.reversalOfId && ` · 原单 #${log.reversalOfId}`}
                         </p>
                       </div>
                     </div>

@@ -5,7 +5,7 @@ interface AppPageViewportProps {
 }
 
 const AppPageViewport: React.FC<AppPageViewportProps> = ({ children }) => {
-  return <div className="flex-1 overflow-y-auto p-8 page-shell">{children}</div>;
+  return <div className="flex-1 overflow-y-auto p-4 md:p-8 page-shell">{children}</div>;
 };
 
 export default AppPageViewport;

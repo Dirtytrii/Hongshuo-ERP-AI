@@ -74,7 +74,7 @@ const InventoryReport: React.FC<InventoryReportProps> = ({
         <div>
           <h4 className="text-sm font-bold text-slate-600 mb-2">按物料进出库统计（筛选期内）</h4>
           <div className="overflow-x-auto border rounded-xl max-h-48 overflow-y-auto">
-            <table className="w-full text-sm text-left">
+            <table className="w-full min-w-[620px] text-sm text-left">
               <thead className="bg-slate-50 border-b">
                 <tr>
                   <th className="py-2 px-3 font-bold text-slate-600">物料</th>
@@ -103,7 +103,7 @@ const InventoryReport: React.FC<InventoryReportProps> = ({
         <div>
           <h4 className="text-sm font-bold text-slate-600 mb-2">领用按项目汇总（筛选期内）</h4>
           <div className="overflow-x-auto border rounded-xl">
-            <table className="w-full text-sm text-left">
+            <table className="w-full min-w-[520px] text-sm text-left">
               <thead className="bg-slate-50 border-b">
                 <tr>
                   <th className="py-2 px-3 font-bold text-slate-600">项目</th>
@@ -148,7 +148,7 @@ const InventoryReport: React.FC<InventoryReportProps> = ({
         </div>
         {lowStockItems.length > 0 ? (
           <div className="overflow-x-auto border rounded-xl">
-            <table className="w-full text-sm text-left">
+            <table className="w-full min-w-[680px] text-sm text-left">
               <thead className="bg-slate-50 border-b">
                 <tr>
                   <th className="py-2 px-3 font-bold text-slate-600">物料名称</th>
