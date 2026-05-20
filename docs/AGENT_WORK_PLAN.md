@@ -1201,6 +1201,23 @@ Agent N：执行同一章节里的“Agent N：清理 RoleManagement 低风险 a
 - 第十轮安排 3 个开发 agent 并行：Agent L 抽项目编辑弹窗、Agent M 新建驳回原因弹窗组件测试前置、Agent N 清理 `RoleManagement.tsx` 错误类型。
 - 并行边界：Agent L 是唯一允许修改 `App.tsx` 的任务；Agent M 不接入 `App.tsx`；Agent N 只改 `components/Users/RoleManagement.tsx`。
 
+### 2026-05-20 第十轮批量任务：Agent L/M/N
+
+- Agent L 已新增 `components/Projects/ProjectFormModal.tsx` 和对应测试，并将 `App.tsx` 中 `isProjectModalOpen` 下的项目编辑内联 JSX 替换为 `ProjectFormModal` 装配；`App.tsx` 仍负责项目表单状态、用户选项加载、`handleSaveProject`、API、刷新、toast 和弹窗关闭。
+- Agent M 已新增 `components/ApprovalCenter/RejectNoteModal.tsx` 和对应测试；组件仅渲染拒绝原因弹窗 UI，不接入 `App.tsx`，也不访问 `window.__pendingRejectIsFinance`。
+- Agent N 已将 `components/Users/RoleManagement.tsx` 中两个 `catch (e: any)` 改为 `catch (e: unknown)`，并保留 `e instanceof Error ? e.message : '保存角色失败/删除角色失败'` 的回退语义；未改角色新增、编辑、删除流程。
+- 已按任务拆分提交：
+  - `抽出项目编辑弹窗组件`
+  - `补充驳回原因弹窗组件`
+  - `清理角色管理错误类型`
+- 验证结果：
+  - `npm run test:run -- components/Projects/ProjectFormModal.test.tsx components/ApprovalCenter/RejectNoteModal.test.tsx`：通过，2 个测试文件、11 个测试全部通过。
+  - `npm run lint`：通过，0 errors、43 warnings；相比第十轮开工前 45 warnings，已减少 `RoleManagement.tsx` 中 2 条 `any` warning。
+  - `npm run test:run`：通过，21 个测试文件、101 个测试全部通过。
+  - `npm run build`：通过；仍有 Vite chunk 超过 500 kB 的既有提示。
+  - `mvn -q test`：通过；输出包含 Spring/JDK 测试期常规 warning，未阻断。
+- 剩余风险：`RejectNoteModal` 本轮只做前置组件，`App.tsx` 中驳回原因弹窗接入留给后续 Agent O；剩余 43 个 lint warnings 仍集中在既有 `App.tsx` hook deps、`any`、未使用异常变量、JSX 文本转义和 `services/apiService.ts` 的 `any`，本轮按范围未处理。
+
 ## 18. 给开发 agent 的提示词
 
 ### 第一轮提示词（已完成）
