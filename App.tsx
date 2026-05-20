@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, Suspense, lazy } from 'react';
-import { Clock, X, Check, Building2, BrainCircuit, Sparkles, Send, Trash2 } from 'lucide-react';
+import { Clock, X, Check, BrainCircuit, Sparkles, Send, Trash2 } from 'lucide-react';
 import {
   exportInventoryToExcel,
   exportFinanceToExcel,
@@ -62,6 +62,7 @@ import StockMovementModal from './components/Inventory/StockMovementModal';
 import OperationLogPage from './components/History/OperationLogPage';
 import PermissionsConfigModal from './components/Settings/PermissionsConfigModal';
 import UserManagementPage from './components/Users/UserManagementPage';
+import ProjectFormModal from './components/Projects/ProjectFormModal';
 
 function formatSessionTime(ts: number): string {
   const d = new Date(ts);
@@ -1360,161 +1361,14 @@ const App = () => {
 
       {/* Project Modal */}
       {isProjectModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl w-full max-w-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200 max-h-[90vh] overflow-y-auto">
-            <div className="p-6 flex items-center justify-between text-white bg-blue-600">
-              <h3 className="text-lg font-bold flex items-center gap-2">
-                <Building2 size={20} />
-                {editingProject ? '编辑项目' : '新建项目'}
-              </h3>
-              <button onClick={() => setIsProjectModalOpen(false)} className="hover:rotate-90 transition-transform">
-                <X size={20} />
-              </button>
-            </div>
-            <div className="p-8 space-y-5">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-400 uppercase mb-2">项目名称 *</label>
-                  <input
-                    type="text"
-                    className="w-full bg-slate-50 border rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
-                    value={projectForm.name}
-                    onChange={(e) => setProjectForm({ ...projectForm, name: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-400 uppercase mb-2">项目编号 *</label>
-                  <input
-                    type="text"
-                    className="w-full bg-slate-50 border rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
-                    value={projectForm.code}
-                    onChange={(e) => setProjectForm({ ...projectForm, code: e.target.value })}
-                    disabled={!!editingProject}
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-400 uppercase mb-2">项目经理 *</label>
-                  <SearchableSelect
-                    options={userOptions.map((u) => ({ value: u.username, label: u.username }))}
-                    value={projectForm.managerId}
-                    onChange={(v) => setProjectForm({ ...projectForm, managerId: String(v) })}
-                    placeholder="请选择用户..."
-                    maxHeight="200px"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-400 uppercase mb-2">项目状态</label>
-                  <SearchableSelect
-                    options={[
-                      { value: '施工中', label: '施工中' },
-                      { value: '验收中', label: '验收中' },
-                      { value: '已完工', label: '已完工' },
-                    ]}
-                    value={projectForm.status}
-                    onChange={(v) => setProjectForm({ ...projectForm, status: String(v) })}
-                    placeholder="请选择状态..."
-                    maxHeight="180px"
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-400 uppercase mb-2">合同金额</label>
-                  <input
-                    type="number"
-                    className="w-full bg-slate-50 border rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
-                    value={projectForm.contractAmount}
-                    onChange={(e) => setProjectForm({ ...projectForm, contractAmount: Number(e.target.value) })}
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-400 uppercase mb-2">控制预算（可选）</label>
-                  <input
-                    type="number"
-                    min={0}
-                    className="w-full bg-slate-50 border rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
-                    value={projectForm.totalBudget === '' ? '' : projectForm.totalBudget}
-                    onChange={(e) =>
-                      setProjectForm({
-                        ...projectForm,
-                        totalBudget: e.target.value === '' ? '' : Number(e.target.value),
-                      })
-                    }
-                    placeholder="不填则不启用预算预警"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-400 uppercase mb-2">已收款</label>
-                  <div className="w-full bg-slate-100 border border-slate-200 rounded-xl px-4 py-3 text-slate-600">
-                    ￥{projectForm.receivedAmount.toLocaleString()}（由财务收入审批自动汇总）
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-400 uppercase mb-2">进度 (%)</label>
-                  <div className="w-full bg-slate-100 border border-slate-200 rounded-xl px-4 py-3 text-slate-600">
-                    {projectForm.progress}%（由里程碑自动计算，请在项目详情中维护里程碑）
-                  </div>
-                </div>
-              </div>
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-400 uppercase mb-2">材料成本</label>
-                  <div className="w-full bg-slate-100 border border-slate-200 rounded-xl px-4 py-3 text-slate-600">
-                    ￥{projectForm.materialCost.toLocaleString()}（由财务支出审批自动汇总）
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-400 uppercase mb-2">人工成本</label>
-                  <div className="w-full bg-slate-100 border border-slate-200 rounded-xl px-4 py-3 text-slate-600">
-                    ￥{projectForm.laborCost.toLocaleString()}（由财务支出审批自动汇总）
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-400 uppercase mb-2">其他成本</label>
-                  <div className="w-full bg-slate-100 border border-slate-200 rounded-xl px-4 py-3 text-slate-600">
-                    ￥{projectForm.otherCost.toLocaleString()}（由财务支出审批自动汇总）
-                  </div>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-400 uppercase mb-2">开始日期</label>
-                  <input
-                    type="date"
-                    className="w-full bg-slate-50 border rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
-                    value={projectForm.startDate}
-                    onChange={(e) => setProjectForm({ ...projectForm, startDate: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-400 uppercase mb-2">结束日期</label>
-                  <input
-                    type="date"
-                    className="w-full bg-slate-50 border rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
-                    value={projectForm.endDate}
-                    onChange={(e) => setProjectForm({ ...projectForm, endDate: e.target.value })}
-                  />
-                </div>
-              </div>
-              <div className="pt-4 flex gap-3">
-                <button
-                  onClick={() => setIsProjectModalOpen(false)}
-                  className="flex-1 px-4 py-3 rounded-xl border font-bold hover:bg-slate-50 transition-colors"
-                >
-                  取消
-                </button>
-                <button
-                  onClick={handleSaveProject}
-                  className="flex-1 px-4 py-3 rounded-xl bg-blue-600 text-white font-bold shadow-lg hover:bg-blue-700 transition-transform active:scale-95"
-                >
-                  {editingProject ? '更新' : '创建'}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <ProjectFormModal
+          projectForm={projectForm}
+          editingProject={editingProject}
+          userOptions={userOptions}
+          onProjectFormChange={setProjectForm}
+          onClose={() => setIsProjectModalOpen(false)}
+          onSubmit={handleSaveProject}
+        />
       )}
 
       {/* Finance Modal */}
