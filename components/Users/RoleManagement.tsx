@@ -67,8 +67,8 @@ const RoleManagement: React.FC<RoleManagementProps> = ({ roles, onReload }) => {
       await onReload();
       setEditing(null);
       setForm({ code: '', name: '', description: '' });
-    } catch (e: any) {
-      setError(e?.message || '保存角色失败');
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : '保存角色失败');
     } finally {
       setIsSaving(false);
     }
@@ -89,8 +89,8 @@ const RoleManagement: React.FC<RoleManagementProps> = ({ roles, onReload }) => {
       setError(null);
       await apiService.deleteRole(role.id);
       await onReload();
-    } catch (e: any) {
-      setError(e?.message || '删除角色失败');
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : '删除角色失败');
     } finally {
       setIsSaving(false);
     }
