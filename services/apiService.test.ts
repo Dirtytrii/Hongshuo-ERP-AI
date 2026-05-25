@@ -1,5 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { apiService } from './apiService';
+import type {
+  CreateMilestonePayload,
+  CreateProjectPayload,
+  UpdateMilestonePayload,
+  UpdateProjectPayload,
+} from '../types';
 
 describe('apiService', () => {
   beforeEach(() => {
@@ -29,7 +35,7 @@ describe('apiService', () => {
   });
 
   it('createProject sends POST with body', async () => {
-    const project = {
+    const project: CreateProjectPayload = {
       name: 'New',
       code: 'P002',
       managerId: 'M1',
@@ -59,6 +65,31 @@ describe('apiService', () => {
     );
   });
 
+  it('updateProject sends PUT with typed project payload', async () => {
+    const project: UpdateProjectPayload = {
+      name: 'Updated',
+      managerId: 'M2',
+      contractAmount: 2000,
+      totalBudget: null,
+      status: '验收中',
+      startDate: '2025-02-01',
+      endDate: '',
+    };
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve({ ...project, id: 1, code: 'P002', milestones: [] }),
+    } as Response);
+
+    await apiService.updateProject(1, project);
+    expect(fetch).toHaveBeenCalledWith(
+      'http://localhost:8080/api/projects/1',
+      expect.objectContaining({
+        method: 'PUT',
+        body: JSON.stringify(project),
+      })
+    );
+  });
+
   it('deleteProject sends DELETE request', async () => {
     vi.mocked(fetch).mockResolvedValueOnce({ ok: true } as Response);
     const result = await apiService.deleteProject(1);
@@ -77,6 +108,48 @@ describe('apiService', () => {
     } as Response);
     const result = await apiService.getInventory();
     expect(result).toEqual(mockInventory);
+  });
+
+  it('addMilestone sends POST with typed milestone payload', async () => {
+    const milestone: CreateMilestonePayload = {
+      name: '主体封顶',
+      planDate: '2025-06-30',
+      status: 'pending',
+    };
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve({ ...milestone, id: 2, actualDate: null }),
+    } as Response);
+
+    await apiService.addMilestone(1, milestone);
+    expect(fetch).toHaveBeenCalledWith(
+      'http://localhost:8080/api/projects/1/milestones',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify(milestone),
+      })
+    );
+  });
+
+  it('updateMilestone sends PUT with typed milestone payload', async () => {
+    const milestone: UpdateMilestonePayload = {
+      name: '主体封顶完成',
+      actualDate: '2025-07-02',
+      status: 'completed',
+    };
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve({ ...milestone, id: 2, planDate: '2025-06-30' }),
+    } as Response);
+
+    await apiService.updateMilestone(1, 2, milestone);
+    expect(fetch).toHaveBeenCalledWith(
+      'http://localhost:8080/api/projects/1/milestones/2',
+      expect.objectContaining({
+        method: 'PUT',
+        body: JSON.stringify(milestone),
+      })
+    );
   });
 
   it('getAppState returns state object for AI', async () => {

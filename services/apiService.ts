@@ -1,7 +1,15 @@
 /**
  * API Service to communicate with Java Spring Boot Backend
  */
-import type { RoleDefinition } from '../types';
+import type {
+  CreateMilestonePayload,
+  CreateProjectPayload,
+  Milestone,
+  Project,
+  RoleDefinition,
+  UpdateMilestonePayload,
+  UpdateProjectPayload,
+} from '../types';
 const BASE_URL = 'http://localhost:8080/api';
 
 const AUTH_TOKEN_KEY = 'erp_token';
@@ -131,22 +139,22 @@ export const apiService = {
     return handleResponse(res);
   },
 
-  async createProject(project: any) {
+  async createProject(project: CreateProjectPayload): Promise<Project> {
     const res = await apiFetch(`${BASE_URL}/projects`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(project),
     });
-    return handleResponse(res);
+    return handleResponse<Project>(res);
   },
 
-  async updateProject(id: number, project: any) {
+  async updateProject(id: number, project: UpdateProjectPayload): Promise<Project> {
     const res = await apiFetch(`${BASE_URL}/projects/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(project),
     });
-    return handleResponse(res);
+    return handleResponse<Project>(res);
   },
 
   /** 供项目表单「项目经理」下拉使用，返回 { id, username }[] */
@@ -165,22 +173,22 @@ export const apiService = {
     return handleResponse(res);
   },
 
-  async addMilestone(projectId: number, milestone: any) {
+  async addMilestone(projectId: number, milestone: CreateMilestonePayload): Promise<Milestone> {
     const res = await apiFetch(`${BASE_URL}/projects/${projectId}/milestones`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(milestone),
     });
-    return handleResponse(res);
+    return handleResponse<Milestone>(res);
   },
 
-  async updateMilestone(projectId: number, milestoneId: number, milestone: any) {
+  async updateMilestone(projectId: number, milestoneId: number, milestone: UpdateMilestonePayload): Promise<Milestone> {
     const res = await apiFetch(`${BASE_URL}/projects/${projectId}/milestones/${milestoneId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(milestone),
     });
-    return handleResponse(res);
+    return handleResponse<Milestone>(res);
   },
 
   async deleteMilestone(projectId: number, milestoneId: number) {

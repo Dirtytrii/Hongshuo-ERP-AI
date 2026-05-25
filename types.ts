@@ -29,6 +29,32 @@ export interface Project {
   budgetAlertStatus?: 'green' | 'yellow' | 'red';
 }
 
+// API 写入 payload 只描述允许透传给后端的字段；前端展示模型仍使用 Project / Milestone。
+export type ProjectApiPayload = Partial<
+  Pick<
+    Project,
+    | 'name'
+    | 'code'
+    | 'managerId'
+    | 'contractAmount'
+    | 'receivedAmount'
+    | 'materialCost'
+    | 'laborCost'
+    | 'otherCost'
+    | 'status'
+    | 'progress'
+    | 'startDate'
+  >
+> & {
+  endDate?: Project['endDate'] | null;
+  totalBudget?: Project['totalBudget'] | null;
+  milestones?: MilestoneApiPayload[];
+};
+
+export type CreateProjectPayload = ProjectApiPayload;
+
+export type UpdateProjectPayload = ProjectApiPayload;
+
 export interface Contract {
   id: number;
   projectId: number;
@@ -163,6 +189,13 @@ export interface Milestone {
   description?: string;
   dueDate?: string;
 }
+
+export type CreateMilestonePayload = Pick<Milestone, 'name' | 'planDate' | 'status'> &
+  Partial<Pick<Milestone, 'actualDate'>>;
+
+export type UpdateMilestonePayload = Partial<CreateMilestonePayload>;
+
+export type MilestoneApiPayload = CreateMilestonePayload | UpdateMilestonePayload;
 
 export interface InventoryItem {
   id: number;
