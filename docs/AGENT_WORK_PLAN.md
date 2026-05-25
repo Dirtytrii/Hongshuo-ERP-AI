@@ -1750,3 +1750,22 @@ Agent N：清理 RoleManagement 低风险 any
 - 每个 agent 完成后都必须回写本文件的执行记录、验证命令、warning 数量变化和剩余风险。
 
 可直接转发的开发提示词见 `docs/NEXT_DEVELOPMENT_OPTIMIZATION_PLAN.md` 第 5 节。
+
+## 20. 2026-05-25 下一阶段优化执行记录
+
+- Agent O 已在 `App.tsx` 中接入 `components/ApprovalCenter/RejectNoteModal.tsx`，删除 `isRejectNoteModalOpen` 下的内联驳回原因弹窗 JSX。
+- Agent O 已移除 `(window as any).__pendingRejectIsFinance`，改用 `pendingRejectTarget` 受控 React state 记录当前驳回目标；关闭/取消会统一清空 `pendingRejectLogId`、`pendingRejectTarget` 和 `rejectNote`。
+- Agent P 已在 `vite.config.ts` 增加 `manualChunks`，将 React、图标、图表、Excel 和通用 vendor 依赖拆分为独立 chunk；未修改 `App.tsx` 或业务 UI。
+- Agent Q 已在 `types.ts` 增加项目/里程碑 API payload 类型，并将 `services/apiService.ts` 中 `createProject`、`updateProject`、`addMilestone`、`updateMilestone` 的参数从 `any` 改为对应 payload 类型；同步扩展 `services/apiService.test.ts` 的请求 URL、method、body 断言。
+- Agent R 已检查非 `App.tsx`、非 `services/apiService.ts` 范围内的低风险 warning；当前剩余 warning 均位于禁改文件，因此本轮无代码改动。
+- 构建分包对比：
+  - 优化前：`index-PffZh5I-.js` 1,274.05 kB / gzip 369.00 kB，`Dashboard-B_AdviEp.js` 64.21 kB / gzip 16.53 kB，Vite 有大 chunk warning。
+  - 优化后：`index-CQ5vY5Fk.js` 276.30 kB / gzip 55.23 kB，`Dashboard-DfAZqRY9.js` 24.61 kB / gzip 5.87 kB，`vendor-spreadsheet-TXgaev3-.js` 424.41 kB / gzip 140.43 kB，`vendor-charts-BId1zKh9.js` 320.33 kB / gzip 89.44 kB，`vendor-react-CB2QWAWd.js` 194.27 kB / gzip 60.68 kB；Vite 大 chunk warning 已消除。
+- 验证结果：
+  - `npm run test:run -- components/ApprovalCenter/RejectNoteModal.test.tsx`：通过，1 个测试文件、4 个测试全部通过。
+  - `npm run test:run -- services/apiService.test.ts`：通过，1 个测试文件、9 个测试全部通过。
+  - `npm run lint`：通过，0 errors、37 warnings；相比本轮开工前 43 warnings，减少 6 条，其中 4 条来自项目/里程碑 API 类型化，2 条来自移除 `window as any`。
+  - `npm run test:run`：通过，21 个测试文件、104 个测试全部通过。
+  - `npm run build`：通过，未再出现 Vite 大 chunk warning。
+  - `mvn -q test`：沙箱内首次运行因 Mockito/Byte Buddy 无法 self-attach 到 Java 25 VM 失败；按权限规则在沙箱外复跑后通过，仍有 Spring/JDK 测试期常规 warning。
+- 剩余风险：`services/apiService.ts` 仍保留库存、财务、报销、借款/还款、库存流水等非本轮切片的 9 个 `any`；`App.tsx` 仍保留既有 hook deps、`any`、未使用异常变量和 JSX 文本转义 warning；`vendor-spreadsheet` 仍接近 500 kB，后续若 Excel 相关依赖继续增长，可能需要进一步按需动态加载。

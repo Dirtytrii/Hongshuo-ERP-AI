@@ -205,3 +205,27 @@
 
 完成后提交，提交信息使用中文，并列出 warning 数量变化。
 ```
+
+## 6. 2026-05-25 执行结果
+
+本计划中的 O/P/Q/R 已执行完成：
+
+- P0 Agent O：`App.tsx` 已接入 `RejectNoteModal`，并移除 `(window as any).__pendingRejectIsFinance`。
+- P1 Agent P：`vite.config.ts` 已通过 `manualChunks` 做依赖分包，`npm run build` 不再出现 Vite 大 chunk warning。
+- P1 Agent Q：项目/里程碑 API payload 已类型化，`services/apiService.ts` 中对应 4 个目标 `any` 已移除。
+- P2 Agent R：已确认当前可改范围内无低风险 warning；剩余 warning 均位于本轮禁改或后续切片文件。
+
+最新验证结果：
+
+- `npm run test:run -- components/ApprovalCenter/RejectNoteModal.test.tsx`：通过，4 tests。
+- `npm run test:run -- services/apiService.test.ts`：通过，9 tests。
+- `npm run lint`：通过，0 errors、37 warnings。
+- `npm run test:run`：通过，21 files、104 tests。
+- `npm run build`：通过，主入口 chunk 降至 276.30 kB / gzip 55.23 kB，无大 chunk warning。
+- `mvn -q test`：沙箱内因 Mockito/Byte Buddy self-attach 受限失败；沙箱外复跑通过。
+
+后续建议：
+
+- API 类型化可继续按库存、财务、报销、借款/还款、库存流水切片推进。
+- `App.tsx` 剩余 warning 仍需单独任务处理，尤其是 hook deps 不应机械自动修复。
+- Excel 相关 `vendor-spreadsheet` 仍为 424.41 kB，可在后续性能任务中评估按需动态导入。
