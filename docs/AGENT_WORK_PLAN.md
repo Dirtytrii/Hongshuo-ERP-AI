@@ -1730,3 +1730,23 @@ Agent N：清理 RoleManagement 低风险 any
 预期：npm run lint 仍为 0 errors，warning 数量从 45 降到约 43。
 提交信息建议：清理角色管理错误类型
 ```
+
+## 19. 2026-05-25 下一阶段优化方向
+
+已新增 `docs/NEXT_DEVELOPMENT_OPTIMIZATION_PLAN.md`，作为后续开发 agent 使用 Plan + Goal 模式推进的总控入口。
+
+当前推荐优先级：
+
+- P0：安排 Agent O 接入 `RejectNoteModal`，替换 `App.tsx` 中的内联驳回原因弹窗，并移除 `(window as any).__pendingRejectIsFinance`。
+- P1：安排 Agent P 做构建分包与主 chunk 体积优化，优先从 `vite.config.ts` 和构建输出测量入手，不把单纯调大 warning 阈值当作完成。
+- P1：安排 Agent Q 按项目/里程碑切片推进 `services/apiService.ts` payload 类型化，不触碰 `App.tsx`。
+- P2：安排 Agent R 做非 `App.tsx` 的低风险 lint warning 清理，不处理 hook deps，不做大规模自动修复。
+
+并行边界：
+
+- Agent O 是唯一允许修改 `App.tsx` 的任务。
+- Agent P 如果需要改 `App.tsx` 才能继续，必须暂停并回报，不能与 Agent O 并行抢同一文件。
+- Agent Q、Agent R 均不得修改 `App.tsx`，避免与弹窗接入任务冲突。
+- 每个 agent 完成后都必须回写本文件的执行记录、验证命令、warning 数量变化和剩余风险。
+
+可直接转发的开发提示词见 `docs/NEXT_DEVELOPMENT_OPTIMIZATION_PLAN.md` 第 5 节。
