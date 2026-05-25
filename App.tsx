@@ -63,6 +63,7 @@ import OperationLogPage from './components/History/OperationLogPage';
 import PermissionsConfigModal from './components/Settings/PermissionsConfigModal';
 import UserManagementPage from './components/Users/UserManagementPage';
 import ProjectFormModal from './components/Projects/ProjectFormModal';
+import RejectNoteModal from './components/ApprovalCenter/RejectNoteModal';
 
 function formatSessionTime(ts: number): string {
   const d = new Date(ts);
@@ -91,6 +92,7 @@ const ROLES: Record<string, Role> = DEFAULT_ROLES;
 const permissionsConfig: Record<string, string[]> = DEFAULT_PERMISSIONS_CONFIG;
 
 type AuthUser = { id: number; username: string; role: string; enabled: boolean };
+type PendingRejectTarget = 'finance' | 'stock';
 
 const isDesktopSidebarViewport = () =>
   typeof window === 'undefined' ? true : window.matchMedia('(min-width: 768px)').matches;
@@ -254,6 +256,7 @@ const App = () => {
   const [isRejectNoteModalOpen, setIsRejectNoteModalOpen] = useState(false);
   const [rejectNote, setRejectNote] = useState('');
   const [pendingRejectLogId, setPendingRejectLogId] = useState<number | null>(null);
+  const [pendingRejectTarget, setPendingRejectTarget] = useState<PendingRejectTarget | null>(null);
 
   // 权限检查函数（使用动态权限配置）
   const hasPermission = (currentUser: Role, permission: string): boolean => {
@@ -949,12 +952,19 @@ const App = () => {
     }
   };
 
+  const closeRejectNoteModal = () => {
+    setIsRejectNoteModalOpen(false);
+    setPendingRejectLogId(null);
+    setPendingRejectTarget(null);
+    setRejectNote('');
+  };
+
   // 确认拒绝操作
-  const handleConfirmReject = async (isFinance: boolean = false) => {
-    if (pendingRejectLogId === null) return;
+  const handleConfirmReject = async () => {
+    if (pendingRejectLogId === null || pendingRejectTarget === null) return;
 
     try {
-      if (isFinance) {
+      if (pendingRejectTarget === 'finance') {
         await handleApproveFinance(pendingRejectLogId, false, rejectNote);
       } else {
         await handleApproveStock(pendingRejectLogId, false, rejectNote);
@@ -963,9 +973,7 @@ const App = () => {
       setToast({ message: error.message || '操作失败', type: 'error' });
     }
 
-    setIsRejectNoteModalOpen(false);
-    setPendingRejectLogId(null);
-    setRejectNote('');
+    closeRejectNoteModal();
   };
 
   // 更新权限配置
@@ -1756,9 +1764,9 @@ const App = () => {
               onApprove={handleApproveFinance}
               onReject={(recordId) => {
                 setPendingRejectLogId(recordId);
+                setPendingRejectTarget('finance');
                 setRejectNote('');
                 setIsRejectNoteModalOpen(true);
-                (window as any).__pendingRejectIsFinance = true;
               }}
               onReverse={handleReversalFinance}
             />
@@ -2011,56 +2019,12 @@ const App = () => {
 
       {/* 拒绝原因输入模态框 */}
       {isRejectNoteModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
-            <div className="p-6 flex items-center justify-between text-white bg-red-600">
-              <h3 className="text-lg font-bold flex items-center gap-2">
-                <X size={20} />
-                拒绝原因
-              </h3>
-              <button
-                onClick={() => {
-                  setIsRejectNoteModalOpen(false);
-                  setPendingRejectLogId(null);
-                  setRejectNote('');
-                }}
-                className="hover:rotate-90 transition-transform"
-              >
-                <X size={20} />
-              </button>
-            </div>
-            <div className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-bold text-slate-700 mb-2">请输入拒绝原因（可选）</label>
-                <textarea
-                  value={rejectNote}
-                  onChange={(e) => setRejectNote(e.target.value)}
-                  className="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-red-500 outline-none"
-                  rows={4}
-                  placeholder="请输入拒绝原因..."
-                />
-              </div>
-            </div>
-            <div className="p-6 border-t flex gap-3">
-              <button
-                onClick={() => {
-                  setIsRejectNoteModalOpen(false);
-                  setPendingRejectLogId(null);
-                  setRejectNote('');
-                }}
-                className="flex-1 px-4 py-3 rounded-xl border font-bold hover:bg-slate-50 transition-colors"
-              >
-                取消
-              </button>
-              <button
-                onClick={() => handleConfirmReject((window as any).__pendingRejectIsFinance || false)}
-                className="flex-1 px-4 py-3 rounded-xl bg-red-600 text-white font-bold shadow-lg hover:bg-red-700 transition-transform active:scale-95"
-              >
-                确认拒绝
-              </button>
-            </div>
-          </div>
-        </div>
+        <RejectNoteModal
+          rejectNote={rejectNote}
+          onRejectNoteChange={setRejectNote}
+          onCancel={closeRejectNoteModal}
+          onConfirm={handleConfirmReject}
+        />
       )}
 
       {/* 物料管理模态框 */}
