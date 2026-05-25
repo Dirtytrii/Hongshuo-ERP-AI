@@ -2,6 +2,45 @@ import path from 'path';
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 
+function manualChunks(id: string): string | undefined {
+  const normalizedId = id.replace(/\\/g, '/');
+
+  if (!normalizedId.includes('/node_modules/')) {
+    return undefined;
+  }
+
+  if (
+    normalizedId.includes('/node_modules/react/') ||
+    normalizedId.includes('/node_modules/react-dom/') ||
+    normalizedId.includes('/node_modules/scheduler/')
+  ) {
+    return 'vendor-react';
+  }
+
+  if (
+    normalizedId.includes('/node_modules/recharts/') ||
+    normalizedId.includes('/node_modules/d3-') ||
+    normalizedId.includes('/node_modules/victory-vendor/') ||
+    normalizedId.includes('/node_modules/decimal.js-light/')
+  ) {
+    return 'vendor-charts';
+  }
+
+  if (normalizedId.includes('/node_modules/xlsx/')) {
+    return 'vendor-spreadsheet';
+  }
+
+  if (normalizedId.includes('/node_modules/lucide-react/') || normalizedId.includes('/node_modules/lucide/')) {
+    return 'vendor-icons';
+  }
+
+  if (normalizedId.includes('/node_modules/@google/genai/')) {
+    return 'vendor-ai';
+  }
+
+  return 'vendor-core';
+}
+
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, '.', '');
   const envValue = (key: string) => JSON.stringify(env[key] ?? '');
@@ -12,6 +51,13 @@ export default defineConfig(({ mode }) => {
       host: '0.0.0.0',
     },
     plugins: [react()],
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks,
+        },
+      },
+    },
     define: {
       'process.env.API_KEY': envValue('GEMINI_API_KEY'),
       'process.env.GEMINI_API_KEY': envValue('GEMINI_API_KEY'),
