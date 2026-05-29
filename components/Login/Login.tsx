@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Building2, Lock, User } from 'lucide-react';
+import { Lock, User } from 'lucide-react';
 import { apiService, setStoredAuth } from '../../services/apiService';
 
 interface LoginProps {
@@ -45,7 +45,7 @@ const Login: React.FC<LoginProps> = ({ onSuccess }) => {
       <div className="relative flex min-h-[calc(100vh-2rem)] items-center justify-center lg:justify-end lg:pr-[12vw]">
         <div className="w-full max-w-md rounded-3xl border border-white/70 bg-white/95 p-8 shadow-2xl shadow-slate-900/15 backdrop-blur">
           <div className="flex items-center justify-center gap-2 mb-8">
-            <Building2 className="text-blue-600" size={32} />
+            <img src="/images/hongshuo-logo.png" alt="" className="h-9 w-9 rounded-xl object-cover" />
             <span className="text-xl font-bold text-slate-800">宏硕建设 ERP</span>
           </div>
           <h2 className="text-lg font-bold text-slate-700 text-center mb-6">登录</h2>

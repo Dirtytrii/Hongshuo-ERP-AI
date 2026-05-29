@@ -1,5 +1,5 @@
 import React from 'react';
-import { HardHat, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { getVisibleSidebarSections } from '../navigation/sidebarItems';
 
 interface AppSidebarProps {
@@ -35,9 +35,7 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
         }`}
       >
         <div className={`flex items-center gap-3 min-w-0 ${!isOpen ? 'justify-center' : ''}`}>
-          <div className="bg-blue-600 p-2.5 rounded-xl text-white shrink-0">
-            <HardHat size={20} />
-          </div>
+          <img src="/images/hongshuo-logo.png" alt="" className="h-10 w-10 rounded-xl object-cover shrink-0" />
           {isOpen && (
             <div className="min-w-0">
               <p className="font-bold text-base tracking-tight text-slate-800">宏硕建设 ERP</p>
