@@ -35,7 +35,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   messageCenter,
 }) => {
   return (
-    <header className="bg-white border-b border-slate-200/70 px-3 py-3 sm:px-4 md:h-16 md:px-6 md:py-0 lg:px-8 flex flex-col md:flex-row md:items-center justify-between shadow-sm z-10 rounded-b-2xl gap-3 md:gap-4">
+    <header className="flex-none bg-white border-b border-slate-200/70 px-3 py-3 sm:px-4 md:h-16 md:px-6 md:py-0 lg:px-8 flex flex-col md:flex-row md:items-center justify-between shadow-sm z-10 rounded-b-2xl gap-3 md:gap-4 overflow-visible">
       <div className="flex w-full md:w-auto items-center gap-3 md:gap-4 min-w-0">
         <button
           type="button"
@@ -52,9 +52,9 @@ const AppHeader: React.FC<AppHeaderProps> = ({
         </div>
       </div>
 
-      <div className="flex w-full flex-wrap items-center gap-2 md:w-auto md:flex-nowrap md:gap-3 shrink-0">
+      <div className="grid w-full min-w-0 grid-cols-[auto_auto_minmax(0,1fr)_auto] items-center gap-2 md:w-auto md:flex md:flex-nowrap md:gap-3 md:shrink-0">
         <div
-          className={`shrink-0 px-3 py-1.5 rounded-full flex items-center gap-2 border whitespace-nowrap ${
+          className={`col-start-1 row-start-1 shrink-0 px-3 py-1.5 rounded-full flex items-center gap-2 border whitespace-nowrap ${
             isBackendConnected ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'
           }`}
         >
@@ -64,7 +64,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
           </span>
         </div>
 
-        <div className="relative shrink-0">
+        <div className="relative col-start-2 row-start-1 shrink-0">
           <button
             type="button"
             onClick={onToggleMessageCenter}
@@ -83,7 +83,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
         </div>
 
         {isAdmin && (
-          <>
+          <div className="col-span-4 row-start-2 flex min-w-0 items-center gap-2 overflow-x-auto pb-0.5 md:overflow-visible md:pb-0">
             <button
               type="button"
               onClick={onBackup}
@@ -108,22 +108,20 @@ const AppHeader: React.FC<AppHeaderProps> = ({
             >
               <Trash2 size={14} /> 重置数据
             </button>
-          </>
+          </div>
         )}
 
-        <div className="ml-auto flex items-center gap-2 md:ml-0 md:gap-3 md:pl-1">
-          <div className="text-right shrink-0">
-            <p className="text-sm text-slate-700">{authUsername}</p>
-            <p className="text-xs text-slate-500">{roleLabel}</p>
-          </div>
-          <button
-            type="button"
-            onClick={onLogout}
-            className="px-3 py-1.5 text-sm border border-slate-200 rounded-lg hover:bg-slate-100 text-slate-600 flex items-center gap-2 whitespace-nowrap"
-          >
-            <LogOut size={14} /> 退出
-          </button>
+        <div className="col-start-3 row-start-1 justify-self-end text-right shrink-0">
+          <p className="text-sm text-slate-700 leading-5">{authUsername}</p>
+          <p className="text-xs text-slate-500 leading-4">{roleLabel}</p>
         </div>
+        <button
+          type="button"
+          onClick={onLogout}
+          className="col-start-4 row-start-1 px-3 py-1.5 text-sm border border-slate-200 rounded-lg hover:bg-slate-100 text-slate-600 flex items-center gap-2 whitespace-nowrap"
+        >
+          <LogOut size={14} /> 退出
+        </button>
       </div>
     </header>
   );

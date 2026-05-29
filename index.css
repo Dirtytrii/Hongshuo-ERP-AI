@@ -26,3 +26,17 @@
     @apply space-y-6;
   }
 }
+
+@media (max-width: 767px) {
+  .overflow-x-auto > table:not([class*='min-w-']),
+  .overflow-auto > table:not([class*='min-w-']) {
+    min-width: max(44rem, 100%);
+  }
+
+  .overflow-x-auto th,
+  .overflow-x-auto td,
+  .overflow-auto th,
+  .overflow-auto td {
+    white-space: nowrap;
+  }
+}

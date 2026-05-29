@@ -25,19 +25,23 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
 
   return (
     <aside
-      className={`fixed inset-y-0 left-0 z-40 w-72 bg-white border-r border-slate-200/70 transition-all duration-300 flex flex-col rounded-r-2xl overflow-hidden md:relative md:z-auto ${
+      className={`fixed inset-y-0 left-0 z-40 w-72 max-w-[calc(100vw-3rem)] shrink-0 bg-white border-r border-slate-200/70 transition-all duration-300 flex flex-col rounded-r-2xl overflow-hidden md:relative md:z-auto md:max-w-none ${
         isOpen ? 'translate-x-0 md:w-72' : '-translate-x-full md:translate-x-0 md:w-24'
       }`}
     >
-      <div className="p-5 flex items-center justify-between gap-3 border-b border-slate-100">
-        <div className="flex items-center gap-3 min-w-0">
+      <div
+        className={`border-b border-slate-100 ${
+          isOpen ? 'p-5 flex items-center justify-between gap-3' : 'px-3 py-4 flex flex-col items-center gap-3'
+        }`}
+      >
+        <div className={`flex items-center gap-3 min-w-0 ${!isOpen ? 'justify-center' : ''}`}>
           <div className="bg-blue-600 p-2.5 rounded-xl text-white shrink-0">
             <HardHat size={20} />
           </div>
           {isOpen && (
             <div className="min-w-0">
               <p className="font-bold text-base tracking-tight text-slate-800">宏硕建设 ERP</p>
-              <p className="text-xs text-slate-500">项目 · 物料 · 财务一体化</p>
+              <p className="text-xs text-slate-500">ERP 管理中台</p>
             </div>
           )}
         </div>

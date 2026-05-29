@@ -10,7 +10,7 @@ interface AppShellProps {
 
 const AppShell: React.FC<AppShellProps> = ({ sidebar, header, isSidebarOpen, onCloseSidebar, children }) => {
   return (
-    <div className="relative flex h-screen bg-slate-50 text-slate-900 overflow-hidden font-sans">
+    <div className="relative flex h-screen min-w-0 bg-slate-50 text-slate-900 overflow-hidden font-sans">
       {sidebar}
       {isSidebarOpen && (
         <button
@@ -20,7 +20,7 @@ const AppShell: React.FC<AppShellProps> = ({ sidebar, header, isSidebarOpen, onC
           onClick={onCloseSidebar}
         />
       )}
-      <main className="flex-1 min-w-0 flex flex-col overflow-hidden">
+      <main className="flex-1 min-w-0 w-full flex flex-col overflow-hidden">
         {header}
         {children}
       </main>
