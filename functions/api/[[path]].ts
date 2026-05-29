@@ -3,17 +3,20 @@ interface PagesFunctionContext {
 }
 
 export async function onRequest(context: PagesFunctionContext) {
-  const url = new URL(context.request.url);
+  const req = context.request;
+  const url = new URL(req.url);
 
-  const upstream = new URL(url.pathname + url.search, 'http://8.163.60.63:9101');
+  const upstream = new URL(url.pathname + url.search, 'http://8.163.60.63.nip.io:9101');
 
-  const headers = new Headers(context.request.headers);
-  headers.set('Host', '8.163.60.63:9101');
+  const headers = new Headers(req.headers);
+  headers.delete('host');
+  headers.delete('origin');
+  headers.delete('referer');
 
   const response = await fetch(upstream.toString(), {
-    method: context.request.method,
+    method: req.method,
     headers,
-    body: context.request.method === 'GET' || context.request.method === 'HEAD' ? undefined : context.request.body,
+    body: req.method === 'GET' || req.method === 'HEAD' ? undefined : req.body,
   });
 
   const respHeaders = new Headers(response.headers);
