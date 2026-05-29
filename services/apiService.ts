@@ -10,7 +10,21 @@ import type {
   UpdateMilestonePayload,
   UpdateProjectPayload,
 } from '../types';
-const BASE_URL = 'http://localhost:8080/api';
+
+const DEFAULT_API_BASE_URL = 'http://localhost:8080/api';
+
+type ViteImportMeta = ImportMeta & {
+  env?: {
+    VITE_API_BASE_URL?: string;
+  };
+};
+
+export function resolveApiBaseUrl(apiBaseUrl = (import.meta as ViteImportMeta).env?.VITE_API_BASE_URL): string {
+  const trimmedUrl = apiBaseUrl?.trim();
+  return trimmedUrl ? trimmedUrl.replace(/\/+$/, '') : DEFAULT_API_BASE_URL;
+}
+
+const BASE_URL = resolveApiBaseUrl();
 
 const AUTH_TOKEN_KEY = 'erp_token';
 const AUTH_USER_KEY = 'erp_user';

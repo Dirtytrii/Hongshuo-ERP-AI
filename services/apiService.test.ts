@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { apiService } from './apiService';
+import { apiService, resolveApiBaseUrl } from './apiService';
 import type {
   CreateMilestonePayload,
   CreateProjectPayload,
@@ -10,6 +10,11 @@ import type {
 describe('apiService', () => {
   beforeEach(() => {
     vi.stubGlobal('fetch', vi.fn());
+  });
+
+  it('resolveApiBaseUrl uses VITE_API_BASE_URL and trims trailing slashes', () => {
+    expect(resolveApiBaseUrl(' https://api.example.com/api/// ')).toBe('https://api.example.com/api');
+    expect(resolveApiBaseUrl('')).toBe('http://localhost:8080/api');
   });
 
   it('getProjects returns array on success', async () => {
