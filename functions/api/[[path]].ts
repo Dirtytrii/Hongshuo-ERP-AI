@@ -9,9 +9,33 @@ export async function onRequest(context: PagesFunctionContext) {
   const upstream = new URL(url.pathname + url.search, 'http://8.163.60.63.nip.io');
 
   const headers = new Headers(req.headers);
-  headers.delete('host');
-  headers.delete('origin');
-  headers.delete('referer');
+  [
+    'host',
+    'origin',
+    'referer',
+    'accept-encoding',
+    'content-length',
+    'cf-connecting-ip',
+    'cf-ew-via',
+    'cf-ipcountry',
+    'cf-ray',
+    'cf-visitor',
+    'cdn-loop',
+    'forwarded',
+    'x-forwarded-for',
+    'x-forwarded-host',
+    'x-forwarded-port',
+    'x-forwarded-proto',
+    'x-real-ip',
+    'connection',
+    'keep-alive',
+    'proxy-authenticate',
+    'proxy-authorization',
+    'te',
+    'trailer',
+    'transfer-encoding',
+    'upgrade',
+  ].forEach((header) => headers.delete(header));
 
   const response = await fetch(upstream.toString(), {
     method: req.method,
