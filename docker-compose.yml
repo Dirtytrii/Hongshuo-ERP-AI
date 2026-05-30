@@ -1,4 +1,4 @@
-version: "3.9"
+version: '3.9'
 
 services:
   backend:
@@ -7,7 +7,8 @@ services:
       dockerfile: Dockerfile.backend
     container_name: hongshuo-erp-backend
     ports:
-      - "8080:8080"
+      # Keep the backend off the public interface; expose it only to local reverse proxies.
+      - '127.0.0.1:8080:8080'
     environment:
       # 使用与本地一致的 H2 文件路径（相对 /app）
       - SPRING_DATASOURCE_URL=jdbc:h2:file:./data/hongshuo_erp
@@ -31,7 +32,7 @@ services:
       - backend
     ports:
       # 访问前端：http://localhost:3000
-      - "3000:80"
+      - '3000:80'
     environment:
       # 运行时保留，方便前端在需要时通过环境变量读取
       - VITE_API_BASE=http://backend:8080
@@ -41,4 +42,3 @@ services:
 networks:
   erp-net:
     driver: bridge
-

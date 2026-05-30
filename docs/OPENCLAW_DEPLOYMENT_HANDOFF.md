@@ -154,8 +154,8 @@ Environment=SPRING_DATASOURCE_URL=jdbc:h2:file:./data/hongshuo_erp
 Environment=SPRING_DATASOURCE_USERNAME=sa
 Environment=SPRING_DATASOURCE_PASSWORD=
 
-# AI（可选：不配置则 AI 降级/隐藏）
-Environment=DEEPSEEK_API_KEY=sk-79ba234316a84d74b67e2f51a3a8c979
+# AI（可选：不配置则 AI 降级/隐藏；不要把真实密钥写入仓库文档）
+Environment=DEEPSEEK_API_KEY=your_deepseek_api_key
 
 StandardOutput=append:/home/hongshuo/apps/hongshuo-erp/shared/logs/backend.out.log
 StandardError=append:/home/hongshuo/apps/hongshuo-erp/shared/logs/backend.err.log
