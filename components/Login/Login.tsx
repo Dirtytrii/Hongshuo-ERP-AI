@@ -38,11 +38,8 @@ const Login: React.FC<LoginProps> = ({ onSuccess }) => {
         style={{ backgroundImage: "url('/images/hongshuo-login-bg.jpg')" }}
         aria-hidden="true"
       />
-      <div
-        className="absolute inset-0 bg-[linear-gradient(90deg,rgba(239,246,255,0.22),rgba(248,250,252,0.7)_48%,rgba(248,250,252,0.9))]"
-        aria-hidden="true"
-      />
-      <div className="relative flex min-h-[calc(100vh-2rem)] items-center justify-center lg:justify-end lg:pr-[12vw]">
+      <div className="absolute inset-0 bg-white/10" aria-hidden="true" />
+      <div className="relative flex min-h-[calc(100vh-2rem)] items-center justify-center">
         <div className="w-full max-w-md rounded-3xl border border-white/70 bg-white/95 p-8 shadow-2xl shadow-slate-900/15 backdrop-blur">
           <div className="flex items-center justify-center gap-2 mb-8">
             <img src="/images/hongshuo-logo.png" alt="" className="h-9 w-9 rounded-xl object-cover" />
