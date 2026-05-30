@@ -11,7 +11,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -22,7 +21,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/approval-center")
-@CrossOrigin(origins = "*")
 @RequiredArgsConstructor
 @Tag(name = "ApprovalCenter", description = "审批中心待办聚合")
 public class ApprovalCenterController {

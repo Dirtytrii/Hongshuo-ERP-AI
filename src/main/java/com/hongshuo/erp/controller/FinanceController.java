@@ -21,7 +21,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/finance")
-@CrossOrigin(origins = "*")
 @Tag(name = "Finance", description = "财务收支与审批接口")
 public class FinanceController {
 

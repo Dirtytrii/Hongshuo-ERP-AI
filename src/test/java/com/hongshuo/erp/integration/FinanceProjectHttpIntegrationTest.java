@@ -2,8 +2,10 @@ package com.hongshuo.erp.integration;
 
 import com.hongshuo.erp.model.FinanceRecord;
 import com.hongshuo.erp.model.Project;
+import com.hongshuo.erp.model.User;
 import com.hongshuo.erp.repository.FinanceRecordRepository;
 import com.hongshuo.erp.repository.ProjectRepository;
+import com.hongshuo.erp.service.TokenStore;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -39,6 +41,9 @@ class FinanceProjectHttpIntegrationTest {
     @Autowired
     private FinanceRecordRepository financeRecordRepository;
 
+    @Autowired
+    private TokenStore tokenStore;
+
     @Test
     @Rollback
     void approveExpense_viaHttp_shouldIncreaseProjectMaterialCost() throws Exception {
@@ -60,6 +65,7 @@ class FinanceProjectHttpIntegrationTest {
         BigDecimal before = beforeProject.getMaterialCost();
 
         mockMvc.perform(post("/api/finance/{id}/approve", record.getId())
+                        .header("Authorization", adminAuthorization())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"approver\":\"admin\",\"approved\":true,\"approvalNote\":\"HTTP集成测试-支出\"}"))
                 .andExpect(status().isOk())
@@ -90,6 +96,7 @@ class FinanceProjectHttpIntegrationTest {
         BigDecimal before = beforeProject.getReceivedAmount();
 
         mockMvc.perform(post("/api/finance/{id}/approve", record.getId())
+                        .header("Authorization", adminAuthorization())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"approver\":\"admin\",\"approved\":true,\"approvalNote\":\"HTTP集成测试-收入\"}"))
                 .andExpect(status().isOk())
@@ -116,5 +123,12 @@ class FinanceProjectHttpIntegrationTest {
         p.setEndDate(null);
         return p;
     }
-}
 
+    private String adminAuthorization() {
+        User admin = new User();
+        admin.setUsername("admin");
+        admin.setRole("admin");
+        admin.setEnabled(true);
+        return "Bearer " + tokenStore.createToken(admin);
+    }
+}

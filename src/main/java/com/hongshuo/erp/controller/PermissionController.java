@@ -14,7 +14,6 @@ import java.util.Properties;
 
 @RestController
 @RequestMapping("/api/permissions")
-@CrossOrigin(origins = "*")
 public class PermissionController {
 
     @Value("${app.permissions.file:permissions.properties}")

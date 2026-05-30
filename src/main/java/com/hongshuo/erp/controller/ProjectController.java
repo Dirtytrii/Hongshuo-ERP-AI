@@ -23,7 +23,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/projects")
-@CrossOrigin(origins = "*")
 @Tag(name = "Projects", description = "项目与里程碑管理接口")
 public class ProjectController {
 

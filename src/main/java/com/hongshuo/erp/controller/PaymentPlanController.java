@@ -19,7 +19,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/payment-plans")
-@CrossOrigin(origins = "*")
 @Tag(name = "PaymentPlans", description = "回款计划与待催款预警")
 public class PaymentPlanController {
 

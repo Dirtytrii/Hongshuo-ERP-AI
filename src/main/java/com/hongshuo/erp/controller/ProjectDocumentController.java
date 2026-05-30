@@ -19,7 +19,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/project-documents")
-@CrossOrigin(origins = "*")
 @Tag(name = "ProjectDocuments", description = "项目文档清单（P2-1 轻量版：名称+链接+备注）")
 public class ProjectDocumentController {
 

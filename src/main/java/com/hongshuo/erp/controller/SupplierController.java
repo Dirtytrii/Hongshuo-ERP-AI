@@ -20,7 +20,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/suppliers")
-@CrossOrigin(origins = "*")
 @Tag(name = "Suppliers", description = "供应商主数据与应付/已付/欠款")
 public class SupplierController {
 

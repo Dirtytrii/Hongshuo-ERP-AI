@@ -17,7 +17,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/milestones")
-@CrossOrigin(origins = "*")
 @Tag(name = "Milestones", description = "里程碑与超期预警")
 public class MilestoneController {
 
