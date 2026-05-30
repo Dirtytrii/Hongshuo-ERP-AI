@@ -6,7 +6,7 @@ export async function onRequest(context: PagesFunctionContext) {
   const req = context.request;
   const url = new URL(req.url);
 
-  const upstream = new URL(url.pathname + url.search, 'http://8.163.60.63.nip.io');
+  const upstream = new URL(url.pathname + url.search, 'http://api-hongshuo.dingai.site');
 
   const headers = new Headers(req.headers);
   [
