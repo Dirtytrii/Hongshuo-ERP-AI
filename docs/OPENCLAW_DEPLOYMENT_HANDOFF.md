@@ -146,6 +146,7 @@ RestartSec=5
 # 生产覆盖：端口与安全开关（非常重要）
 Environment=SERVER_PORT=18081
 Environment=APP_DATA_RESET_ON_STARTUP=false
+Environment=APP_SECURITY_BOOTSTRAP_DEFAULT_PASSWORD=replace_with_one_time_initial_password
 Environment=SPRING_H2_CONSOLE_ENABLED=false
 
 # H2 文件库（相对路径依赖 WorkingDirectory）
@@ -229,8 +230,10 @@ firewall-cmd --reload
 后端本机探活：
 
 ```bash
-curl http://127.0.0.1:18081/api/projects
+curl -i http://127.0.0.1:18081/api/projects
 ```
+
+未带 `Authorization` 时应返回 `401`；如果历史环境仍存在 `admin / 123456` 等默认密码，先轮换账号密码再继续公网验证。
 
 前端本机探活：
 
@@ -256,3 +259,4 @@ http://<服务器公网IP>:18080
   - `shared/data` 可写且不被覆盖
 - **安全项**：必须确保
   - `SPRING_H2_CONSOLE_ENABLED=false`（避免暴露 H2 Console）
+  - 首次空库部署必须设置一次性 `APP_SECURITY_BOOTSTRAP_DEFAULT_PASSWORD`，禁止沿用开发默认口令

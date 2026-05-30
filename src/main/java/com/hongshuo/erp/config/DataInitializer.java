@@ -52,6 +52,12 @@ public class DataInitializer implements CommandLineRunner {
     @Value("${app.data.reset-on-startup:false}")
     private boolean resetOnStartup;
 
+    @Value("${app.security.bootstrap-default-password:}")
+    private String bootstrapDefaultPassword;
+
+    @Value("${app.security.allow-insecure-default-password:false}")
+    private boolean allowInsecureDefaultPassword;
+
     @Override
     public void run(String... args) {
         boolean hasData = projectRepository.count() > 0;
@@ -389,15 +395,40 @@ public class DataInitializer implements CommandLineRunner {
         systemLogRepository.save(log);
     }
 
-    /** 初始化测试用户：admin + pm/finance/clerk，便于登录与权限测试 */
+    /** 初始化首批用户：admin + pm/finance/clerk，便于登录与权限测试 */
     private void initTestUsers() {
-        if (userRepository.count() > 0) return;
-        String defaultPassword = "123456";
-        saveUser("admin", defaultPassword, "admin");
-        saveUser("pm", defaultPassword, "pm");
-        saveUser("finance", defaultPassword, "finance");
-        saveUser("clerk", defaultPassword, "clerk");
-        System.out.println("已创建测试用户: admin/pm/finance/clerk，密码均为 " + defaultPassword);
+        if (userRepository.count() > 0) {
+            warnIfKnownDefaultPasswordExists();
+            return;
+        }
+
+        String initialPassword = resolveBootstrapPassword();
+        saveUser("admin", initialPassword, "admin");
+        saveUser("pm", initialPassword, "pm");
+        saveUser("finance", initialPassword, "finance");
+        saveUser("clerk", initialPassword, "clerk");
+        System.out.println("已创建初始用户: admin/pm/finance/clerk，请首次登录后立即修改密码");
+    }
+
+    private String resolveBootstrapPassword() {
+        String configuredPassword = bootstrapDefaultPassword == null ? "" : bootstrapDefaultPassword.trim();
+        if (!configuredPassword.isEmpty()) {
+            return configuredPassword;
+        }
+        if (allowInsecureDefaultPassword) {
+            System.out.println("开发环境使用内置初始密码，请勿在生产环境启用");
+            return "123456";
+        }
+        throw new IllegalStateException(
+            "数据库暂无用户，请先配置 app.security.bootstrap-default-password 或 APP_SECURITY_BOOTSTRAP_DEFAULT_PASSWORD");
+    }
+
+    private void warnIfKnownDefaultPasswordExists() {
+        userRepository.findAll().stream()
+            .filter(user -> Boolean.TRUE.equals(user.getEnabled()))
+            .filter(user -> passwordEncoder.matches("123456", user.getPasswordHash()))
+            .findAny()
+            .ifPresent(user -> System.out.println("检测到仍有启用用户使用历史默认密码，请立即轮换该账号密码"));
     }
 
     private void saveUser(String username, String password, String role) {

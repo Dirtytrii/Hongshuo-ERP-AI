@@ -129,6 +129,7 @@ Environment=SPRING_DATASOURCE_URL=jdbc:h2:file:./data/hongshuo_erp
 Environment=SPRING_DATASOURCE_USERNAME=sa
 Environment=SPRING_DATASOURCE_PASSWORD=
 Environment=APP_DATA_RESET_ON_STARTUP=false
+Environment=APP_SECURITY_BOOTSTRAP_DEFAULT_PASSWORD=replace_with_one_time_initial_password
 Environment=SPRING_H2_CONSOLE_ENABLED=false
 Environment=DEEPSEEK_API_KEY=your_deepseek_api_key
 StandardOutput=append:/home/hongshuo/apps/hongshuo-erp/shared/logs/backend.out.log
@@ -199,8 +200,10 @@ tail -n 100 /home/hongshuo/apps/hongshuo-erp/shared/logs/backend.err.log
 ### 接口检查
 
 ```bash
-curl http://127.0.0.1:18081/api/projects
+curl -i http://127.0.0.1:18081/api/projects
 ```
+
+未带 `Authorization` 时应返回 `401`；如果历史环境仍存在 `admin / 123456` 等默认密码，先轮换账号密码再放公网流量。
 
 ### 页面检查
 
