@@ -32,15 +32,17 @@ const Login: React.FC<LoginProps> = ({ onSuccess }) => {
   };
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-slate-100 p-4">
-      <div
-        className="absolute inset-0 bg-cover bg-[position:28%_center] md:bg-center"
-        style={{ backgroundImage: "url('/images/hongshuo-login-bg.jpg')" }}
+    <div className="relative min-h-[100dvh] overflow-hidden bg-[#58534c] p-4">
+      <img
+        src="/images/hongshuo-login-bg.jpg"
+        alt=""
+        className="absolute inset-0 h-full w-full object-cover object-[28%_center] md:object-center"
         aria-hidden="true"
+        draggable={false}
       />
       <div className="absolute inset-0 bg-white/10" aria-hidden="true" />
-      <div className="relative flex min-h-[calc(100vh-2rem)] items-center justify-center">
-        <div className="relative w-full max-w-sm overflow-hidden rounded-[1.75rem] border border-white/80 bg-[linear-gradient(145deg,rgba(255,255,255,0.96),rgba(244,247,250,0.9))] px-7 py-7 shadow-[0_26px_80px_rgba(15,23,42,0.24),inset_0_1px_0_rgba(255,255,255,0.92)] backdrop-blur-xl">
+      <div className="relative flex min-h-[calc(100dvh-2rem)] items-center justify-center">
+        <div className="relative w-full max-w-sm overflow-hidden rounded-[1.75rem] border border-white/80 bg-[linear-gradient(145deg,rgba(255,255,255,0.96),rgba(244,247,250,0.9))] px-7 py-7 shadow-[0_26px_80px_rgba(15,23,42,0.24),inset_0_1px_0_rgba(255,255,255,0.92)] backdrop-blur-xl 2xl:max-w-md 2xl:px-8 2xl:py-8">
           <div
             className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-white to-transparent"
             aria-hidden="true"
