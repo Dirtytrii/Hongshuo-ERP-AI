@@ -40,50 +40,48 @@ const Login: React.FC<LoginProps> = ({ onSuccess }) => {
       />
       <div className="absolute inset-0 bg-white/10" aria-hidden="true" />
       <div className="relative flex min-h-[calc(100vh-2rem)] items-center justify-center">
-        <div className="w-full max-w-md rounded-3xl border border-white/70 bg-white/95 p-8 shadow-2xl shadow-slate-900/15 backdrop-blur">
-          <div className="flex items-center justify-center gap-2 mb-8">
-            <img src="/images/hongshuo-logo.png" alt="" className="h-9 w-9 rounded-xl object-cover" />
-            <span className="text-xl font-bold text-slate-800">宏硕建设 ERP</span>
-          </div>
-          <h2 className="text-lg font-bold text-slate-700 text-center mb-6">登录</h2>
+        <div className="w-full max-w-sm rounded-3xl border border-white/80 bg-white/92 px-7 py-8 shadow-[0_24px_70px_rgba(15,23,42,0.22),inset_0_1px_0_rgba(255,255,255,0.85)] backdrop-blur-xl">
+          <h1 className="mb-7 text-center text-2xl font-bold tracking-[0.04em] text-slate-800">宏硕建设 ERP</h1>
+          <h2 className="mb-5 text-center text-base font-bold text-slate-700">登录</h2>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-slate-600 mb-1">用户名</label>
+              <label className="mb-1 block text-sm font-medium text-slate-600">用户名</label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                 <input
                   type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full rounded-xl border border-slate-200/90 bg-white/75 py-2.5 pl-10 pr-4 text-slate-800 shadow-sm outline-none transition-colors placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/25"
                   placeholder="请输入用户名"
                   autoComplete="username"
                 />
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-600 mb-1">密码</label>
+              <label className="mb-1 block text-sm font-medium text-slate-600">密码</label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                 <input
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full rounded-xl border border-slate-200/90 bg-white/75 py-2.5 pl-10 pr-4 text-slate-800 shadow-sm outline-none transition-colors placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/25"
                   placeholder="请输入密码"
                   autoComplete="current-password"
                 />
               </div>
             </div>
-            {error && <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
+            {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>}
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-2.5 bg-blue-600 text-white font-medium rounded-xl hover:bg-blue-700 disabled:opacity-50 transition-colors"
+              className="w-full rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 py-2.5 font-medium text-white shadow-lg shadow-blue-900/15 transition-colors hover:from-blue-700 hover:to-blue-600 disabled:opacity-50"
             >
               {loading ? '登录中...' : '登录'}
             </button>
           </form>
+          <p className="mt-6 text-center text-xs text-slate-400">默认管理员：admin / 123456</p>
         </div>
       </div>
     </div>
