@@ -48,8 +48,8 @@ const InventoryStatusChart: React.FC<InventoryStatusChartProps> = ({ inventory }
   const COLORS = ['#10b981', '#ef4444'];
 
   return (
-    <div className="bg-white rounded-3xl border border-slate-100/80 shadow-sm p-6">
-      <h3 className="font-bold text-slate-700 mb-4 flex items-center gap-2">
+    <div className="dashboard-panel p-6">
+      <h3 className="mb-4 flex items-center gap-2 font-semibold text-slate-800">
         <Package size={18} />
         库存状态分析
       </h3>
@@ -60,32 +60,34 @@ const InventoryStatusChart: React.FC<InventoryStatusChartProps> = ({ inventory }
           {inventory.length === 0 ? (
             <div className="text-center text-slate-400 py-8 text-sm">暂无库存数据</div>
           ) : (
-            <ResponsiveContainer width="100%" height={250}>
-              <PieChart>
-                <Pie
-                  data={pieData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {pieData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: '#fff',
-                    border: '1px solid #e2e8f0',
-                    borderRadius: '8px',
-                    padding: '8px',
-                  }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
+            <div className="h-[250px] min-w-0">
+              <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                <PieChart>
+                  <Pie
+                    data={pieData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {pieData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: '#fff',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '8px',
+                      padding: '8px',
+                    }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
           )}
         </div>
 
@@ -98,39 +100,41 @@ const InventoryStatusChart: React.FC<InventoryStatusChartProps> = ({ inventory }
           {warningBarData.length === 0 ? (
             <div className="text-center text-slate-400 py-8 text-sm">暂无低库存物料</div>
           ) : (
-            <ResponsiveContainer width="100%" height={250}>
-              <BarChart data={warningBarData} layout="vertical" margin={{ top: 5, right: 30, left: 80, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                <XAxis
-                  type="number"
-                  domain={[0, 100]}
-                  tick={{ fill: '#64748b', fontSize: 12 }}
-                  tickFormatter={(value) => `${value}%`}
-                />
-                <YAxis type="category" dataKey="name" tick={{ fill: '#64748b', fontSize: 12 }} width={80} />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: '#fff',
-                    border: '1px solid #e2e8f0',
-                    borderRadius: '8px',
-                    padding: '8px',
-                  }}
-                  formatter={(value: number) => [`${value}%`, '库存比例']}
-                  labelFormatter={(label) => {
-                    const item = warningBarData.find((d) => d.name === label);
-                    return item?.fullName || label;
-                  }}
-                />
-                <Bar dataKey="比例" radius={[0, 8, 8, 0]} fill="#ef4444">
-                  {warningBarData.map((entry, index) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={entry.比例 < 50 ? '#ef4444' : entry.比例 < 80 ? '#f59e0b' : '#10b981'}
-                    />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+            <div className="h-[250px] min-w-0">
+              <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                <BarChart data={warningBarData} layout="vertical" margin={{ top: 5, right: 30, left: 80, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                  <XAxis
+                    type="number"
+                    domain={[0, 100]}
+                    tick={{ fill: '#64748b', fontSize: 12 }}
+                    tickFormatter={(value) => `${value}%`}
+                  />
+                  <YAxis type="category" dataKey="name" tick={{ fill: '#64748b', fontSize: 12 }} width={80} />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: '#fff',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '8px',
+                      padding: '8px',
+                    }}
+                    formatter={(value: number) => [`${value}%`, '库存比例']}
+                    labelFormatter={(label) => {
+                      const item = warningBarData.find((d) => d.name === label);
+                      return item?.fullName || label;
+                    }}
+                  />
+                  <Bar dataKey="比例" radius={[0, 8, 8, 0]} fill="#ef4444">
+                    {warningBarData.map((entry, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={entry.比例 < 50 ? '#ef4444' : entry.比例 < 80 ? '#f59e0b' : '#10b981'}
+                      />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           )}
         </div>
       </div>

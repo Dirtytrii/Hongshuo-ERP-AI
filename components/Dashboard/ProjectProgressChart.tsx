@@ -24,7 +24,7 @@ const ProjectProgressChart: React.FC<ProjectProgressChartProps> = ({ projects, o
       case '施工中':
         return '#3b82f6'; // blue
       case '验收中':
-        return '#a855f7'; // purple
+        return '#f59e0b'; // amber
       case '已完工':
         return '#10b981'; // green
       default:
@@ -33,8 +33,8 @@ const ProjectProgressChart: React.FC<ProjectProgressChartProps> = ({ projects, o
   };
 
   return (
-    <div className="bg-white rounded-3xl border border-slate-100/80 shadow-sm p-6">
-      <h3 className="font-bold text-slate-700 mb-4 flex items-center gap-2">
+    <div className="dashboard-panel p-6">
+      <h3 className="mb-4 flex items-center gap-2 font-semibold text-slate-800">
         <Building2 size={18} />
         项目进度概览
       </h3>
@@ -42,9 +42,9 @@ const ProjectProgressChart: React.FC<ProjectProgressChartProps> = ({ projects, o
         <div className="text-center text-slate-400 py-8">暂无项目数据</div>
       ) : (
         <div className="space-y-4">
-          <div className="overflow-y-auto" style={{ maxHeight: 480 }}>
-            <div style={{ height: chartHeight, minHeight: 250 }}>
-              <ResponsiveContainer width="100%" height="100%">
+          <div className="min-w-0 overflow-y-auto" style={{ maxHeight: 480 }}>
+            <div className="min-w-0" style={{ height: chartHeight, minHeight: 250 }}>
+              <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                 <BarChart data={chartData} layout="vertical" margin={{ top: 5, right: 30, left: 80, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                   <XAxis type="number" domain={[0, 100]} tick={{ fill: '#64748b', fontSize: 12 }} />
@@ -85,11 +85,11 @@ const ProjectProgressChart: React.FC<ProjectProgressChartProps> = ({ projects, o
               <span className="text-slate-600">施工中</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded bg-purple-500"></div>
+              <div className="h-3 w-3 rounded bg-amber-500"></div>
               <span className="text-slate-600">验收中</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded bg-green-500"></div>
+              <div className="h-3 w-3 rounded bg-emerald-500"></div>
               <span className="text-slate-600">已完工</span>
             </div>
           </div>

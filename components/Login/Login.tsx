@@ -59,7 +59,10 @@ const Login: React.FC<LoginProps> = ({ onSuccess }) => {
             aria-hidden="true"
           />
           <div className="mb-6 border-b border-white/35 pb-5 text-center">
-            <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.34em] text-slate-500/90">ACCESS PANEL</p>
+            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl border border-white/55 bg-white/42 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)]">
+              <img src="/images/hongshuo-logo.png" alt="" className="h-9 w-9 rounded-xl object-cover" />
+            </div>
+            <p className="mb-2 text-xs font-semibold text-slate-500/95">项目协同管理中台</p>
             <h1 className="text-2xl font-bold tracking-[0.05em] text-slate-900">宏硕建设 ERP</h1>
           </div>
           <h2 className="mb-5 flex items-center justify-center gap-3 text-base font-bold text-slate-800">
@@ -110,7 +113,7 @@ const Login: React.FC<LoginProps> = ({ onSuccess }) => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-2xl border border-white/35 bg-[linear-gradient(135deg,#1d4ed8,#2563eb_48%,#38bdf8)] py-3 font-semibold tracking-wide text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.38),0_16px_34px_rgba(37,99,235,0.3)] transition hover:brightness-95 disabled:opacity-50"
+              className="w-full rounded-2xl border border-white/35 bg-[#0f4c81] py-3 font-semibold tracking-wide text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.28),0_16px_34px_rgba(15,76,129,0.28)] transition hover:bg-[#0b3f6d] disabled:opacity-50"
             >
               {loading ? '登录中...' : '登录'}
             </button>

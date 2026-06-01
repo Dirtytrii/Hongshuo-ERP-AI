@@ -6,7 +6,9 @@ interface AppPageViewportProps {
 
 const AppPageViewport: React.FC<AppPageViewportProps> = ({ children }) => {
   return (
-    <div className="flex-1 min-w-0 w-full overflow-y-auto overflow-x-hidden p-4 md:p-8 page-shell">{children}</div>
+    <div className="page-shell min-w-0 flex-1 overflow-y-auto overflow-x-hidden px-4 py-5 sm:px-5 md:px-7 md:py-6">
+      <div className="mx-auto w-full max-w-[1680px]">{children}</div>
+    </div>
   );
 };
 

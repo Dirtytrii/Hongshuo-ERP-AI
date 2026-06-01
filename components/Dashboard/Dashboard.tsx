@@ -1,15 +1,5 @@
 import React from 'react';
-import {
-  Building2,
-  ArrowRightLeft,
-  AlertTriangle,
-  Sparkles,
-  Clock,
-  History,
-  Plus,
-  Check,
-  Wallet,
-} from 'lucide-react';
+import { Building2, ArrowRightLeft, AlertTriangle, Sparkles, Clock, History, Plus, Check, Wallet } from 'lucide-react';
 import {
   Project,
   InventoryItem,
@@ -73,56 +63,69 @@ const Dashboard: React.FC<DashboardProps> = ({
       .filter((l) => l.type === 'out' && l.status === 'approved')
       .reduce((acc, curr) => acc + curr.qty, 0);
     const lowStockCount = inventory.filter((i) => i.quantity < i.threshold).length;
+    const activeProjects = projects.filter((p) => p.status !== '已完工').length;
+    const pendingApprovals = stockLogs.filter((l) => l.status === 'pending').length;
+    const metrics = [
+      {
+        title: '累计出库量',
+        value: `${totalOutbound}件`,
+        icon: ArrowRightLeft,
+        className: 'bg-blue-50 text-blue-700 ring-blue-100',
+      },
+      {
+        title: '库存预警',
+        value: lowStockCount,
+        icon: AlertTriangle,
+        className:
+          lowStockCount > 0 ? 'bg-red-50 text-red-700 ring-red-100' : 'bg-emerald-50 text-emerald-700 ring-emerald-100',
+      },
+      {
+        title: '待审批',
+        value: pendingApprovals,
+        icon: Clock,
+        className:
+          pendingApprovals > 0
+            ? 'bg-amber-50 text-amber-700 ring-amber-100'
+            : 'bg-slate-50 text-slate-700 ring-slate-100',
+      },
+    ];
 
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        {[
-          {
-            title: '在建项目',
-            value: projects.filter((p) => p.status !== '已完工').length,
-            icon: Building2,
-            color: 'blue',
-            total: projects.length,
-          },
-          { title: '累计出库量', value: totalOutbound, icon: ArrowRightLeft, color: 'orange', unit: '件' },
-          { title: '库存预警', value: lowStockCount, icon: AlertTriangle, color: 'red', total: inventory.length },
-          {
-            title: '待审批',
-            value: stockLogs.filter((l) => l.status === 'pending').length,
-            icon: Clock,
-            color: 'purple',
-          },
-        ].map((s, i) => (
-          <div
-            key={i}
-            className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100/80 flex items-center gap-4 hover:shadow-md transition-all"
-          >
-            <div
-              className={`p-3 rounded-xl ${
-                s.color === 'blue'
-                  ? 'bg-blue-50 text-blue-600'
-                  : s.color === 'orange'
-                    ? 'bg-orange-50 text-orange-600'
-                    : s.color === 'red'
-                      ? 'bg-red-50 text-red-600'
-                      : 'bg-purple-50 text-purple-600'
-              }`}
-            >
-              <s.icon size={24} />
-            </div>
-            <div className="flex-1">
-              <p className="text-slate-500 text-sm font-medium">{s.title}</p>
-              <div className="flex items-baseline gap-2">
-                <p className="text-2xl font-bold">
-                  {s.value}
-                  {s.unit || ''}
-                </p>
-                {s.total && <p className="text-xs text-slate-400">/ {s.total}</p>}
+      <section className="mb-7 grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.35fr)_repeat(3,minmax(0,1fr))]">
+        <div className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_14px_36px_rgba(15,23,42,0.06)]">
+          <div className="absolute inset-x-0 top-0 h-1 bg-[#0f4c81]" aria-hidden="true" />
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-sm font-semibold text-slate-500">在建项目</p>
+              <div className="mt-3 flex items-end gap-3">
+                <p className="text-4xl font-semibold tracking-tight text-slate-950">{activeProjects}</p>
+                <p className="pb-1 text-sm text-slate-500">/ {projects.length} 个项目</p>
               </div>
+            </div>
+            <div className="rounded-2xl bg-[#e7f0fb] p-3 text-[#0f4c81]">
+              <Building2 size={24} />
+            </div>
+          </div>
+          <p className="mt-5 max-w-md text-sm leading-6 text-slate-500">
+            当前经营概览优先暴露项目、物料和审批压力，方便从首屏判断今日处理顺序。
+          </p>
+        </div>
+
+        {metrics.map((s) => (
+          <div
+            key={s.title}
+            className="flex items-center gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_10px_28px_rgba(15,23,42,0.045)] transition-colors hover:border-slate-300"
+          >
+            <div className={`rounded-2xl p-3 ring-1 ${s.className}`}>
+              <s.icon size={22} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium text-slate-500">{s.title}</p>
+              <p className="mt-1 text-2xl font-semibold tracking-tight text-slate-950">{s.value}</p>
             </div>
           </div>
         ))}
-      </div>
+      </section>
     );
   };
 
@@ -184,7 +187,7 @@ const Dashboard: React.FC<DashboardProps> = ({
             title: log.action,
             description: log.detail,
             icon: <History size={16} />,
-            color: 'purple',
+            color: 'slate',
           });
         });
 
@@ -192,8 +195,8 @@ const Dashboard: React.FC<DashboardProps> = ({
     })();
 
     return (
-      <div className="bg-white rounded-3xl border border-slate-100/80 shadow-sm p-6">
-        <h3 className="font-bold text-slate-700 mb-4 flex items-center gap-2">
+      <div className="dashboard-panel p-6">
+        <h3 className="mb-4 flex items-center gap-2 font-semibold text-slate-800">
           <Clock size={18} />
           最近操作时间线
         </h3>
@@ -202,20 +205,20 @@ const Dashboard: React.FC<DashboardProps> = ({
         ) : (
           <div className="space-y-4">
             {recentActivities.map((activity, index) => (
-              <div key={activity.id} className="flex items-start gap-3 relative">
+              <div key={activity.id} className="relative flex items-start gap-3">
                 {index < recentActivities.length - 1 && (
-                  <div className="absolute left-5 top-8 w-0.5 h-full bg-slate-200"></div>
+                  <div className="absolute left-5 top-8 h-full w-px bg-slate-200"></div>
                 )}
                 <div
-                  className={`p-2 rounded-lg ${
+                  className={`relative z-10 rounded-xl p-2 ${
                     activity.color === 'green'
-                      ? 'bg-green-50 text-green-600'
+                      ? 'bg-emerald-50 text-emerald-600'
                       : activity.color === 'blue'
                         ? 'bg-blue-50 text-blue-600'
                         : activity.color === 'red'
                           ? 'bg-red-50 text-red-600'
-                          : 'bg-purple-50 text-purple-600'
-                  } relative z-10`}
+                          : 'bg-slate-100 text-slate-600'
+                  }`}
                 >
                   {activity.icon}
                 </div>
@@ -256,14 +259,14 @@ const Dashboard: React.FC<DashboardProps> = ({
 
     if (alerts.length === 0) {
       return (
-        <div className="bg-white rounded-3xl border border-slate-100/80 shadow-sm p-6">
-          <h3 className="font-bold text-slate-700 mb-4 flex items-center gap-2">
-            <Check size={18} className="text-green-600" />
+        <div className="dashboard-panel p-6">
+          <h3 className="mb-4 flex items-center gap-2 font-semibold text-slate-800">
+            <Check size={18} className="text-emerald-600" />
             预警信息汇总
           </h3>
           <div className="flex items-center justify-center py-8">
             <div className="text-center">
-              <Check size={32} className="text-green-500 mx-auto mb-2" />
+              <Check size={32} className="mx-auto mb-2 text-emerald-500" />
               <p className="text-sm text-slate-500">暂无预警信息，一切正常</p>
             </div>
           </div>
@@ -272,8 +275,8 @@ const Dashboard: React.FC<DashboardProps> = ({
     }
 
     return (
-      <div className="bg-white rounded-3xl border border-slate-100/80 shadow-sm p-6">
-        <h3 className="font-bold text-slate-700 mb-4 flex items-center gap-2">
+      <div className="dashboard-panel p-6">
+        <h3 className="mb-4 flex items-center gap-2 font-semibold text-slate-800">
           <AlertTriangle size={18} className="text-red-500" />
           预警信息汇总
         </h3>
@@ -287,12 +290,12 @@ const Dashboard: React.FC<DashboardProps> = ({
                 }
               }}
               key={alert.id}
-              className={`p-4 rounded-xl border-2 text-left w-full hover:shadow-sm transition ${
+              className={`w-full rounded-xl border p-4 text-left transition hover:border-slate-300 ${
                 alert.type === 'danger'
-                  ? 'bg-red-50 border-red-200'
+                  ? 'border-red-200 bg-red-50'
                   : alert.type === 'warning'
-                    ? 'bg-orange-50 border-orange-200'
-                    : 'bg-blue-50 border-blue-200'
+                    ? 'border-amber-200 bg-amber-50'
+                    : 'border-blue-200 bg-blue-50'
               }`}
             >
               <div className="flex items-start gap-3">
@@ -301,7 +304,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                     alert.type === 'danger'
                       ? 'bg-red-100 text-red-600'
                       : alert.type === 'warning'
-                        ? 'bg-orange-100 text-orange-600'
+                        ? 'bg-amber-100 text-amber-600'
                         : 'bg-blue-100 text-blue-600'
                   }`}
                 >
@@ -320,7 +323,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                         alert.type === 'danger'
                           ? 'text-red-700'
                           : alert.type === 'warning'
-                            ? 'text-orange-700'
+                            ? 'text-amber-700'
                             : 'text-blue-700'
                       }`}
                     >
@@ -331,7 +334,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                         alert.type === 'danger'
                           ? 'bg-red-200 text-red-700'
                           : alert.type === 'warning'
-                            ? 'bg-orange-200 text-orange-700'
+                            ? 'bg-amber-200 text-amber-700'
                             : 'bg-blue-200 text-blue-700'
                       }`}
                     >
@@ -343,7 +346,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                       alert.type === 'danger'
                         ? 'text-red-600'
                         : alert.type === 'warning'
-                          ? 'text-orange-600'
+                          ? 'text-amber-600'
                           : 'text-blue-600'
                     }`}
                   >
@@ -362,8 +365,8 @@ const Dashboard: React.FC<DashboardProps> = ({
     <div className="space-y-8">
       <StatsCards />
       {operationDashboard && (
-        <div className="bg-white rounded-3xl border border-slate-100/80 shadow-sm p-6">
-          <h3 className="font-bold text-slate-700 mb-4 flex items-center gap-2">
+        <div className="dashboard-panel p-6">
+          <h3 className="mb-4 flex items-center gap-2 font-semibold text-slate-800">
             <Sparkles size={18} className="text-blue-600" />
             经营看板
           </h3>
@@ -378,7 +381,7 @@ const Dashboard: React.FC<DashboardProps> = ({
               {
                 label: '合同结算额',
                 value: operationDashboard.contractSettledAmount,
-                className: 'text-indigo-700 bg-indigo-50',
+                className: 'text-sky-700 bg-sky-50',
                 onClick: () => onTabNavigate?.('contracts'),
               },
               {
@@ -418,10 +421,10 @@ const Dashboard: React.FC<DashboardProps> = ({
                 type="button"
                 key={kpi.label}
                 onClick={kpi.onClick}
-                className={`rounded-2xl border border-slate-100 p-4 ${kpi.className} text-left hover:shadow-sm transition`}
+                className={`rounded-2xl border border-slate-200 p-4 ${kpi.className} text-left transition hover:border-slate-300`}
               >
-                <p className="text-xs font-semibold uppercase tracking-wide opacity-80">{kpi.label}</p>
-                <p className="text-xl font-bold mt-2">
+                <p className="text-xs font-semibold opacity-80">{kpi.label}</p>
+                <p className="mt-2 text-xl font-semibold">
                   {kpi.plain ? String(kpi.value ?? 0) : `￥${Number(kpi.value || 0).toLocaleString()}`}
                 </p>
                 {kpi.suffix && <p className="text-xs mt-1 opacity-80">{kpi.suffix}</p>}
@@ -431,8 +434,8 @@ const Dashboard: React.FC<DashboardProps> = ({
         </div>
       )}
       {(operationDashboard || budgetExecutionDashboard.length > 0 || overdueMilestones.length > 0) && (
-        <div className="bg-white rounded-3xl border border-slate-100/80 shadow-sm p-6">
-          <h3 className="font-bold text-slate-700 mb-4 flex items-center gap-2">
+        <div className="dashboard-panel p-6">
+          <h3 className="mb-4 flex items-center gap-2 font-semibold text-slate-800">
             <AlertTriangle size={18} className="text-rose-600" />
             运营风险（可穿透）
           </h3>
@@ -440,10 +443,10 @@ const Dashboard: React.FC<DashboardProps> = ({
             <button
               type="button"
               onClick={() => onTabNavigate?.('projects')}
-              className="text-left rounded-2xl border border-red-100 bg-red-50 p-4 hover:shadow-sm transition"
+              className="rounded-2xl border border-red-200 bg-red-50 p-4 text-left transition hover:border-red-300"
             >
-              <p className="text-xs font-semibold text-red-700 uppercase tracking-wide">超预算项目</p>
-              <p className="text-2xl font-bold text-red-700 mt-2">
+              <p className="text-xs font-semibold text-red-700">超预算项目</p>
+              <p className="mt-2 text-2xl font-semibold text-red-700">
                 {budgetExecutionDashboard.filter((i) => i.budgetAlertStatus === 'red').length}
               </p>
               <p className="text-xs text-red-600 mt-1">点击查看项目明细</p>
@@ -451,19 +454,19 @@ const Dashboard: React.FC<DashboardProps> = ({
             <button
               type="button"
               onClick={() => onTabNavigate?.('projects')}
-              className="text-left rounded-2xl border border-orange-100 bg-orange-50 p-4 hover:shadow-sm transition"
+              className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-left transition hover:border-amber-300"
             >
-              <p className="text-xs font-semibold text-orange-700 uppercase tracking-wide">里程碑超期</p>
-              <p className="text-2xl font-bold text-orange-700 mt-2">{overdueMilestones.length}</p>
-              <p className="text-xs text-orange-600 mt-1">点击查看项目明细</p>
+              <p className="text-xs font-semibold text-amber-700">里程碑超期</p>
+              <p className="mt-2 text-2xl font-semibold text-amber-700">{overdueMilestones.length}</p>
+              <p className="mt-1 text-xs text-amber-600">点击查看项目明细</p>
             </button>
             <button
               type="button"
               onClick={() => onTabNavigate?.('finance')}
-              className="text-left rounded-2xl border border-amber-100 bg-amber-50 p-4 hover:shadow-sm transition"
+              className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-left transition hover:border-amber-300"
             >
-              <p className="text-xs font-semibold text-amber-700 uppercase tracking-wide">逾期待收金额</p>
-              <p className="text-2xl font-bold text-amber-700 mt-2">
+              <p className="text-xs font-semibold text-amber-700">逾期待收金额</p>
+              <p className="mt-2 text-2xl font-semibold text-amber-700">
                 ￥{Number(operationDashboard?.overdueReceivableAmount || 0).toLocaleString()}
               </p>
               <p className="text-xs text-amber-600 mt-1">点击跳转财务页核查</p>
@@ -472,13 +475,13 @@ const Dashboard: React.FC<DashboardProps> = ({
         </div>
       )}
       {upcomingPaymentPlans.length > 0 && (
-        <div className="bg-white rounded-3xl border border-slate-100/80 shadow-sm p-6">
-          <h3 className="font-bold text-slate-700 mb-4 flex items-center gap-2">
+        <div className="dashboard-panel p-6">
+          <h3 className="mb-4 flex items-center gap-2 font-semibold text-slate-800">
             <Wallet size={18} className="text-amber-600" />
             近期待催款预警（未来15日内）
           </h3>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="dashboard-table text-sm">
               <thead>
                 <tr className="border-b border-slate-200 text-slate-600 text-left">
                   <th className="py-2 px-3">项目</th>
@@ -523,13 +526,13 @@ const Dashboard: React.FC<DashboardProps> = ({
         </div>
       )}
       {overdueMilestones.length > 0 && (
-        <div className="bg-white rounded-3xl border border-slate-100/80 shadow-sm p-6">
-          <h3 className="font-bold text-slate-700 mb-4 flex items-center gap-2">
+        <div className="dashboard-panel p-6">
+          <h3 className="mb-4 flex items-center gap-2 font-semibold text-slate-800">
             <AlertTriangle size={18} className="text-red-600" />
             里程碑超期预警（计划日期已过且未完成）
           </h3>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="dashboard-table text-sm">
               <thead>
                 <tr className="border-b border-slate-200 text-slate-600 text-left">
                   <th className="py-2 px-3">项目</th>
@@ -570,8 +573,8 @@ const Dashboard: React.FC<DashboardProps> = ({
         </div>
       )}
       {budgetExecutionDashboard.length > 0 && (
-        <div className="bg-white rounded-3xl border border-slate-100/80 shadow-sm p-6">
-          <h3 className="font-bold text-slate-700 mb-4 flex items-center gap-2">
+        <div className="dashboard-panel p-6">
+          <h3 className="mb-4 flex items-center gap-2 font-semibold text-slate-800">
             <AlertTriangle
               size={18}
               className={
@@ -581,7 +584,7 @@ const Dashboard: React.FC<DashboardProps> = ({
             预算执行看板（预算 vs 实际成本）
           </h3>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="dashboard-table text-sm">
               <thead>
                 <tr className="border-b border-slate-200 text-slate-600 text-left">
                   <th className="py-2 px-3">项目</th>

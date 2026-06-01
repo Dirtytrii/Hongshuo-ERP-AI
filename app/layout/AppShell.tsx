@@ -10,17 +10,17 @@ interface AppShellProps {
 
 const AppShell: React.FC<AppShellProps> = ({ sidebar, header, isSidebarOpen, onCloseSidebar, children }) => {
   return (
-    <div className="relative flex h-screen min-w-0 bg-slate-50 text-slate-900 overflow-hidden font-sans">
+    <div className="relative flex h-[100dvh] min-h-[100dvh] min-w-0 overflow-hidden bg-[#f3f6f8] font-sans text-slate-950">
       {sidebar}
       {isSidebarOpen && (
         <button
           type="button"
           aria-label="关闭侧栏"
-          className="fixed inset-0 z-30 bg-slate-900/30 backdrop-blur-[1px] md:hidden"
+          className="fixed inset-0 z-30 bg-slate-950/35 backdrop-blur-[1px] md:hidden"
           onClick={onCloseSidebar}
         />
       )}
-      <main className="flex-1 min-w-0 w-full flex flex-col overflow-hidden">
+      <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
         {header}
         {children}
       </main>
