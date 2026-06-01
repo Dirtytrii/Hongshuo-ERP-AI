@@ -42,67 +42,80 @@ const Login: React.FC<LoginProps> = ({ onSuccess }) => {
       />
       <div className="absolute inset-0 bg-white/10" aria-hidden="true" />
       <div className="relative flex min-h-[calc(100dvh-2rem)] items-center justify-center">
-        <div className="relative w-full max-w-sm overflow-hidden rounded-[1.75rem] border border-white/80 bg-[linear-gradient(145deg,rgba(255,255,255,0.96),rgba(244,247,250,0.9))] px-7 py-7 shadow-[0_26px_80px_rgba(15,23,42,0.24),inset_0_1px_0_rgba(255,255,255,0.92)] backdrop-blur-xl 2xl:max-w-md 2xl:px-8 2xl:py-8">
+        <div
+          data-login-panel="true"
+          className="login-liquid-panel relative w-full max-w-sm overflow-hidden rounded-[1.75rem] px-7 py-7 text-slate-800 2xl:max-w-md 2xl:px-8 2xl:py-8"
+        >
           <div
-            className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-white to-transparent"
+            className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-white/90 to-transparent"
             aria-hidden="true"
           />
           <div
-            className="pointer-events-none absolute left-5 top-5 h-4 w-4 border-l border-t border-slate-300/70"
+            className="pointer-events-none absolute left-5 top-5 h-4 w-4 border-l border-t border-white/65"
             aria-hidden="true"
           />
           <div
-            className="pointer-events-none absolute right-5 top-5 h-4 w-4 border-r border-t border-slate-300/70"
+            className="pointer-events-none absolute right-5 top-5 h-4 w-4 border-r border-t border-white/65"
             aria-hidden="true"
           />
-          <div className="mb-6 border-b border-slate-200/70 pb-5 text-center">
-            <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.34em] text-slate-400">ACCESS PANEL</p>
-            <h1 className="text-2xl font-bold tracking-[0.05em] text-slate-800">宏硕建设 ERP</h1>
+          <div className="mb-6 border-b border-white/35 pb-5 text-center">
+            <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.34em] text-slate-500/90">ACCESS PANEL</p>
+            <h1 className="text-2xl font-bold tracking-[0.05em] text-slate-900">宏硕建设 ERP</h1>
           </div>
-          <h2 className="mb-5 flex items-center justify-center gap-3 text-base font-bold text-slate-700">
-            <span className="h-px w-8 bg-slate-300/80" aria-hidden="true" />
+          <h2 className="mb-5 flex items-center justify-center gap-3 text-base font-bold text-slate-800">
+            <span className="h-px w-8 bg-white/55" aria-hidden="true" />
             登录
-            <span className="h-px w-8 bg-slate-300/80" aria-hidden="true" />
+            <span className="h-px w-8 bg-white/55" aria-hidden="true" />
           </h2>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="mb-1.5 block text-sm font-semibold text-slate-600">用户名</label>
+              <label className="mb-1.5 block text-sm font-semibold text-slate-700">用户名</label>
               <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                <User
+                  className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"
+                  size={18}
+                />
                 <input
                   type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  className="w-full rounded-2xl border border-slate-200/90 bg-slate-50/80 py-3 pl-10 pr-4 text-slate-800 shadow-[inset_0_1px_0_rgba(255,255,255,0.75)] outline-none transition-colors placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/20"
+                  className="login-liquid-field w-full rounded-2xl py-3 pl-10 pr-4 text-slate-900 outline-none transition placeholder:text-slate-500 focus:border-white/80 focus:bg-white/50 focus:ring-2 focus:ring-blue-500/35"
                   placeholder="请输入用户名"
                   autoComplete="username"
                 />
               </div>
             </div>
             <div>
-              <label className="mb-1.5 block text-sm font-semibold text-slate-600">密码</label>
+              <label className="mb-1.5 block text-sm font-semibold text-slate-700">密码</label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                <Lock
+                  className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"
+                  size={18}
+                />
                 <input
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full rounded-2xl border border-slate-200/90 bg-slate-50/80 py-3 pl-10 pr-4 text-slate-800 shadow-[inset_0_1px_0_rgba(255,255,255,0.75)] outline-none transition-colors placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/20"
+                  className="login-liquid-field w-full rounded-2xl py-3 pl-10 pr-4 text-slate-900 outline-none transition placeholder:text-slate-500 focus:border-white/80 focus:bg-white/50 focus:ring-2 focus:ring-blue-500/35"
                   placeholder="请输入密码"
                   autoComplete="current-password"
                 />
               </div>
             </div>
-            {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>}
+            {error && (
+              <p className="rounded-2xl border border-red-200/70 bg-red-50/80 px-3 py-2 text-sm font-medium text-red-600 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]">
+                {error}
+              </p>
+            )}
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-2xl bg-gradient-to-r from-blue-700 via-blue-600 to-blue-500 py-3 font-semibold tracking-wide text-white shadow-[0_14px_30px_rgba(37,99,235,0.24)] transition-colors hover:from-blue-800 hover:via-blue-700 hover:to-blue-600 disabled:opacity-50"
+              className="w-full rounded-2xl border border-white/35 bg-[linear-gradient(135deg,#1d4ed8,#2563eb_48%,#38bdf8)] py-3 font-semibold tracking-wide text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.38),0_16px_34px_rgba(37,99,235,0.3)] transition hover:brightness-95 disabled:opacity-50"
             >
               {loading ? '登录中...' : '登录'}
             </button>
           </form>
-          <p className="mt-5 rounded-full border border-slate-200/70 bg-white/50 px-3 py-2 text-center text-xs text-slate-500">
+          <p className="login-liquid-note mt-5 rounded-full px-3 py-2 text-center text-xs font-medium text-slate-600">
             默认管理员：admin / 123456
           </p>
         </div>
