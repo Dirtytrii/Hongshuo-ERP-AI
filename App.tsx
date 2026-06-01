@@ -26,6 +26,7 @@ import AppSidebar from './app/shell/AppSidebar';
 import MessageCenterPopover from './app/shell/MessageCenterPopover';
 import { buildAlertSummary } from './modules/dashboard/services/alertSummary';
 import { DEFAULT_PERMISSIONS_CONFIG, DEFAULT_ROLES } from './app/config/appDefaults';
+import { SHOW_DEMO_CONTROLS } from './app/config/demoControls';
 import type { AiMessage, AiSession } from './utils/aiHistory';
 import { loadSessions, appendOrUpdateSession, sessionTitleFromMessages, removeSession } from './utils/aiHistory';
 import {
@@ -1422,6 +1423,7 @@ const App = () => {
             authUsername={authUser.username}
             roleLabel={currentUser.label}
             isAdmin={currentUser.id === 'admin'}
+            showDemoControls={SHOW_DEMO_CONTROLS}
             messageCenterCount={messageCenterCount}
             onToggleSidebar={() => setIsSidebarOpen((v) => !v)}
             onToggleMessageCenter={() => setIsNotificationOpen((v) => !v)}

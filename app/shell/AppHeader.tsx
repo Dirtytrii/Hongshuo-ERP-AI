@@ -8,6 +8,7 @@ interface AppHeaderProps {
   authUsername: string;
   roleLabel: string;
   isAdmin: boolean;
+  showDemoControls: boolean;
   messageCenterCount: number;
   onToggleSidebar: () => void;
   onToggleMessageCenter: () => void;
@@ -25,6 +26,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   authUsername,
   roleLabel,
   isAdmin,
+  showDemoControls,
   messageCenterCount,
   onToggleSidebar,
   onToggleMessageCenter,
@@ -82,7 +84,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
           {messageCenter}
         </div>
 
-        {isAdmin && (
+        {isAdmin && showDemoControls && (
           <div className="col-span-4 row-start-2 flex min-w-0 items-center gap-2 overflow-x-auto pb-0.5 md:overflow-visible md:pb-0">
             <button
               type="button"

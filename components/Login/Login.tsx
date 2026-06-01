@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Lock, User } from 'lucide-react';
 import { apiService, setStoredAuth } from '../../services/apiService';
+import { SHOW_DEMO_CONTROLS } from '../../app/config/demoControls';
 
 interface LoginProps {
   onSuccess: () => void;
@@ -118,9 +119,11 @@ const Login: React.FC<LoginProps> = ({ onSuccess }) => {
               {loading ? '登录中...' : '登录'}
             </button>
           </form>
-          <p className="login-liquid-note mt-5 rounded-full px-3 py-2 text-center text-xs font-medium text-slate-600">
-            默认管理员：admin / 123456
-          </p>
+          {SHOW_DEMO_CONTROLS && (
+            <p className="login-liquid-note mt-5 rounded-full px-3 py-2 text-center text-xs font-medium text-slate-600">
+              默认管理员：admin / 123456
+            </p>
+          )}
         </div>
       </div>
     </div>
