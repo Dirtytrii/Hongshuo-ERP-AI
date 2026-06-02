@@ -35,17 +35,37 @@ const Login: React.FC<LoginProps> = ({ onSuccess }) => {
   return (
     <div className="relative min-h-[100dvh] overflow-hidden bg-[#58534c] p-4">
       <img
-        src="/images/hongshuo-login-bg.jpg"
+        src="/images/hongshuo-login-bg-extended.jpg"
         alt=""
-        className="absolute inset-0 h-full w-full object-cover object-[28%_center] md:object-center"
+        className="absolute inset-0 h-full w-full object-cover object-[42%_center] md:object-center"
         aria-hidden="true"
         draggable={false}
       />
       <div className="absolute inset-0 bg-white/10" aria-hidden="true" />
-      <div className="relative flex min-h-[calc(100dvh-2rem)] items-center justify-center">
+      <div
+        className="pointer-events-none absolute left-5 top-5 z-[1] text-white sm:left-8 sm:top-6 lg:left-10 lg:top-10"
+        aria-hidden="true"
+      >
+        <p className="text-sm font-semibold tracking-[0.24em] drop-shadow-[0_1px_10px_rgba(15,23,42,0.35)] sm:text-base">
+          HONGSHUO ERP
+        </p>
+        <div className="mt-2 h-px w-8 bg-white/80" />
+        <p className="mt-2 text-[10px] font-medium tracking-[0.18em] text-white/72 drop-shadow-[0_1px_8px_rgba(15,23,42,0.28)] sm:text-xs">
+          PROJECT · MATERIAL · FINANCE
+        </p>
+      </div>
+      <div
+        className="pointer-events-none absolute bottom-8 left-8 z-[1] hidden max-w-[16rem] text-white/76 md:block lg:left-10"
+        aria-hidden="true"
+      >
+        <p className="text-xs font-medium tracking-[0.12em]">CONSTRUCTION MANAGEMENT PLATFORM</p>
+        <p className="mt-2 text-xs font-medium tracking-[0.12em]">REAL-TIME OPERATIONS</p>
+        <div className="mt-3 h-px w-8 bg-white/70" />
+      </div>
+      <div className="relative z-10 flex min-h-[calc(100dvh-2rem)] items-center justify-center">
         <div
           data-login-panel="true"
-          className="login-liquid-panel relative w-full max-w-sm overflow-hidden rounded-[1.75rem] px-7 py-7 text-slate-800 2xl:max-w-md 2xl:px-8 2xl:py-8"
+          className="login-liquid-panel relative w-full max-w-sm translate-y-10 overflow-hidden rounded-[1.75rem] px-7 py-7 text-slate-800 md:translate-y-0 2xl:max-w-md 2xl:px-8 2xl:py-8"
         >
           <div
             className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-white/90 to-transparent"
