@@ -87,6 +87,51 @@ class StockConcurrencyIntegrationTest {
         assertThat(stockLogRepository.findById(pending.getId()).orElseThrow().getStatus()).isEqualTo("active");
     }
 
+    @Test
+    void approveStockOut_whenDifferentPendingLogsCompeteForInsufficientStock_onlyOneApprovalSucceeds() throws Exception {
+        InventoryItem item = inventoryItemRepository.save(createItem(10));
+        StockLog firstPending = stockLogRepository.save(createStockLog(item.getId(), 8));
+        StockLog secondPending = stockLogRepository.save(createStockLog(item.getId(), 8));
+
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        CountDownLatch ready = new CountDownLatch(2);
+        CountDownLatch start = new CountDownLatch(1);
+
+        Callable<Boolean> approveFirst = createConcurrentApprovalTask(firstPending.getId(), ready, start);
+        Callable<Boolean> approveSecond = createConcurrentApprovalTask(secondPending.getId(), ready, start);
+
+        Future<Boolean> first = executor.submit(approveFirst);
+        Future<Boolean> second = executor.submit(approveSecond);
+        assertThat(ready.await(5, TimeUnit.SECONDS)).isTrue();
+        start.countDown();
+
+        List<Boolean> results = List.of(first.get(10, TimeUnit.SECONDS), second.get(10, TimeUnit.SECONDS));
+        executor.shutdown();
+        assertThat(executor.awaitTermination(5, TimeUnit.SECONDS)).isTrue();
+
+        StockLog firstReloaded = stockLogRepository.findById(firstPending.getId()).orElseThrow();
+        StockLog secondReloaded = stockLogRepository.findById(secondPending.getId()).orElseThrow();
+
+        assertThat(results).containsExactlyInAnyOrder(true, false);
+        assertThat(inventoryItemRepository.findById(item.getId()).orElseThrow().getQuantity()).isEqualTo(2);
+        assertThat(List.of(firstReloaded.getStatus(), secondReloaded.getStatus()))
+            .containsExactlyInAnyOrder("active", "pending");
+    }
+
+    private Callable<Boolean> createConcurrentApprovalTask(
+            Long stockLogId, CountDownLatch ready, CountDownLatch start) {
+        return () -> {
+            ready.countDown();
+            assertThat(start.await(5, TimeUnit.SECONDS)).isTrue();
+            try {
+                stockService.approveStockOut(stockLogId, "pm", "ok", true);
+                return true;
+            } catch (RuntimeException ex) {
+                return false;
+            }
+        };
+    }
+
     private static InventoryItem createItem(int quantity) {
         InventoryItem item = new InventoryItem();
         item.setName("concurrent-item");
