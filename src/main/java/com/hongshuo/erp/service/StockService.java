@@ -38,7 +38,7 @@ public class StockService {
      */
     @Transactional
     public StockLog createStockLog(StockLog stockLog, String creatorRole) {
-        InventoryItem item = inventoryItemRepository.findById(stockLog.getItemId())
+        InventoryItem item = inventoryItemRepository.findByIdForUpdate(stockLog.getItemId())
             .orElseThrow(() -> new RuntimeException("物料不存在: " + stockLog.getItemId()));
         
         // 出库操作
@@ -102,7 +102,7 @@ public class StockService {
      */
     @Transactional
     public StockLog approveStockOut(Long logId, String approverRole, String approvalNote, boolean approved) {
-        StockLog stockLog = stockLogRepository.findById(logId)
+        StockLog stockLog = stockLogRepository.findByIdForUpdate(logId)
             .orElseThrow(() -> new RuntimeException("出库记录不存在: " + logId));
         
         if (stockLog.getType() != StockLog.StockType.out) {
@@ -129,7 +129,7 @@ public class StockService {
             throw new RuntimeException("只有项目经理或管理员可以审核出库申请");
         }
         
-        InventoryItem item = inventoryItemRepository.findById(stockLog.getItemId())
+        InventoryItem item = inventoryItemRepository.findByIdForUpdate(stockLog.getItemId())
             .orElseThrow(() -> new RuntimeException("物料不存在"));
         
         if (approved) {
@@ -226,7 +226,7 @@ public class StockService {
      */
     @Transactional
     public StockLog approveReversal(Long logId, String approverRole, String approvalNote, boolean approved) {
-        StockLog reversal = stockLogRepository.findById(logId)
+        StockLog reversal = stockLogRepository.findByIdForUpdate(logId)
             .orElseThrow(() -> new RuntimeException("冲销记录不存在: " + logId));
         if (!Boolean.TRUE.equals(reversal.getIsReversal())) {
             throw new RuntimeException("该记录不是冲销单，请使用常规审批接口");
@@ -245,7 +245,7 @@ public class StockService {
         }
 
         if (approved) {
-            InventoryItem item = inventoryItemRepository.findById(reversal.getItemId())
+            InventoryItem item = inventoryItemRepository.findByIdForUpdate(reversal.getItemId())
                 .orElseThrow(() -> new RuntimeException("物料不存在"));
 
             if (reversal.getType() == StockLog.StockType.out) {
