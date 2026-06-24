@@ -58,6 +58,9 @@ public class DataInitializer implements CommandLineRunner {
     @Value("${app.security.allow-insecure-default-password:false}")
     private boolean allowInsecureDefaultPassword;
 
+    @Value("${app.data.seed-demo:false}")
+    private boolean seedDemoData;
+
     @Override
     public void run(String... args) {
         boolean hasData = projectRepository.count() > 0;
@@ -65,6 +68,7 @@ public class DataInitializer implements CommandLineRunner {
         // 如果配置为不重置，且已有数据，则跳过初始化
         if (!resetOnStartup && hasData) {
             System.out.println("数据库已有数据，跳过初始化（app.data.reset-on-startup=false）");
+            initDefaultRoles();
             initTestUsers();
             return;
         }
@@ -75,7 +79,11 @@ public class DataInitializer implements CommandLineRunner {
 
         // 0. 初始化内置角色（如果不存在）
         initDefaultRoles();
-        initializeSeedData();
+        if (seedDemoData) {
+            initializeSeedData();
+        } else {
+            System.out.println("Demo data seeding is disabled (app.data.seed-demo=false).");
+        }
 
         initTestUsers();
         System.out.println("数据库初始化完成！");
