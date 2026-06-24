@@ -90,12 +90,13 @@ class ReimbursementServiceTest {
 
         when(reimbursementRepository.findById(1L)).thenReturn(Optional.of(reimbursement));
         when(reimbursementRepository.save(any(Reimbursement.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(projectRepository.findById(10L)).thenReturn(Optional.of(project));
+        when(projectRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(project));
 
         Reimbursement approved = reimbursementService.approve(1L, "finance", true, "ok");
 
         assertThat(approved.getStatus()).isEqualTo("approved");
         assertThat(project.getOtherCost()).isEqualTo(new BigDecimal("1300.00"));
+        verify(projectRepository).findByIdForUpdate(10L);
         verify(projectRepository).save(project);
 
         ArgumentCaptor<FinanceRecord> captor = ArgumentCaptor.forClass(FinanceRecord.class);

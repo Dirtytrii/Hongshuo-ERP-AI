@@ -199,7 +199,7 @@ public class ReimbursementService {
         if (reimbursement.getProjectId() == null) {
             return;
         }
-        Project project = projectRepository.findById(reimbursement.getProjectId()).orElse(null);
+        Project project = projectRepository.findByIdForUpdate(reimbursement.getProjectId()).orElse(null);
         if (project == null) {
             return;
         }
