@@ -60,6 +60,7 @@ class ContractServiceTest {
             return c;
         });
         when(contractRepository.countByProjectId(100L)).thenReturn(1L);
+        when(projectRepository.findByIdForUpdate(100L)).thenReturn(Optional.of(p));
         when(contractRepository.sumContractAmountByProjectId(100L)).thenReturn(BigDecimal.valueOf(6000));
         when(changeOrderRepository.sumApprovedAmountByProjectId(100L)).thenReturn(BigDecimal.valueOf(1000));
 
@@ -92,15 +93,16 @@ class ContractServiceTest {
         Project p2 = createProject(200L, BigDecimal.valueOf(8000));
 
         when(contractRepository.findById(1L)).thenReturn(Optional.of(existing));
-        when(projectRepository.findById(100L)).thenReturn(Optional.of(p1));
         when(projectRepository.findById(200L)).thenReturn(Optional.of(p2));
         when(contractRepository.save(any(Contract.class))).thenAnswer(inv -> inv.getArgument(0));
 
         when(contractRepository.countByProjectId(200L)).thenReturn(1L);
+        when(projectRepository.findByIdForUpdate(200L)).thenReturn(Optional.of(p2));
         when(contractRepository.sumContractAmountByProjectId(200L)).thenReturn(BigDecimal.valueOf(2000));
         when(changeOrderRepository.sumApprovedAmountByProjectId(200L)).thenReturn(BigDecimal.ZERO);
 
         when(contractRepository.countByProjectId(100L)).thenReturn(1L);
+        when(projectRepository.findByIdForUpdate(100L)).thenReturn(Optional.of(p1));
         when(contractRepository.sumContractAmountByProjectId(100L)).thenReturn(BigDecimal.valueOf(5000));
         when(changeOrderRepository.sumApprovedAmountByProjectId(100L)).thenReturn(BigDecimal.valueOf(500));
 

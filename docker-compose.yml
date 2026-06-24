@@ -14,7 +14,12 @@ services:
       - SPRING_DATASOURCE_URL=jdbc:h2:file:./data/hongshuo_erp
       - SPRING_DATASOURCE_USERNAME=sa
       - SPRING_DATASOURCE_PASSWORD=
-      - SPRING_PROFILES_ACTIVE=default
+      - SPRING_PROFILES_ACTIVE=prod
+      - APP_DATA_RESET_ON_STARTUP=false
+      - APP_DATA_SEED_DEMO=false
+      - APP_DATA_RESET_ENDPOINT_ENABLED=false
+      - APP_SECURITY_ALLOW_INSECURE_DEFAULT_PASSWORD=false
+      - APP_SECURITY_BOOTSTRAP_DEFAULT_PASSWORD=${APP_SECURITY_BOOTSTRAP_DEFAULT_PASSWORD:?Set APP_SECURITY_BOOTSTRAP_DEFAULT_PASSWORD before starting the backend}
     volumes:
       - ./data:/app/data
     networks:

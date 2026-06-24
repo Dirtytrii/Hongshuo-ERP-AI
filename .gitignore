@@ -21,6 +21,8 @@ data/**/*.db
 playwright-report/
 test-results/
 vitest-result.json
+.codegraph/
+.codex/
 
 # Local exports / bundles
 dist.zip

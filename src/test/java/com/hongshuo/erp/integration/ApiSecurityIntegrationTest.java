@@ -115,6 +115,69 @@ class ApiSecurityIntegrationTest {
     }
 
     @Test
+    void disabledUserTokenCannotUseMeOrProtectedApi() throws Exception {
+        String pmToken = login("pm");
+
+        User pm = userRepository.findByUsername("pm").orElseThrow();
+        pm.setEnabled(false);
+        userRepository.save(pm);
+
+        mockMvc.perform(get("/api/auth/me")
+                .header("Authorization", "Bearer " + pmToken))
+            .andExpect(status().isUnauthorized());
+
+        mockMvc.perform(get("/api/projects")
+                .header("Authorization", "Bearer " + pmToken))
+            .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void downgradedAdminTokenLosesAdminPermissionImmediately() throws Exception {
+        String adminToken = login("admin");
+
+        User admin = userRepository.findByUsername("admin").orElseThrow();
+        admin.setRole("pm");
+        userRepository.save(admin);
+
+        mockMvc.perform(get("/api/users")
+                .header("Authorization", "Bearer " + adminToken))
+            .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void createUserRejectsBlankPasswordAndAcceptsValidPassword() throws Exception {
+        String adminToken = login("admin");
+
+        mockMvc.perform(post("/api/users")
+                .header("Authorization", "Bearer " + adminToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {"username":"blank-user","password":"   ","role":"pm"}
+                    """))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.error").exists());
+
+        mockMvc.perform(post("/api/users")
+                .header("Authorization", "Bearer " + adminToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {"username":"valid-user","password":"valid123","role":"pm"}
+                    """))
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.username").value("valid-user"));
+    }
+
+    @Test
+    void dataResetEndpointIsDisabledByDefaultEvenForAdmin() throws Exception {
+        String adminToken = login("admin");
+
+        mockMvc.perform(post("/api/data/reset")
+                .header("Authorization", "Bearer " + adminToken))
+            .andExpect(status().isForbidden())
+            .andExpect(jsonPath("$.success").value(false));
+    }
+
+    @Test
     void apiDebugAndDocumentationPathsAreDenied() throws Exception {
         String adminToken = login("admin");
 

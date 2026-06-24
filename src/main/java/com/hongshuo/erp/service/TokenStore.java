@@ -1,6 +1,7 @@
 package com.hongshuo.erp.service;
 
 import com.hongshuo.erp.model.User;
+import com.hongshuo.erp.repository.UserRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.Map;
@@ -13,16 +14,24 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @Service
 public class TokenStore {
-    private static final Map<String, User> tokens = new ConcurrentHashMap<>();
+    private static final Map<String, Long> tokens = new ConcurrentHashMap<>();
+
+    private final UserRepository userRepository;
+
+    public TokenStore(UserRepository userRepository) {
+        this.userRepository = userRepository;
+    }
 
     public String createToken(User user) {
         String token = UUID.randomUUID().toString();
-        tokens.put(token, user);
+        tokens.put(token, user.getId());
         return token;
     }
 
     public Optional<User> getUserByToken(String token) {
-        return Optional.ofNullable(tokens.get(token));
+        return Optional.ofNullable(tokens.get(token))
+            .flatMap(userRepository::findById)
+            .filter(user -> Boolean.TRUE.equals(user.getEnabled()));
     }
 
     /** Parse Authorization header (Bearer <token>) and return current user if valid. */

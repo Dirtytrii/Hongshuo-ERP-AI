@@ -1,8 +1,11 @@
 interface PagesFunctionContext {
   request: Request;
+  env?: {
+    UPSTREAM_ORIGIN?: string;
+  };
 }
 
-const UPSTREAM_ORIGIN = 'http://api-hongshuo.dingai.site';
+const DEFAULT_UPSTREAM_ORIGIN = 'https://api-hongshuo.dingai.site';
 const DEFAULT_PUBLIC_ORIGIN = 'https://hongshuo-erp-ai.pages.dev';
 const ALLOWED_ORIGINS = new Set([
   DEFAULT_PUBLIC_ORIGIN,
@@ -21,6 +24,13 @@ export async function onRequest(context: PagesFunctionContext) {
   const req = context.request;
   const url = new URL(req.url);
   const corsHeaders = buildCorsHeaders(req, url);
+  let upstreamOrigin: string;
+
+  try {
+    upstreamOrigin = resolveUpstreamOrigin(context.env?.UPSTREAM_ORIGIN);
+  } catch {
+    return jsonResponse({ error: 'Invalid upstream origin' }, 500, corsHeaders);
+  }
 
   if (req.method === 'OPTIONS') {
     return new Response(null, {
@@ -39,7 +49,7 @@ export async function onRequest(context: PagesFunctionContext) {
   }
 
   if (!isPublicApiRoute(req.method, url.pathname)) {
-    const user = await authenticate(req);
+    const user = await authenticate(req, upstreamOrigin);
     if (!user) {
       return jsonResponse({ error: '未登录' }, 401, corsHeaders);
     }
@@ -48,7 +58,7 @@ export async function onRequest(context: PagesFunctionContext) {
     }
   }
 
-  const upstream = new URL(url.pathname + url.search, UPSTREAM_ORIGIN);
+  const upstream = new URL(url.pathname + url.search, upstreamOrigin);
 
   const headers = new Headers(req.headers);
   stripHopByHopHeaders(headers);
@@ -72,6 +82,21 @@ export async function onRequest(context: PagesFunctionContext) {
 function isPublicApiRoute(method: string, pathname: string): boolean {
   const normalizedPath = normalizePath(pathname);
   return method.toUpperCase() === 'POST' && normalizedPath === '/api/auth/login';
+}
+
+function resolveUpstreamOrigin(configuredOrigin?: string): string {
+  const rawOrigin = configuredOrigin?.trim() || DEFAULT_UPSTREAM_ORIGIN;
+  const upstream = new URL(rawOrigin);
+  const hostname = upstream.hostname.toLowerCase();
+  const isLocalHttp =
+    upstream.protocol === 'http:' &&
+    (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]' || hostname === '::1');
+
+  if (upstream.protocol === 'https:' || isLocalHttp) {
+    return upstream.origin;
+  }
+
+  throw new Error('Invalid upstream origin');
 }
 
 async function rejectHistoricalDefaultCredentials(
@@ -110,13 +135,13 @@ function isDebugPath(pathname: string): boolean {
   );
 }
 
-async function authenticate(req: Request): Promise<AuthenticatedUser | null> {
+async function authenticate(req: Request, upstreamOrigin: string): Promise<AuthenticatedUser | null> {
   const authorization = req.headers.get('Authorization');
   if (!authorization?.startsWith('Bearer ')) {
     return null;
   }
 
-  const authCheckResponse = await fetch(new URL('/api/auth/me', UPSTREAM_ORIGIN).toString(), {
+  const authCheckResponse = await fetch(new URL('/api/auth/me', upstreamOrigin).toString(), {
     method: 'GET',
     headers: {
       Authorization: authorization,

@@ -2,6 +2,7 @@ package com.hongshuo.erp.config;
 
 import com.hongshuo.erp.model.*;
 import com.hongshuo.erp.repository.*;
+import com.hongshuo.erp.service.BusinessDataResetService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.beans.factory.annotation.Value;
@@ -49,6 +50,9 @@ public class DataInitializer implements CommandLineRunner {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    @Autowired
+    private BusinessDataResetService businessDataResetService;
+
     @Value("${app.data.reset-on-startup:false}")
     private boolean resetOnStartup;
 
@@ -58,6 +62,9 @@ public class DataInitializer implements CommandLineRunner {
     @Value("${app.security.allow-insecure-default-password:false}")
     private boolean allowInsecureDefaultPassword;
 
+    @Value("${app.data.seed-demo:false}")
+    private boolean seedDemoData;
+
     @Override
     public void run(String... args) {
         boolean hasData = projectRepository.count() > 0;
@@ -65,6 +72,7 @@ public class DataInitializer implements CommandLineRunner {
         // 如果配置为不重置，且已有数据，则跳过初始化
         if (!resetOnStartup && hasData) {
             System.out.println("数据库已有数据，跳过初始化（app.data.reset-on-startup=false）");
+            initDefaultRoles();
             initTestUsers();
             return;
         }
@@ -75,7 +83,11 @@ public class DataInitializer implements CommandLineRunner {
 
         // 0. 初始化内置角色（如果不存在）
         initDefaultRoles();
-        initializeSeedData();
+        if (seedDemoData) {
+            initializeSeedData();
+        } else {
+            System.out.println("Demo data seeding is disabled (app.data.seed-demo=false).");
+        }
 
         initTestUsers();
         System.out.println("数据库初始化完成！");
@@ -88,12 +100,7 @@ public class DataInitializer implements CommandLineRunner {
         }
 
         System.out.println("检测到 app.data.reset-on-startup=true，清空现有数据...");
-        systemLogRepository.deleteAll();
-        stockLogRepository.deleteAll();
-        financeRecordRepository.deleteAll();
-        milestoneRepository.deleteAll();
-        projectRepository.deleteAll();
-        inventoryItemRepository.deleteAll();
+        businessDataResetService.resetBusinessData();
         roleRepository.deleteAll();
         userRepository.deleteAll();
         System.out.println("数据清空完成");

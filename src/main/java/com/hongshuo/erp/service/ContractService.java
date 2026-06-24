@@ -156,7 +156,7 @@ public class ContractService {
         if (contractRepository.countByProjectId(projectId) == 0) {
             return;
         }
-        Project project = projectRepository.findById(projectId)
+        Project project = projectRepository.findByIdForUpdate(projectId)
             .orElseThrow(() -> new RuntimeException("项目不存在: " + projectId));
 
         BigDecimal contractTotal = contractRepository.sumContractAmountByProjectId(projectId);

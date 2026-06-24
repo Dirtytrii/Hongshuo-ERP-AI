@@ -72,6 +72,10 @@ public class UserController {
         if (role == null || role.isBlank()) {
             return ResponseEntity.badRequest().body(Map.of("error", "角色不能为空"));
         }
+        String passwordError = validatePassword(password);
+        if (passwordError != null) {
+            return ResponseEntity.badRequest().body(Map.of("error", passwordError));
+        }
         if (userRepository.existsByUsername(username.trim())) {
             return ResponseEntity.badRequest().body(Map.of("error", "用户名已存在"));
         }
@@ -104,9 +108,13 @@ public class UserController {
             }
             if (!username.isEmpty()) user.setUsername(username);
         }
-        if (body.containsKey("password") && body.get("password") != null) {
-            String pwd = (String) body.get("password");
-            if (!pwd.isEmpty()) user.setPasswordHash(passwordEncoder.encode(pwd));
+        if (body.containsKey("password")) {
+            String pwd = body.get("password") != null ? (String) body.get("password") : "";
+            String passwordError = validatePassword(pwd);
+            if (passwordError != null) {
+                return ResponseEntity.badRequest().body(Map.of("error", passwordError));
+            }
+            user.setPasswordHash(passwordEncoder.encode(pwd));
         }
         if (body.containsKey("role")) user.setRole(((String) body.get("role")).trim());
         if (body.containsKey("enabled")) user.setEnabled(Boolean.TRUE.equals(body.get("enabled")));
@@ -142,6 +150,16 @@ public class UserController {
     private boolean requireAuth(String auth) {
         String token = auth != null && auth.startsWith("Bearer ") ? auth.substring(7).trim() : null;
         return token != null && tokenStore.getUserByToken(token).isPresent();
+    }
+
+    private static String validatePassword(String password) {
+        if (password == null || password.isBlank()) {
+            return "瀵嗙爜涓嶈兘涓虹┖";
+        }
+        if (password.length() < 6) {
+            return "瀵嗙爜闀垮害涓嶈兘灏戜簬6浣?";
+        }
+        return null;
     }
 
     private static Map<String, Object> userResponse(User user) {
