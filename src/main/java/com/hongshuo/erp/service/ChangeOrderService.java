@@ -97,7 +97,7 @@ public class ChangeOrderService {
         order.setApprovalNote(approvalNote != null ? approvalNote : "");
         order.setStatus(approved ? "approved" : "rejected");
         if (approved && order.getAmount() != null && order.getProjectId() != null) {
-            Project project = projectRepository.findById(order.getProjectId())
+            Project project = projectRepository.findByIdForUpdate(order.getProjectId())
                 .orElseThrow(() -> new RuntimeException("项目不存在: " + order.getProjectId()));
             BigDecimal newContract = (project.getContractAmount() != null ? project.getContractAmount() : BigDecimal.ZERO).add(order.getAmount());
             project.setContractAmount(newContract);

@@ -5,6 +5,7 @@ import com.hongshuo.erp.model.Project;
 import com.hongshuo.erp.model.User;
 import com.hongshuo.erp.repository.FinanceRecordRepository;
 import com.hongshuo.erp.repository.ProjectRepository;
+import com.hongshuo.erp.repository.UserRepository;
 import com.hongshuo.erp.service.TokenStore;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,6 +41,9 @@ class FinanceProjectHttpIntegrationTest {
 
     @Autowired
     private FinanceRecordRepository financeRecordRepository;
+
+    @Autowired
+    private UserRepository userRepository;
 
     @Autowired
     private TokenStore tokenStore;
@@ -129,6 +133,8 @@ class FinanceProjectHttpIntegrationTest {
         admin.setUsername("admin");
         admin.setRole("admin");
         admin.setEnabled(true);
+        admin.setPasswordHash("test-only");
+        admin = userRepository.save(admin);
         return "Bearer " + tokenStore.createToken(admin);
     }
 }

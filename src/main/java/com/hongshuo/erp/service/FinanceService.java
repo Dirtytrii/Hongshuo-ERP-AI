@@ -1,6 +1,7 @@
 package com.hongshuo.erp.service;
 
 import com.hongshuo.erp.model.FinanceRecord;
+import com.hongshuo.erp.model.Project;
 import com.hongshuo.erp.repository.FinanceRecordRepository;
 import com.hongshuo.erp.repository.ProjectRepository;
 import com.hongshuo.erp.repository.SystemLogRepository;
@@ -125,12 +126,6 @@ public class FinanceService {
             record.setCostType(categoryToCostType(record.getCategory()));
         }
         // 支出且关联项目、将直接生效时，超预算校验（超100%仅管理员可特批）
-        if (record.getType() == FinanceRecord.FinanceType.expense && record.getProjectId() != null && record.getAmount() != null) {
-            boolean willApprove = record.getAmount().compareTo(LARGE_EXPENSE_THRESHOLD) < 0;
-            if (willApprove) {
-                projectService.checkOverBudgetAllowAdmin(record.getProjectId(), record.getAmount(), creatorRole);
-            }
-        }
         FinanceRecord saved = financeRecordRepository.save(record);
         if ("pending".equals(saved.getStatus())) {
             workflowNotifyService.notifySubmitted(
@@ -143,7 +138,8 @@ public class FinanceService {
         
         if ("approved".equals(saved.getStatus()) && saved.getProjectId() != null && saved.getAmount() != null) {
             if (saved.getType() == FinanceRecord.FinanceType.expense) {
-                projectRepository.findById(saved.getProjectId()).ifPresent(project -> {
+                projectRepository.findByIdForUpdate(saved.getProjectId()).ifPresent(project -> {
+                    checkOverBudgetAllowAdmin(project, saved.getAmount(), creatorRole);
                     String costType = saved.getCostType() != null ? saved.getCostType() : categoryToCostType(saved.getCategory());
                     BigDecimal amt = saved.getAmount();
                     if ("material".equals(costType)) project.setMaterialCost(project.getMaterialCost().add(amt));
@@ -152,7 +148,7 @@ public class FinanceService {
                     projectRepository.save(project);
                 });
             } else {
-                projectRepository.findById(saved.getProjectId()).ifPresent(project -> {
+                projectRepository.findByIdForUpdate(saved.getProjectId()).ifPresent(project -> {
                     project.setReceivedAmount(project.getReceivedAmount().add(saved.getAmount()));
                     projectRepository.save(project);
                 });
@@ -193,13 +189,8 @@ public class FinanceService {
             if (record.getType() == FinanceRecord.FinanceType.expense 
                 && record.getProjectId() != null 
                 && record.getAmount() != null) {
-                projectService.checkOverBudgetAllowAdmin(record.getProjectId(), record.getAmount(), approverRole);
-            }
-            
-            if (record.getType() == FinanceRecord.FinanceType.expense 
-                && record.getProjectId() != null 
-                && record.getAmount() != null) {
-                projectRepository.findById(record.getProjectId()).ifPresent(project -> {
+                projectRepository.findByIdForUpdate(record.getProjectId()).ifPresent(project -> {
+                    checkOverBudgetAllowAdmin(project, record.getAmount(), approverRole);
                     String costType = record.getCostType() != null ? record.getCostType() : categoryToCostType(record.getCategory());
                     BigDecimal amt = record.getAmount();
                     if ("material".equals(costType)) {
@@ -213,7 +204,7 @@ public class FinanceService {
                 });
             }
             if (record.getType() == FinanceRecord.FinanceType.income && record.getProjectId() != null && record.getAmount() != null) {
-                projectRepository.findById(record.getProjectId()).ifPresent(project -> {
+                projectRepository.findByIdForUpdate(record.getProjectId()).ifPresent(project -> {
                     project.setReceivedAmount(project.getReceivedAmount().add(record.getAmount()));
                     projectRepository.save(project);
                 });
@@ -298,6 +289,30 @@ public class FinanceService {
         return r.contains("admin") || r.contains("管理员") || r.contains("finance") || r.contains("财务");
     }
     
+    private void checkOverBudgetAllowAdmin(Project project, BigDecimal additionalAmount, String currentUserRole) {
+        if (project == null || additionalAmount == null) return;
+        BigDecimal budget = project.getTotalBudget();
+        if (budget == null || budget.compareTo(BigDecimal.ZERO) <= 0) return;
+
+        BigDecimal fromStock = projectService.getOutboundAmountSum(project.getId());
+        if (fromStock == null) fromStock = BigDecimal.ZERO;
+        BigDecimal current = zero(project.getMaterialCost())
+            .add(fromStock)
+            .add(zero(project.getLaborCost()))
+            .add(zero(project.getOtherCost()));
+        BigDecimal after = current.add(additionalAmount);
+        if (after.compareTo(budget) <= 0) return;
+
+        boolean isAdmin = currentUserRole != null && currentUserRole.toLowerCase().contains("admin");
+        if (!isAdmin) {
+            throw new RuntimeException("Project budget exceeded: budget=" + budget + ", current=" + current);
+        }
+    }
+
+    private static BigDecimal zero(BigDecimal value) {
+        return value != null ? value : BigDecimal.ZERO;
+    }
+
     private void logSystemAction(String user, String action, String detail) {
         SystemLog log = new SystemLog();
         log.setTime(LocalDateTime.now());
