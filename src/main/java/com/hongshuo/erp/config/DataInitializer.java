@@ -2,6 +2,7 @@ package com.hongshuo.erp.config;
 
 import com.hongshuo.erp.model.*;
 import com.hongshuo.erp.repository.*;
+import com.hongshuo.erp.service.BusinessDataResetService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.beans.factory.annotation.Value;
@@ -48,6 +49,9 @@ public class DataInitializer implements CommandLineRunner {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private BusinessDataResetService businessDataResetService;
 
     @Value("${app.data.reset-on-startup:false}")
     private boolean resetOnStartup;
@@ -96,12 +100,7 @@ public class DataInitializer implements CommandLineRunner {
         }
 
         System.out.println("检测到 app.data.reset-on-startup=true，清空现有数据...");
-        systemLogRepository.deleteAll();
-        stockLogRepository.deleteAll();
-        financeRecordRepository.deleteAll();
-        milestoneRepository.deleteAll();
-        projectRepository.deleteAll();
-        inventoryItemRepository.deleteAll();
+        businessDataResetService.resetBusinessData();
         roleRepository.deleteAll();
         userRepository.deleteAll();
         System.out.println("数据清空完成");

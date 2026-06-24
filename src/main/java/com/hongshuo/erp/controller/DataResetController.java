@@ -1,6 +1,6 @@
 package com.hongshuo.erp.controller;
 
-import com.hongshuo.erp.repository.*;
+import com.hongshuo.erp.service.BusinessDataResetService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -15,49 +15,7 @@ import java.util.Map;
 public class DataResetController {
 
     @Autowired
-    private SystemLogRepository systemLogRepository;
-    
-    @Autowired
-    private StockLogRepository stockLogRepository;
-    
-    @Autowired
-    private FinanceRecordRepository financeRecordRepository;
-    
-    @Autowired
-    private MilestoneRepository milestoneRepository;
-    
-    @Autowired
-    private ProjectRepository projectRepository;
-    
-    @Autowired
-    private InventoryItemRepository inventoryItemRepository;
-
-    @Autowired
-    private ProjectDocumentRepository projectDocumentRepository;
-
-    @Autowired
-    private LoanRepaymentRepository loanRepaymentRepository;
-
-    @Autowired
-    private ReimbursementRepository reimbursementRepository;
-
-    @Autowired
-    private LoanRepository loanRepository;
-
-    @Autowired
-    private PaymentPlanItemRepository paymentPlanItemRepository;
-
-    @Autowired
-    private ContractRepository contractRepository;
-
-    @Autowired
-    private ChangeOrderRepository changeOrderRepository;
-
-    @Autowired
-    private SupplierRepository supplierRepository;
-
-    @Autowired
-    private DepartmentRepository departmentRepository;
+    private BusinessDataResetService businessDataResetService;
 
     @Value("${app.data.reset-endpoint.enabled:false}")
     private boolean resetEndpointEnabled;
@@ -73,21 +31,7 @@ public class DataResetController {
         }
         try {
             // 清空所有数据（按依赖关系顺序）
-            systemLogRepository.deleteAll();
-            projectDocumentRepository.deleteAll();
-            loanRepaymentRepository.deleteAll();
-            reimbursementRepository.deleteAll();
-            loanRepository.deleteAll();
-            stockLogRepository.deleteAll();
-            financeRecordRepository.deleteAll();
-            paymentPlanItemRepository.deleteAll();
-            contractRepository.deleteAll();
-            changeOrderRepository.deleteAll();
-            milestoneRepository.deleteAll();
-            inventoryItemRepository.deleteAll();
-            supplierRepository.deleteAll();
-            departmentRepository.deleteAll();
-            projectRepository.deleteAll();
+            businessDataResetService.resetBusinessData();
             
             return ResponseEntity.ok(Map.of(
                 "success", true,
